@@ -1,5 +1,6 @@
 /data/
 /images/
+/env/
 *.ipynb_checkpoints
 .DS_Store
 *.pyc
