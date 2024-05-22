@@ -1,10 +1,12 @@
 import numpy as np 
 import enum
-import os 
+import os,sys
 import torch
 import dgl 
 from dgl.data import DGLDataset
-os.chdir('../')
+project_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', ''))
+sys.path.append(project_path)
+
 from python.python_code.data_manip.extraction.telemac_file import TelemacFile
 
 class NodeType(enum.IntEnum):
@@ -41,20 +43,19 @@ def extract_node_type(tri,bnd_info):
                       'Custom (0,0,0)':                  [0, 0, 0],
                       'Free boundaries (4,4,4)':         [4, 4, 4]}
     
-    bnd_one_hot_dict = {'[2, 2, 2]':np.array([0,0,0,1]),
+    bnd_one_hot_dict = {'[2, 2, 2]':np.array([0,0,0,3]),
                      '[5, 4, 4]':np.array([0,1,0,0]),
-                      '[4, 5, 5]':np.array([0,0,1,0]),
+                      '[4, 5, 5]':np.array([0,0,2,0]),
                       }
     # on crée un one hot vectot de la taille de tous les pts ou tous les points sont normaux
     output = np.zeros((nb_points,NodeType.SIZE))
-    output[:,0] = 1
+    output[:,0] = 0
     
     for i in range(nbnd_poin):
         bc_type = [lihbor[i], liubor[i], livbor[i]]
         item = bnd_one_hot_dict[str(bc_type)]
         output[nbor[i],:] = item
-    return output 
-
+    return output
 
 def extract_h_u_v(res,timestep):
     """
@@ -165,7 +166,7 @@ def get_edges_features(tri,coo,res):
     return np.concatenate([u_ij,norm],axis=1).astype('float32')
 
 
-def get_node_outputs(x,x_future,dt):
+def get_node_outputs(res,dt,timestep):
     """
     Contains the fluid acceleration between the current graph and the graph 
     in the next time step. These are the features used for training: y=(v_t_next-v_t_curr)/dt [num_nodes x 2]
@@ -173,7 +174,7 @@ def get_node_outputs(x,x_future,dt):
     Returns:
         _type_: _description_
     """
-    result = (x_future[:,4:7]-x[:,4:7])/dt
+    result = (extract_h_u_v(res,timestep+1)-extract_h_u_v(res,timestep))/dt
     
     return result
 
@@ -186,8 +187,8 @@ def put_boundary_infos(x,x_future):
         y (_type_): _description_
     """
     #Q imposé
-    x[(x[:,:4] == [0,0,1,0]).all(axis=1),4:7] = x_future[(x[:,:4] == [0,0,1,0]).all(axis=1),4:7]
-    #print((x[:,:4] == [0,0,1,0]).all(axis=1).sum())
+    x[(x[:,:4] == [0,0,2,0]).all(axis=1),4:7] = x_future[(x[:,:4] == [0,0,2,0]).all(axis=1),4:7]
+    #print((x[:,:4] == [0,0,2,0]).all(axis=1).sum())
     # on impose hauteur à l'instant t+1 
     x[(x[:,:4] == [0,1,0,0]).all(axis=1),4:5] = x_future[(x[:,:4] == [0,1,0,0]).all(axis=1),4:5]
     #print((x[:,:4] == [0,1,0,0]).all(axis=1).sum())
@@ -241,13 +242,11 @@ def create_dgl_dataset(mesh_list, res_list, cli_list, dt_list, data_folder, data
             x = get_node_features(res, res_mesh, ts)
             edge_features = get_edges_features(res.tri, g.edges(), res_mesh)
 
-            
+            # Get outputs for training
+            y = get_node_outputs(res, dt, ts)
             
             x_future = get_node_features(res,res_mesh,ts+1)
             x = put_boundary_infos(x,x_future)
-            
-            # Get outputs for training
-            y = get_node_outputs(x,x_future, dt)
             
             add_features_to_graph(g, x, edge_features)
             
@@ -286,6 +285,23 @@ class TelemacDataset(DGLDataset):
         force reload, by default False
     verbose : bool, optional
         verbose, by default False
+        
+    node_var_info : dict, optional {
+            "h": {"source": "x", "index": 4},
+            "u": {"source": "x", "index": 5},
+            "v": {"source": "x", "index": 6},
+            "strickler": {"source": "x", "index": 7},
+            "z": {"source": "x", "index": 8},
+            "delta_h": {"source": "y", "index": 0},
+            "delta_u": {"source": "y", "index": 1},
+            "delta_v": {"source": "y", "index": 2},
+        }
+    edge_var_info : dict, optional {
+            "xrel": {"source": "x", "index": 0},
+            "yrel": {"source": "x", "index": 1},
+            "norm": {"source": "x", "index": 2},
+        }
+        
     """
 
     def __init__(
@@ -297,7 +313,23 @@ class TelemacDataset(DGLDataset):
         num_steps=600,
         force_reload=False,
         verbose=False,
-        normalize=True
+        normalize=True,
+        node_var_info = {
+            "h": {"source": "x", "index": 4},
+            "u": {"source": "x", "index": 5},
+            "v": {"source": "x", "index": 6},
+            "strickler": {"source": "x", "index": 7},
+            "z": {"source": "x", "index": 8},
+            "delta_h": {"source": "y", "index": 0},
+            "delta_u": {"source": "y", "index": 1},
+            "delta_v": {"source": "y", "index": 2},
+        },
+        edge_var_info = {
+            "xrel": {"source": "x", "index": 0},
+            "yrel": {"source": "x", "index": 1},
+            "norm": {"source": "x", "index": 2},
+        }
+        
     ):
         super().__init__(
             name=name,
@@ -312,21 +344,8 @@ class TelemacDataset(DGLDataset):
         self.graphs,_ =  dgl.load_graphs(data_dir)
         
         # Define dictionaries for nodes and edges
-        self.node_var_info = {
-            "h": {"source": "x", "index": 4},
-            "u": {"source": "x", "index": 5},
-            "v": {"source": "x", "index": 6},
-            "strickler": {"source": "x", "index": 7},
-            "z": {"source": "x", "index": 8},
-            "delta_h": {"source": "y", "index": 0},
-            "delta_u": {"source": "y", "index": 1},
-            "delta_v": {"source": "y", "index": 2},
-        }
-        self.edge_var_info = {
-            "xrel": {"source": "x", "index": 0},
-            "yrel": {"source": "x", "index": 1},
-            "norm": {"source": "x", "index": 3},
-        }
+        self.node_var_info = node_var_info
+        self.edge_var_info = edge_var_info
         
         
         if normalize:
@@ -361,8 +380,15 @@ class TelemacDataset(DGLDataset):
     def __getitem__(self, idx):
         gidx = idx // (self.num_steps - 1)  # graph index
         tidx = idx % (self.num_steps - 1)  # time step index
-        graph = self.graphs[idx]
-        return graph
+        graph = self.graphs[gidx]
+
+        # When in test mode, also return a mask indicating normal points
+        if self.split == 'test':
+            # Assuming that the normal nodes are marked with a one-hot where the first index is 1 for normal nodes
+            normal_mask = graph.ndata['x'][:, NodeType.NORMAL] == 1
+            return graph, normal_mask
+        else:
+            return graph
 
     def __len__(self):
         return self.length 

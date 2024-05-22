@@ -32,13 +32,6 @@ class MGNTrainer:
         self.dist = DistributedManager()
 
         self.amp = cfg.amp
-        # MGN with recompute_activation currently supports only SiLU activation function.
-        mlp_act = "relu"
-        if cfg.recompute_activation:
-            rank_zero_logger.info(
-                "Setting MLP activation to SiLU required by recompute_activation."
-            )
-            mlp_act = "silu"
 
         # instantiate dataset
         dataset = TelemacDataset(
@@ -46,7 +39,7 @@ class MGNTrainer:
             data_dir=to_absolute_path(cfg.data_dir),
             split="train",
             num_samples=cfg.num_training_samples,
-            num_steps=cfg.num_training_time_steps,
+            num_steps=cfg.num_training_time_steps
         )
 
         # instantiate dataloader
@@ -70,10 +63,8 @@ class MGNTrainer:
             hidden_dim_node_encoder=64,
             hidden_dim_edge_encoder=64,
             hidden_dim_node_decoder=64,
-            mlp_activation_fn=mlp_act,
             do_concat_trick=cfg.do_concat_trick,
             num_processor_checkpoint_segments=cfg.num_processor_checkpoint_segments,
-            recompute_activation=cfg.recompute_activation,
         )
         if cfg.jit:
             if not self.model.meta.jit:
@@ -193,3 +184,6 @@ def main(cfg: DictConfig) -> None:
             logger.info(f"Saved model on rank {dist.rank}")
         start = time.time()
     rank_zero_logger.info("Training completed!")
+    
+if __name__ == "__main__":
+    main()
