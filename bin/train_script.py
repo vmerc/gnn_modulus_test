@@ -37,6 +37,7 @@ class MGNTrainer:
         dataset = TelemacDataset(
             name="telemac_train",
             data_dir=to_absolute_path(cfg.data_dir),
+            dynamic_data_file= to_absolute_path(cfg.dynamic_dir),
             split="train",
             num_samples=cfg.num_training_samples,
             num_steps=cfg.num_training_time_steps
@@ -148,7 +149,7 @@ class MGNTrainer:
             loss.backward()
             self.optimizer.step()
 
-@hydra.main(version_base="1.3", config_path="conf", config_name="config")
+@hydra.main(version_base="1.3", config_path="conf", config_name="config_Tet")
 def main(cfg: DictConfig) -> None:
     # initialize distributed manager
     DistributedManager.initialize()

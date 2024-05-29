@@ -118,7 +118,7 @@ hydra:
     override_dirname: ''
     id: ???
     num: ???
-    config_name: config
+    config_name: config_Tet
     env_set: {}
     env_copy: []
     config:
