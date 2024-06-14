@@ -113,12 +113,12 @@ hydra:
     - hydra.mode=RUN
     task: []
   job:
-    name: train_script
+    name: train_script_sampling
     chdir: true
     override_dirname: ''
     id: ???
     num: ???
-    config_name: config_Tet
+    config_name: config_Tet_sample
     env_set: {}
     env_copy: []
     config:

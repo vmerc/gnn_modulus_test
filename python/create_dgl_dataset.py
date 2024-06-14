@@ -424,7 +424,8 @@ class TelemacDataset(DGLDataset):
 
         # Load dynamic data
         with open(dynamic_data_file, 'rb') as f:
-            self.dynamic_data_list = pickle.load(f)
+            all_dynamic_data = pickle.load(f)
+            self.dynamic_data_list = all_dynamic_data[:self.length]
 
         
         # Define dictionaries for nodes and edges
