@@ -1,16 +1,11 @@
 #!/bin/sh
 
-#SBATCH --job-name=GPU-GNN-test
+#SBATCH --job-name=test-turpan-shared
 #SBATCH --output=ML-%j-gnn.out
 #SBATCH --error=ML-%j-gnn.err
-
-#SBATCH --ntasks=2
+#SBATCH -p shared
+#SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --partition=GPUNodes
-#SBATCH --gres=gpu:2
-#SBATCH --gres-flags=enforce-binding
+#SBATCH --gres=gpu:1
 
-module purge
-module load singularity/3.0.3
-
-srun singularity exec /logiciels/containerCollections/CUDA12/pytorch2-NGC-23-05-py3.sif $HOME/env_dgl/bin/python "train_script_sampling.py"
+apptainer exec --bind /tmpdir,/work --nv /work/conteneurs/sessions-interactives/pytorch-24.02-py3-calmip-si.sif $HOME/env_dgl/bin/python "train_script_sampling.py"

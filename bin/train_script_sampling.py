@@ -49,7 +49,7 @@ class MGNTrainer:
             cfg.num_input_features,
             cfg.num_edge_features,
             cfg.num_output_features,
-            processor_size=3,
+            processor_size=5,
             hidden_dim_processor=128,
             hidden_dim_node_encoder=128,
             hidden_dim_edge_encoder=128,
@@ -188,10 +188,11 @@ def main(cfg: DictConfig) -> None:
     start = time.time()
     rank_zero_logger.info("Training started...")
     for epoch in range(trainer.epoch_init, cfg.epochs)
-        
+        loss = 0 
         for graph in trainer.dataset:
+            acc = 0
             graph_time = time.time()
-            sampler = CustomSampler(3)
+            sampler = CustomSampler(5)
             train_nids = torch.arange(graph.num_nodes())
             dataloader = DataLoader(
                         graph, 

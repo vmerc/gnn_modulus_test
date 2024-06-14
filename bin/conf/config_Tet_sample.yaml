@@ -21,8 +21,8 @@ hydra:
     dir: ./outputs/
 
 # data configs
-data_dir: ./data/TetQ2500inter_1min_chunk/TetQ2500inter_1min_base.bin
-dynamic_dir : ./data/TetQ2500inter_1min_chunk/TetQ2500inter_1min_0_0-500.pkl
+data_dir: /work/m24046/m24046mrcr/TetQ2500inter_1min_chunk/TetQ2500inter_1min_base.bin
+dynamic_dir : /work/m24046/m24046mrcr/TetQ2500inter_1min_chunk/TetQ2500inter_1min_0_0-500.pkl
 
 # training configs
 batch_size: 10240
@@ -44,5 +44,5 @@ do_concat_trick: True
 num_processor_checkpoint_segments: 0
 recompute_activation: False
 
-ckpt_path: "./data/checkpoints_Tet_sample_2"
+ckpt_path: "/work/m24046/m24046mrcr/checkpoints_Tet_sample_2"
 
