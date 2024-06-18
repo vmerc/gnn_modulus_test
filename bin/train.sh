@@ -14,7 +14,8 @@ export MASTER_ADDR=$(hostname --ip-address)
 
 # Ensure RANK is set, defaulting to 0 if not provided
 export RANK=${SLURM_PROCID:-0}
-
+# Ensure WORLD_SIZE is set, defaulting to 1 if not provided
+export WORLD_SIZE=${SLURM_NTASKS:-1}
 # Print environment variables for debugging
 echo "MASTER_ADDR:MASTER_PORT=${MASTER_ADDR}:${MASTER_PORT}"
 echo "RANK=${RANK}"
