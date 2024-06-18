@@ -59,7 +59,7 @@ class MGNTrainer:
             cfg.num_input_features,
             cfg.num_edge_features,
             cfg.num_output_features,
-            processor_size=4,
+            processor_size=cfg.mp_layers,
             hidden_dim_processor=64,
             hidden_dim_node_encoder=64,
             hidden_dim_edge_encoder=64,
@@ -149,7 +149,7 @@ class MGNTrainer:
             loss.backward()
             self.optimizer.step()
 
-@hydra.main(version_base="1.3", config_path="conf", config_name="config_Tet")
+@hydra.main(version_base="1.3", config_path="conf", config_name="config_Tet_full")
 def main(cfg: DictConfig) -> None:
     # initialize distributed manager
     DistributedManager.initialize()

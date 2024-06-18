@@ -49,11 +49,11 @@ class MGNTrainer:
             cfg.num_input_features,
             cfg.num_edge_features,
             cfg.num_output_features,
-            processor_size=5,
-            hidden_dim_processor=128,
-            hidden_dim_node_encoder=128,
-            hidden_dim_edge_encoder=128,
-            hidden_dim_node_decoder=128,
+            processor_size=cfg.mp_layers,
+            hidden_dim_processor=64,
+            hidden_dim_node_encoder=64,
+            hidden_dim_edge_encoder=64,
+            hidden_dim_node_decoder=64,
             do_concat_trick=cfg.do_concat_trick,
             num_processor_checkpoint_segments=cfg.num_processor_checkpoint_segments,
         )
@@ -187,12 +187,12 @@ def main(cfg: DictConfig) -> None:
     trainer = MGNTrainer(cfg, rank_zero_logger)
     start = time.time()
     rank_zero_logger.info("Training started...")
-    for epoch in range(trainer.epoch_init, cfg.epochs)
-        loss = 0 
+    for epoch in range(trainer.epoch_init, cfg.epochs):
+        loss_print = 0 
         for graph in trainer.dataset:
             acc = 0
             graph_time = time.time()
-            sampler = CustomSampler(5)
+            sampler = CustomSampler(cfg.mp_layers)
             train_nids = torch.arange(graph.num_nodes())
             dataloader = DataLoader(
                         graph, 
@@ -206,10 +206,12 @@ def main(cfg: DictConfig) -> None:
                         )
             for input_nodes,seeds,blocks,common_edges in dataloader:
                 loss = trainer.train(input_nodes,seeds,blocks,common_edges)
+                acc+= loss.detach().cpu().item()
+            loss_print+= acc/len(dataloader)
 
         if epoch%1==0 : 
             rank_zero_logger.info(
-                f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
+                f"epoch: {epoch}, loss: {loss_print/len(trainer.dataset):10.3e}, time per epoch: {(time.time()-start):10.3e}"
             )
         # save checkpoint
         if dist.world_size > 1:
