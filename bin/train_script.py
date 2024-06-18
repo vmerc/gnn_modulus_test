@@ -166,7 +166,7 @@ def main(cfg: DictConfig) -> None:
         for graph in trainer.dataloader:
             loss = trainer.train(graph)
             
-        if epoch%20==0 : 
+        if epoch%1==0 : 
             rank_zero_logger.info(
                 f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
             )
