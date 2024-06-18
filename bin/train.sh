@@ -1,12 +1,12 @@
 #!/bin/sh
-
 #SBATCH --job-name=test-turpan-shared
 #SBATCH --output=ML-%j-gnn.out
 #SBATCH --error=ML-%j-gnn.err
 #SBATCH -p shared
 #SBATCH --nodes 1
-#SBATCH --ntasks-per-node 1
+#SBATCH --ntasks 1
 #SBATCH --cpus-per-task 4
+#SBATCH --time=0:15:00
 #SBATCH --gres=gpu:1
 
 export MASTER_PORT=$(echo "${SLURM_JOB_ID} % 100000 % 50000 + 30000" | bc)
