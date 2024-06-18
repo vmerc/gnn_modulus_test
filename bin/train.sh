@@ -11,6 +11,12 @@
 
 export MASTER_PORT=$(echo "${SLURM_JOB_ID} % 100000 % 50000 + 30000" | bc)
 export MASTER_ADDR=$(hostname --ip-address)
-echo "MASTER_ADDR:MASTER_PORT="${MASTER_ADDR}:${MASTER_PORT}
+
+# Ensure RANK is set, defaulting to 0 if not provided
+export RANK=${SLURM_PROCID:-0}
+
+# Print environment variables for debugging
+echo "MASTER_ADDR:MASTER_PORT=${MASTER_ADDR}:${MASTER_PORT}"
+echo "RANK=${RANK}"
 
 apptainer exec --bind /tmpdir,/work --nv /work/conteneurs/sessions-interactives/modulus-24.04-calmip-si.sif python train_script.py
