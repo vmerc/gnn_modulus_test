@@ -4,6 +4,7 @@
 #SBATCH --output=ML-%j-gnn.out
 #SBATCH --error=ML-%j-gnn.err
 #SBATCH -p shared
+#SBATCH --nodes 1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --gres=gpu:1
