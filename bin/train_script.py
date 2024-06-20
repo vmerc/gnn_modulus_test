@@ -5,6 +5,7 @@ import torch
 import sys
 import os
 
+import argparse
 
 from dgl.dataloading import GraphDataLoader
 
@@ -149,7 +150,7 @@ class MGNTrainer:
             loss.backward()
             self.optimizer.step()
 
-@hydra.main(version_base="1.3", config_path="conf", config_name="config_Tet_full")
+@hydra.main(version_base="1.3", config_path="conf", config_name=None)
 def main(cfg: DictConfig) -> None:
     # initialize distributed manager
     DistributedManager.initialize()
@@ -188,4 +189,15 @@ def main(cfg: DictConfig) -> None:
     rank_zero_logger.info("Training completed!")
     
 if __name__ == "__main__":
-    main()
+    import sys
+
+    # Ensure a configuration file name is provided
+    if len(sys.argv) < 2:
+        print("Usage: python parse_string_hydra.py <config_name>")
+        sys.exit(1)
+
+    # Get the config name from the command line arguments
+    config_name = sys.argv.pop(1)
+
+    # Override the config name
+    main(config_name=config_name)
