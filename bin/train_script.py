@@ -189,7 +189,6 @@ def main(cfg: DictConfig) -> None:
     rank_zero_logger.info("Training completed!")
     
 if __name__ == "__main__":
-    import sys
 
     # Ensure a configuration file name is provided
     if len(sys.argv) < 2:
@@ -198,8 +197,8 @@ if __name__ == "__main__":
 
     # Get the config name from the command line arguments
     config_name = sys.argv.pop(1)
-
+    config_dir = os.path.abspath("conf")
     # Initialize Hydra and compose the configuration
-    with hydra.initialize_config_dir(config_dir="conf"):
+    with hydra.initialize_config_dir(config_dir=config_dir):
         cfg = hydra.compose(config_name=config_name)
         main(cfg)
