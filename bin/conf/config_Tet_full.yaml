@@ -27,9 +27,9 @@ dynamic_dir : /work/m24046/m24046mrcr/TetQ2500inter_1min_chunk/TetQ2500inter_1mi
 # training configs
 batch_size: 1
 epochs: 5
-mp_layers: 3 
+mp_layers: 5
 num_training_samples: 1
-num_training_time_steps: 2
+num_training_time_steps: 31
 lr: 0.0005
 lr_decay_rate: 0.9999991
 num_input_features: 9
@@ -45,4 +45,4 @@ do_concat_trick: True
 num_processor_checkpoint_segments: 0
 recompute_activation: False
 
-ckpt_path: "/work/m24046/m24046mrcr/checkpoints_Tet_full"
+ckpt_path: "/work/m24046/m24046mrcr/checkpoints_Tet_full_overfit_30min"
