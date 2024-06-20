@@ -199,5 +199,7 @@ if __name__ == "__main__":
     # Get the config name from the command line arguments
     config_name = sys.argv.pop(1)
 
-    # Override the config name
-    main(config_name=config_name)
+    # Initialize Hydra and compose the configuration
+    with hydra.initialize_config_dir(config_dir="conf"):
+        cfg = hydra.compose(config_name=config_name)
+        main(cfg)
