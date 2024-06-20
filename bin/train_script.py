@@ -161,6 +161,7 @@ def main(cfg: DictConfig) -> None:
 
     trainer = MGNTrainer(cfg, rank_zero_logger)
     start = time.time()
+    print("len dataloader : {}".format(len(trainer.epoch_init)))
     rank_zero_logger.info("Training started...")
     for epoch in range(trainer.epoch_init, cfg.epochs):
         for graph in trainer.dataloader:
