@@ -19,4 +19,12 @@ export WORLD_SIZE=${SLURM_NTASKS:-1}
 echo "MASTER_ADDR:MASTER_PORT=${MASTER_ADDR}:${MASTER_PORT}"
 echo "RANK=${RANK}"
 
-apptainer exec --bind /tmpdir,/work --nv /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif python train_script.py
+# Check if a config name was provided
+if [ -z "$1" ]; then
+  echo "No config name provided. Usage: ./your_script.sh <config_name>"
+  exit 1
+fi
+
+CONFIG_NAME=$1
+
+apptainer exec --bind /tmpdir,/work --nv /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif python train_script.py $CONFIG_NAME
