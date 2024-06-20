@@ -6,7 +6,6 @@
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 4
-#SBATCH --time=0:15:00
 #SBATCH --gres=gpu:1
 
 export MASTER_PORT=$(echo "${SLURM_JOB_ID} % 100000 % 50000 + 30000" | bc)
