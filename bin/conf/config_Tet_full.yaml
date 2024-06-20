@@ -26,7 +26,7 @@ dynamic_dir : /work/m24046/m24046mrcr/TetQ2500inter_1min_chunk/TetQ2500inter_1mi
 
 # training configs
 batch_size: 1
-epochs: 5
+epochs: 100
 mp_layers: 5
 num_training_samples: 1
 num_training_time_steps: 31
