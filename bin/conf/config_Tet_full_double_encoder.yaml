@@ -29,7 +29,7 @@ batch_size: 1
 epochs: 1000
 mp_layers: 12
 num_training_samples: 1
-num_training_time_steps: 31
+num_training_time_steps: 2
 lr: 0.0003
 lr_decay_rate: 0.9999991
 num_input_features: 9

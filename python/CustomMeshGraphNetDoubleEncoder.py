@@ -155,7 +155,7 @@ class MeshGraphNet(Module):
 
         self.node_encoder_static = MeshGraphMLP(
             6,
-            output_dim=(hidden_dim_processor/2),
+            output_dim=int(hidden_dim_processor/2),
             hidden_dim=hidden_dim_node_encoder,
             hidden_layers=num_layers_node_encoder,
             activation_fn=activation_fn,
