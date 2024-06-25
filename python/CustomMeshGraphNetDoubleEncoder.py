@@ -202,8 +202,8 @@ class MeshGraphNet(Module):
     ) -> Tensor:
         edge_features = self.edge_encoder(edge_features)
         node_features_static = self.node_encoder_static(node_features[:,:6])
-        node_features_static = self.node_encoder_dynamic(node_features[:,-3:])
-        node_features = torch.cat((node_features_static,node_features_static),1)
+        node_features_dynamic = self.node_encoder_dynamic(node_features[:,-3:])
+        node_features = torch.cat((node_features_static,node_features_dynamic),1)
         x = self.processor(node_features, edge_features, graph)
         x = self.node_decoder(x)
         return x
