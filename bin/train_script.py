@@ -136,16 +136,8 @@ class MGNTrainer:
     def forward(self, graph):
         # forward pass
         with autocast(enabled=self.amp):
-            print("ndata x")
-            print(graph.ndata["x"])
-            print("edata x")
-            print(graph.edata["x"])
-            print("ndata y")
-            print(graph.ndata["y"])
             pred = self.model(graph.ndata["x"], graph.edata["x"], graph)
             loss = self.criterion(pred, graph.ndata["y"])
-            print("la loss derriere")
-            print(loss)
             return loss
 
     def backward(self, loss):
