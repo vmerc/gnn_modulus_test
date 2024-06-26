@@ -18,7 +18,7 @@ hydra:
   job:
     chdir: True
   run:
-    dir: ./uts_Tet_full/
+    dir: ./config_Tet_full/
 
 # data configs
 data_dir: /work/m24046/m24046mrcr/TetQ2500inter_1min_chunk/TetQ2500inter_1min_base.bin
