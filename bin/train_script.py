@@ -144,6 +144,8 @@ class MGNTrainer:
             print(graph.ndata["y"])
             pred = self.model(graph.ndata["x"], graph.edata["x"], graph)
             loss = self.criterion(pred, graph.ndata["y"])
+            print("la loss derriere")
+            print(loss)
             return loss
 
     def backward(self, loss):
