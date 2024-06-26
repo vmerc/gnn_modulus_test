@@ -4,6 +4,7 @@ from hydra.utils import to_absolute_path
 import torch
 import sys
 import os
+import torch.nn as nn
 
 import argparse
 
@@ -27,6 +28,18 @@ from modulus.launch.logging import (
 from modulus.launch.utils import load_checkpoint, save_checkpoint
 from python.CustomMeshGraphNet import MeshGraphNet
 
+class CustomMSELoss(nn.Module):
+    def __init__(self, penalty_factor=50):
+        super(CustomMSELoss, self).__init__()
+        self.penalty_factor = penalty_factor
+
+    def forward(self, pred, target):
+        error = pred - target
+        squared_error = error ** 2
+        non_zero_mask = (target != 0).float()  # Create a mask for non-zero ground truth values
+        weighted_error = squared_error * (1 + self.penalty_factor * non_zero_mask)
+        return weighted_error.mean()
+    
 class MGNTrainer:
     def __init__(self, cfg: DictConfig, rank_zero_logger: RankZeroLoggingWrapper):
         assert DistributedManager.is_initialized()
@@ -41,7 +54,8 @@ class MGNTrainer:
             dynamic_data_file= to_absolute_path(cfg.dynamic_dir),
             split="train",
             num_samples=cfg.num_training_samples,
-            num_steps=cfg.num_training_time_steps
+            num_steps=cfg.num_training_time_steps,
+            stride=cfg.timestep
         )
 
         # instantiate dataloader
@@ -90,7 +104,10 @@ class MGNTrainer:
         self.model.train()
 
         # instantiate loss, optimizer, and scheduler
-        self.criterion = torch.nn.MSELoss()
+        if cfg.custom_loss :
+            self.criterion = CustomMSELoss()
+        else :
+            self.criterion = torch.nn.MSELoss()
 
         self.optimizer = None
         try:

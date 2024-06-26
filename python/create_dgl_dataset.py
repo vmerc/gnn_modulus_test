@@ -365,6 +365,15 @@ def create_dgl_dataset_chunked(mesh_list, res_list, cli_list, dt_list, data_fold
     
     
 #################################
+def somme_par_groupe(liste_tuples, k):
+    resultat = []
+    n = len(liste_tuples)
+    for i in range(0, n, k):
+        if i + k <= n:
+            somme_y = sum(y for _, y in liste_tuples[i:i+k])
+            x = liste_tuples[i][0]
+            resultat.append((x, somme_y))
+    return resultat
 
 class TelemacDataset(DGLDataset):
     """In-memory MeshGraphNet Dataset for stationary mesh
@@ -404,7 +413,8 @@ class TelemacDataset(DGLDataset):
         num_steps=600,
         force_reload=False,
         verbose=False,
-        normalize=True
+        normalize=True,
+        stride=1
     ):
         super().__init__(
             name=name,
@@ -416,7 +426,7 @@ class TelemacDataset(DGLDataset):
         self.split = split
         self.num_samples = num_samples
         self.num_steps = num_steps
-        self.length = num_samples * (num_steps - 1)
+        self.length = (num_samples *num_steps)//stride
 
         # Load base graph (assuming a single graph)
         self.base_graph, _ = dgl.load_graphs(data_dir)
@@ -425,6 +435,7 @@ class TelemacDataset(DGLDataset):
         # Load dynamic data
         with open(dynamic_data_file, 'rb') as f:
             all_dynamic_data = pickle.load(f)
+            all_dynamic_data = somme_par_groupe(all_dynamic_data,stride)
             self.dynamic_data_list = all_dynamic_data[:self.length]
 
         
