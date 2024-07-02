@@ -18,7 +18,7 @@ hydra:
   job:
     chdir: True
   run:
-    dir: ./config_Tet_full/
+    dir: ./config_Tet_full_multi/
 
 # data configs
 data_dir: /work/m24046/m24046mrcr/TetQ2500inter_1min_chunk/TetQ2500inter_1min_multimesh_base.bin
@@ -27,16 +27,16 @@ dynamic_dir : /work/m24046/m24046mrcr/TetQ2500inter_1min_chunk/TetQ2500inter_1mi
 # training configs
 batch_size: 1
 epochs: 1000
-mp_layers: 12
+mp_layers: 15
 num_training_samples: 1
-num_training_time_steps: 401
+num_training_time_steps: 400
 timestep: 1
 lr: 0.0005
 lr_decay_rate: 0.9999991
 num_input_features: 9
 num_output_features: 3
 num_edge_features: 3
-custom_loss: False
+custom_loss: True
 
 # performance configs
 use_apex: True
@@ -47,4 +47,4 @@ do_concat_trick: True
 num_processor_checkpoint_segments: 0
 recompute_activation: False
 
-ckpt_path: "/work/m24046/m24046mrcr/checkpoints_Tet_full_overfit_400min_12_multimesh"
+ckpt_path: "/work/m24046/m24046mrcr/checkpoints_Tet_full_overfit_400min_12_multimesh_custom_loss"
