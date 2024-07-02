@@ -36,7 +36,7 @@ lr_decay_rate: 0.9999991
 num_input_features: 9
 num_output_features: 3
 num_edge_features: 3
-custom_loss: True
+custom_loss: False
 
 # performance configs
 use_apex: True
@@ -47,4 +47,4 @@ do_concat_trick: True
 num_processor_checkpoint_segments: 0
 recompute_activation: False
 
-ckpt_path: "/work/m24046/m24046mrcr/checkpoints_Tet_full_overfit_20min_12_multimesh_custom_loss"
+ckpt_path: "/work/m24046/m24046mrcr/checkpoints_Tet_full_overfit_20min_12_multimesh"
