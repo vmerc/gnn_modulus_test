@@ -29,7 +29,7 @@ from modulus.launch.utils import load_checkpoint, save_checkpoint
 from python.CustomMeshGraphNet import MeshGraphNet
 
 class CustomMSELoss(nn.Module):
-    def __init__(self, penalty_factor=50):
+    def __init__(self, penalty_factor=10):
         super(CustomMSELoss, self).__init__()
         self.penalty_factor = penalty_factor
 
