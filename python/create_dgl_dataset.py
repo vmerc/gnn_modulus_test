@@ -8,6 +8,7 @@ import pickle
 from dgl.data import DGLDataset
 os.chdir('../')
 from python.python_code.data_manip.extraction.telemac_file import TelemacFile
+from scipy.spatial import KDTree
 
 class NodeType(enum.IntEnum):
     """
@@ -361,8 +362,59 @@ def create_dgl_dataset_chunked(mesh_list, res_list, cli_list, dt_list, data_fold
     # Save the base graphs separately
     dgl.save_graphs(os.path.join(data_folder, f"{dataset_name}_base.bin"), base_graph_list)
     return True
+
+def replace_triangle_indices(tri, indices):
+    """
+    Remplace les indices des triangles par les indices du KD-tree.
+
+    Parameters:
+    tri (np.ndarray): Tableau de triangles (n x 3).
+    indices (np.ndarray): Tableau d'indices du KD-tree (m,).
+
+    Returns:
+    np.ndarray: Nouveau tableau de triangles avec indices remplacés.
+    """
+    # Assurez-vous que les triangles et les indices sont des tableaux numpy
+    tri = np.asarray(tri)
+    indices = np.asarray(indices)
     
+    # Remplacer les indices des triangles par les indices du KD-tree
+    new_tri = indices[tri]
     
+    return new_tri
+
+def create_multimesh(fine_mesh,coarse_mesh_list,res_list,cli_list,data_folder,dataset_name):
+    mesh_path = fine_mesh
+    res_path = res_list[0]
+    cli_path = cli_list[0]
+    res = TelemacFile(res_path, bnd_file=cli_path)
+    res_mesh = TelemacFile(mesh_path)
+    
+    X,triangles = add_mesh_info(res_mesh)
+    fine_kd_tree = KDTree(X)
+    print(triangles.shape)
+    for coarse_mesh_path in coarse_mesh_list : 
+        coarse_mesh = TelemacFile(coarse_mesh_path)
+        X_coarse,triangles_coarse = add_mesh_info(coarse_mesh)
+        distances, indices = fine_kd_tree.query(X_coarse)
+        new_tri = replace_triangle_indices(triangles_coarse, indices)
+        triangles = np.concatenate([triangles,new_tri])
+    
+    print(triangles.shape)
+    
+    # Create DGL graph and precompute edge features
+    g, edge_features = get_dgl_graph(res.tri)
+
+    # Add edge features to the graph
+    g.edata['x'] = torch.tensor(edge_features, dtype=torch.float32)
+
+    # Add static node features to the graph
+    static_node_features = get_static_node_features(res, res_mesh)
+    g.ndata['static'] = torch.tensor(static_node_features, dtype=torch.float32)
+    
+    dgl.save_graphs(os.path.join(data_folder, f"{dataset_name}_multimesh_base.bin"), [g])
+    
+    return True
     
 #################################
 def somme_par_groupe(liste_tuples, k):
