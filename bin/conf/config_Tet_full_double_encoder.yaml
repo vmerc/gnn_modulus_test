@@ -29,9 +29,9 @@ batch_size: 1
 epochs: 1000
 mp_layers: 12
 num_training_samples: 1
-num_training_time_steps: 30
-lr: 0.0003
-lr_decay_rate: 0.9999991
+num_training_time_steps: 20
+lr: 0.0008
+lr_decay_rate: 0.999
 num_input_features: 9
 num_output_features: 3
 num_edge_features: 3
@@ -45,4 +45,4 @@ do_concat_trick: True
 num_processor_checkpoint_segments: 0
 recompute_activation: False
 
-ckpt_path: "/work/m24046/m24046mrcr/checkpoints_Tet_full_overfit_30min_12_double"
+ckpt_path: "/work/m24046/m24046mrcr/checkpoints_Tet_full_overfit_20min_12_double"

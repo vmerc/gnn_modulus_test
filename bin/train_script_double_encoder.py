@@ -165,12 +165,16 @@ def main(cfg: DictConfig) -> None:
     print("len dataloader : {}".format(len(trainer.dataloader)))
     rank_zero_logger.info("Training started...")
     for epoch in range(trainer.epoch_init, cfg.epochs):
+        total_loss = 0
         for graph in trainer.dataloader:
             loss = trainer.train(graph)
+            total_loss += loss.item()
+            
+        total_loss = total_loss/len(trainer.dataloader)
             
         if epoch%1==0 : 
             rank_zero_logger.info(
-                f"epoch: {epoch}, loss: {loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
+                f"epoch: {epoch}, loss: {total_loss:10.3e}, time per epoch: {(time.time()-start):10.3e}"
             )
         # save checkpoint
         if dist.world_size > 1:
