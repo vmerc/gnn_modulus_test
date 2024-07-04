@@ -479,7 +479,8 @@ class TelemacDataset(DGLDataset):
         self.num_samples = num_samples
         self.num_steps = num_steps
         self.length = (num_samples *num_steps)//stride
-
+        self.node_stats = None
+        self.edge_stats = None
         # Load base graph (assuming a single graph)
         self.base_graph, _ = dgl.load_graphs(data_dir)
         self.base_graph = self.base_graph[0]
@@ -513,12 +514,13 @@ class TelemacDataset(DGLDataset):
         
         if normalize:
             # Calculate statistics
-            node_stats = self._get_node_stats(self.node_var_info)
-            edge_stats = self._get_edge_stats(self.edge_var_info)
-            print(node_stats)
-            print(edge_stats)
+            self.node_stats = self._get_node_stats(self.node_var_info)
+            self.edge_stats = self._get_edge_stats(self.edge_var_info)
+            
+            print(self.node_stats)
+            print(self.edge_stats)
             # Normalize node and edge data
-            self._normalize_data(node_stats, edge_stats, self.node_var_info, self.edge_var_info)
+            self._normalize_data(self.node_stats, self.edge_stats, self.node_var_info, self.edge_var_info)
 
     def _normalize_data(self, node_stats, edge_stats, node_var_info, edge_var_info):
         """Normalize node and edge data in all graphs based on computed statistics."""
@@ -549,6 +551,7 @@ class TelemacDataset(DGLDataset):
                         mean = node_stats[var_name].item()
                         std = node_stats[f"{var_name}_std"].item()
                         if std != 0.0 :
+                            print(var_name)
                             data_tensor = x[:, info["index"]:info["index"]+1]
                             self.dynamic_data_list[index][0][:, info["index"]:info["index"]+1]= (data_tensor - mean) / std
                             
@@ -556,6 +559,7 @@ class TelemacDataset(DGLDataset):
                         mean = node_stats[var_name].item()
                         std = node_stats[f"{var_name}_std"].item()
                         if std != 0.0 :
+                            print(var_name)
                             data_tensor = y[:, info["index"]:info["index"]+1]
                             self.dynamic_data_list[index][1][:, info["index"]:info["index"]+1]= (data_tensor - mean) / std
                             
