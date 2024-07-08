@@ -35,6 +35,9 @@ lr_decay_rate: 0.9999991
 num_input_features: 9
 num_output_features: 3
 num_edge_features: 3
+timestep: 1
+custom_loss: False
+
 
 # performance configs
 use_apex: True
