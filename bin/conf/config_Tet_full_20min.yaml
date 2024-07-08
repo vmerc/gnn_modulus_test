@@ -37,7 +37,7 @@ num_output_features: 3
 num_edge_features: 3
 timestep: 1
 custom_loss: False
-starting_ts: 35
+starting_ts: 30
 
 
 # performance configs
