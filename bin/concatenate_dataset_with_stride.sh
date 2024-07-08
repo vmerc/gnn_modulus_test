@@ -19,4 +19,4 @@ export WORLD_SIZE=${SLURM_NTASKS:-1}
 echo "MASTER_ADDR:MASTER_PORT=${MASTER_ADDR}:${MASTER_PORT}"
 echo "RANK=${RANK}"
 
-apptainer exec --bind /tmpdir,/work --nv /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif concatenate_dataset_with_stride.py
+apptainer exec --bind /tmpdir,/work --nv /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif python concatenate_dataset_with_stride.py
