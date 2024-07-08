@@ -466,7 +466,8 @@ class TelemacDataset(DGLDataset):
         force_reload=False,
         verbose=False,
         normalize=True,
-        stride=1
+        stride=1,
+        starting_ts=0
     ):
         super().__init__(
             name=name,
@@ -489,7 +490,7 @@ class TelemacDataset(DGLDataset):
         with open(dynamic_data_file, 'rb') as f:
             all_dynamic_data = pickle.load(f)
             all_dynamic_data = somme_par_groupe(all_dynamic_data,stride)
-            self.dynamic_data_list = all_dynamic_data[:self.length]
+            self.dynamic_data_list = all_dynamic_data[starting_ts:starting_ts+self.length]
 
         
         # Define dictionaries for nodes and edges

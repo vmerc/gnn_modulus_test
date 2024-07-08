@@ -55,7 +55,8 @@ class MGNTrainer:
             split="train",
             num_samples=cfg.num_training_samples,
             num_steps=cfg.num_training_time_steps,
-            stride=cfg.timestep
+            stride=cfg.timestep,
+            starting_ts = cfg.starting_ts
         )
 
         # instantiate dataloader
