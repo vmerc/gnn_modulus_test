@@ -55,6 +55,7 @@ class MGNTrainer:
             split="train",
             num_samples=cfg.num_training_samples,
             num_steps=cfg.num_training_time_steps,
+            ckpt_path=cfg.ckpt_path,
             stride=cfg.timestep,
             starting_ts = cfg.starting_ts
         )

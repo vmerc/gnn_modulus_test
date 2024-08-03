@@ -449,6 +449,8 @@ class TelemacDataset(DGLDataset):
         Number of samples, by default 1000
     num_steps : int, optional
         Number of time steps in each sample, by default 600
+    ckpt_path : str, optional 
+        Path where to find or save normalization values 
     force_reload : bool, optional
         force reload, by default False
     verbose : bool, optional
@@ -463,6 +465,7 @@ class TelemacDataset(DGLDataset):
         split="train",
         num_samples=1000,
         num_steps=600,
+        ckpt_path='.',
         force_reload=False,
         verbose=False,
         normalize=True,
@@ -514,11 +517,18 @@ class TelemacDataset(DGLDataset):
         
         
         if normalize:
-            # Calculate statistics
-            self.node_stats = self._get_node_stats(self.node_var_info)
-            self.edge_stats = self._get_edge_stats(self.edge_var_info)
-            # Normalize node and edge data
-            self._normalize_data(self.node_stats, self.edge_stats, self.node_var_info, self.edge_var_info)
+            if split == "train" :
+                self.node_stats = self._get_node_stats(self.node_var_info)
+                self.edge_stats = self._get_edge_stats(self.edge_var_info)
+                #save 
+                save_json(self.node_stats,ckpt_path+"/node_stats.json")
+                save_json(self.edge_stats,ckpt_path+"/edge_stats.json")
+                # Normalize node and edge data
+                self._normalize_data(self.node_stats, self.edge_stats, self.node_var_info, self.edge_var_info)
+            else : 
+                self.node_stats = load_json(ckpt_path+"/node_stats.json")
+                self.edge_stats = load_json(ckpt_path+"/edge_stats.json")
+                self._normalize_data(self.node_stats, self.edge_stats, self.node_var_info, self.edge_var_info)
 
     def _normalize_data(self, node_stats, edge_stats, node_var_info, edge_var_info):
         """Normalize node and edge data in all graphs based on computed statistics."""
@@ -651,3 +661,40 @@ class TelemacDataset(DGLDataset):
 
         return stats
     
+import json
+
+
+def save_json(var: Dict[str, torch.Tensor], file: str) -> None:
+    """
+    Saves a dictionary of tensors to a JSON file.
+
+    Parameters
+    ----------
+    var : Dict[str, torch.Tensor]
+        Dictionary where each value is a PyTorch tensor.
+    file : str
+        Path to the output JSON file.
+    """
+    var_list = {k: v.numpy().tolist() for k, v in var.items()}
+    with open(file, "w") as f:
+        json.dump(var_list, f)
+
+
+def load_json(file: str) -> Dict[str, torch.Tensor]:
+    """
+    Loads a JSON file into a dictionary of PyTorch tensors.
+
+    Parameters
+    ----------
+    file : str
+        Path to the JSON file.
+
+    Returns
+    -------
+    Dict[str, torch.Tensor]
+        Dictionary where each value is a PyTorch tensor.
+    """
+    with open(file, "r") as f:
+        var_list = json.load(f)
+    var = {k: torch.tensor(v, dtype=torch.float) for k, v in var_list.items()}
+    return var
