@@ -521,8 +521,8 @@ class TelemacDataset(DGLDataset):
                 self.node_stats = self._get_node_stats(self.node_var_info)
                 self.edge_stats = self._get_edge_stats(self.edge_var_info)
                 #save 
-                save_json(self.node_stats,ckpt_path+"/node_stats.json")
-                save_json(self.edge_stats,ckpt_path+"/edge_stats.json")
+                save_json(self.node_stats,ckpt_path,"node_stats.json")
+                save_json(self.edge_stats,ckpt_path,"edge_stats.json")
                 # Normalize node and edge data
                 self._normalize_data(self.node_stats, self.edge_stats, self.node_var_info, self.edge_var_info)
             else : 
@@ -662,9 +662,10 @@ class TelemacDataset(DGLDataset):
         return stats
     
 import json
+from pathlib import Path
 
 
-def save_json(var,file) :
+def save_json(var,path,file_name) :
     """
     Saves a dictionary of tensors to a JSON file.
 
@@ -675,8 +676,10 @@ def save_json(var,file) :
     file : str
         Path to the output JSON file.
     """
+    if not Path(path).is_dir():
+        Path(path).mkdir(parents=True, exist_ok=True)
     var_list = {k: v.numpy().tolist() for k, v in var.items()}
-    with open(file, "w") as f:
+    with open(path+'/'+file_name, "w") as f:
         json.dump(var_list, f)
 
 
