@@ -664,7 +664,7 @@ class TelemacDataset(DGLDataset):
 import json
 
 
-def save_json(var: Dict[str, torch.Tensor], file: str) -> None:
+def save_json(var,file) :
     """
     Saves a dictionary of tensors to a JSON file.
 
@@ -680,7 +680,7 @@ def save_json(var: Dict[str, torch.Tensor], file: str) -> None:
         json.dump(var_list, f)
 
 
-def load_json(file: str) -> Dict[str, torch.Tensor]:
+def load_json(file):
     """
     Loads a JSON file into a dictionary of PyTorch tensors.
 
