@@ -193,10 +193,10 @@ def get_edges_features(tri,coo,res):
 #    
 #    return result
 
-def get_node_outputs(x, x_future, dt):
+def get_node_outputs(x, x_future):
     """
     Contains the fluid acceleration between the current graph and the graph 
-    in the next time step. These are the features used for training: y=(v_t_next-v_t_curr)/dt [num_nodes x 2]
+    in the next time step. These are the features used for training: y=(v_t_next-v_t_curr) [num_nodes x 2]
 
     Returns:
         np.array: array with fluid acceleration features [num_nodes, 3]
@@ -206,7 +206,7 @@ def get_node_outputs(x, x_future, dt):
     u_idx = 1
     v_idx = 2
     
-    result = (x_future[:, h_idx:v_idx+1] - x[:, h_idx:v_idx+1]) / dt
+    result = (x_future[:, h_idx:v_idx+1] - x[:, h_idx:v_idx+1]) 
     
     return result
 
@@ -306,8 +306,20 @@ def get_dgl_graph(tri):
 #    g.edata['x'] = torch.tensor(edge_features, dtype=torch.float32)  # Add edge features
 
 def create_dgl_dataset_chunked(mesh_list, res_list, cli_list, dt_list, data_folder, dataset_name, chunk_size=20):
+    """
+    mesh_list : list(string) : liste des fichiers .slf qui contiennent les maillages associées aux .res
     
-
+    res_list  : list(string) : liste des fichiers .res qui contiennent les résultats associées aux .slf
+    
+    cli_list  : list(string) : liste des fichiers .cli qui contiennent les conditions aux limites des .slf
+    
+    dt_list   : list(string) : liste des pas de temps (pour l'instant tous égal à 1)
+    
+    data_folder : string : liste du folder qui contiendras les chunks
+    
+    dataset_name : string : noms du dataset produit
+    
+    """
     assert len(mesh_list) == len(res_list)
     assert len(dt_list) == len(res_list)
     assert len(cli_list) == len(res_list)
@@ -336,7 +348,6 @@ def create_dgl_dataset_chunked(mesh_list, res_list, cli_list, dt_list, data_fold
         base_graph_list.append(g)
 
         number_ts = int(res.times.shape[0])
-        print(number_ts)
 
         for start_ts in range(0, number_ts - 1, chunk_size):
             end_ts = min(start_ts + chunk_size, number_ts - 1)
@@ -350,7 +361,14 @@ def create_dgl_dataset_chunked(mesh_list, res_list, cli_list, dt_list, data_fold
                 #put no modification on boundaries 
                 
                 # Get outputs for training
-                y = get_node_outputs(dynamic_node_features, dynamic_node_features_future, dt)
+                y = get_node_outputs(dynamic_node_features, dynamic_node_features_future)
+                
+                #differences = np.abs((dynamic_node_features + y) - dynamic_node_features_future)
+                #print("Max difference:", np.max(differences))
+                #print("Mean difference:", np.mean(differences))
+   
+                #print(np.allclose(dynamic_node_features + y, dynamic_node_features_future,rtol=1e-4, atol=1e-7))
+                
                 y = put_boundary_infos_on_changes(y,static_node_features) #put 0 on changes  
 
                 dynamic_data_list.append((dynamic_node_features, y))
@@ -400,7 +418,11 @@ def create_multimesh(fine_mesh,coarse_mesh_list,res_list,cli_list,data_folder,da
         new_tri = replace_triangle_indices(triangles_coarse, indices)
         triangles = np.concatenate([triangles,new_tri])
     
-    print(triangles.shape)
+    # Extract x and y coordinates
+    x = X[:, 0]
+    y = X[:, 1]
+    # Create the triangulation object
+    triangulation = tri.Triangulation(x, y, triangles)
     
     # Create DGL graph and precompute edge features
     g, edge_features = get_dgl_graph(res.tri)
@@ -492,15 +514,15 @@ class TelemacDataset(DGLDataset):
         # Load dynamic data
         with open(dynamic_data_file, 'rb') as f:
             all_dynamic_data = pickle.load(f)
-            all_dynamic_data = somme_par_groupe(all_dynamic_data,stride)
+            #all_dynamic_data = somme_par_groupe(all_dynamic_data,stride)
             self.dynamic_data_list = all_dynamic_data[starting_ts:starting_ts+self.length]
 
         
         # Define dictionaries for nodes and edges
         self.node_var_info = {
-            "h": {"source": "x", "index": 6},
-            "u": {"source": "x", "index": 7},
-            "v": {"source": "x", "index": 8},
+            "h": {"source": "x", "index": 0},
+            "u": {"source": "x", "index": 1},
+            "v": {"source": "x", "index": 2},
             
             "strickler": {"source": "x", "index": 4},
             "z": {"source": "x", "index": 5},
@@ -518,6 +540,7 @@ class TelemacDataset(DGLDataset):
         
         if normalize:
             if split == "train" :
+                print("on normalise")
                 self.node_stats = self._get_node_stats(self.node_var_info)
                 self.edge_stats = self._get_edge_stats(self.edge_var_info)
                 #save 
@@ -526,52 +549,62 @@ class TelemacDataset(DGLDataset):
                 # Normalize node and edge data
                 self._normalize_data(self.node_stats, self.edge_stats, self.node_var_info, self.edge_var_info)
             else : 
+                print("we are loading")
                 self.node_stats = load_json(ckpt_path+"/node_stats.json")
                 self.edge_stats = load_json(ckpt_path+"/edge_stats.json")
+                print(self.node_stats)
+                print(self.edge_stats)
                 self._normalize_data(self.node_stats, self.edge_stats, self.node_var_info, self.edge_var_info)
 
     def _normalize_data(self, node_stats, edge_stats, node_var_info, edge_var_info):
         """Normalize node and edge data in all graphs based on computed statistics."""
-        
+
         # normalize static values 
         for var_name, info in node_var_info.items():
-            if var_name in ["strickler","z"]:
+            if var_name in ["strickler", "z"]:
                 mean = node_stats[var_name].item()
                 std = node_stats[f"{var_name}_std"].item()
-                if std != 0.0 :
-                    print(var_name)
-                    data_tensor = self.base_graph.ndata['static'][:, info["index"]:info["index"]+1]
-                    self.base_graph.ndata['static'][:, info["index"]:info["index"]+1] = (data_tensor - mean) / std
-                    
+                if std != 0.0:
+                    data_tensor = self.base_graph.ndata['static'][:, info['index']:info['index']+1]
+                    #print(f"Before normalization ({var_name}): {data_tensor[:5]}")  # Debug output
+                    self.base_graph.ndata['static'][:, info['index']:info['index']+1] = (data_tensor - mean) / std
+                    #print(f"After normalization ({var_name}): {self.base_graph.ndata['static'][:, info['index']:info['index']+1][:5]}")  # Debug output
+
         for var_name, info in edge_var_info.items():
-                mean = edge_stats[var_name].item()
-                std = edge_stats[f"{var_name}_std"].item()
-                if std != 0.0 :
-                    print(var_name)
-                    data_tensor = self.base_graph.edata[info["source"]][:, info["index"]:info["index"]+1]
-                    self.base_graph.edata[info["source"]][:, info["index"]:info["index"]+1] = (data_tensor - mean) / std
-                    
-                
-        for index,dynamic_data in enumerate(self.dynamic_data_list):
-                x,y = dynamic_data
-                for var_name, info in node_var_info.items():
-                    if var_name in ["h","u","v"]:
-                        mean = node_stats[var_name].item()
-                        std = node_stats[f"{var_name}_std"].item()
-                        if std != 0.0 :
-                            data_tensor = x[:, info["index"]:info["index"]+1]
-                            self.dynamic_data_list[index][0][:, info["index"]:info["index"]+1]= (data_tensor - mean) / std
-                            
-                    if var_name in ["delta_h","delta_u","delta_v"]:
-                        mean = node_stats[var_name].item()
-                        std = node_stats[f"{var_name}_std"].item()
-                        if std != 0.0 :
-                            data_tensor = y[:, info["index"]:info["index"]+1]
-                            self.dynamic_data_list[index][1][:, info["index"]:info["index"]+1]= (data_tensor - mean) / std
-                            
-            
-            # Normalize edge data
-            
+            mean = edge_stats[var_name].item()
+            std = edge_stats[f"{var_name}_std"].item()
+            if std != 0.0:
+                data_tensor = self.base_graph.edata[info["source"]][:, info['index']:info['index']+1]
+                #print(f"Before normalization ({var_name}): {data_tensor[:5]}")  # Debug output
+                self.base_graph.edata[info["source"]][:, info['index']:info['index']+1] = (data_tensor - mean) / std
+                #print(f"After normalization ({var_name}): {self.base_graph.edata[info['source']][:, info['index']:info['index']+1][:5]}")  # Debug output
+
+        for index, dynamic_data in enumerate(self.dynamic_data_list):
+            x, y = dynamic_data
+            #print(f"Processing index {index}")
+
+            # Normalize node features
+            for var_name, info in node_var_info.items():
+                if var_name in ["h", "u", "v"]:
+                    mean = node_stats[var_name].item()
+                    std = node_stats[f"{var_name}_std"].item()
+                    if std != 0.0:
+                        #print(f"Before normalization ({var_name}): {x[:, info['index']:info['index']+1][:5]}")  # Debug output
+                        x[:, info['index']:info['index']+1] = (x[:, info['index']:info['index']+1] - mean) / std
+                        #print(f"After normalization ({var_name}): {x[:, info['index']:info['index']+1][:5]}")  # Debug output
+
+            # Normalize target values (y)
+            for var_name, info in node_var_info.items():
+                if var_name in ["delta_h", "delta_u", "delta_v"]:
+                    mean = node_stats[var_name].item()
+                    std = node_stats[f"{var_name}_std"].item()
+                    if std != 0.0:
+                        #print(f"Before normalization ({var_name}): {y[:, info['index']:info['index']+1][:5]}")  # Debug output
+                        y[:, info['index']:info['index']+1] = (y[:, info['index']:info['index']+1] - mean) / std
+                        #print(f"After normalization ({var_name}): {y[:, info['index']:info['index']+1][:5]}")  # Debug output
+
+            # Reassign the normalized x and y back into the tuple and the list
+            self.dynamic_data_list[index] = (x, y)
 
 
     def __getitem__(self, idx):

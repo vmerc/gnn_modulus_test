@@ -1,9 +1,10 @@
-data_dir: ./data/TetQ2500inter_1min_chunk/TetQ2500inter_1min_base.bin
-dynamic_dir: ./data/TetQ2500inter_1min_chunk/TetQ2500inter_1min_0_0-500.pkl
-batch_size: 10240
-epochs: 100
+data_dir: /work/m24046/m24046mrcr/TetQ2500inter_1min_chunk/TetQ2500inter_1min_base.bin
+dynamic_dir: /work/m24046/m24046mrcr/TetQ2500inter_1min_chunk/TetQ2500inter_1min_0_0-500.pkl
+batch_size: 1
+epochs: 5
+mp_layers: 3
 num_training_samples: 1
-num_training_time_steps: 5
+num_training_time_steps: 2
 lr: 0.0005
 lr_decay_rate: 0.9999991
 num_input_features: 9
@@ -16,4 +17,4 @@ num_dataloader_workers: 4
 do_concat_trick: true
 num_processor_checkpoint_segments: 0
 recompute_activation: false
-ckpt_path: ./data/checkpoints_Tet_sample_2
+ckpt_path: /work/m24046/m24046mrcr/checkpoints_Tet_full

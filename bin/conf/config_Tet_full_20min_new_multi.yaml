@@ -39,6 +39,9 @@ timestep: 1
 custom_loss: False
 starting_ts: 30
 
+num_test_samples: 1
+num_test_time_steps: 75
+
 
 # performance configs
 use_apex: True

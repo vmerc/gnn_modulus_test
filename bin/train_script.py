@@ -198,7 +198,7 @@ def main(cfg: DictConfig) -> None:
         # save checkpoint
         if dist.world_size > 1:
             torch.distributed.barrier()
-        if (dist.rank == 0) and  (epoch%30==0):
+        if (dist.rank == 0) and  (epoch%10==0):
             save_checkpoint(
                 to_absolute_path(cfg.ckpt_path),
                 models=trainer.model,

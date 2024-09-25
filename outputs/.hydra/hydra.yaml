@@ -113,12 +113,12 @@ hydra:
     - hydra.mode=RUN
     task: []
   job:
-    name: train_script_sampling
+    name: train_script
     chdir: true
     override_dirname: ''
     id: ???
     num: ???
-    config_name: config_Tet_sample
+    config_name: config_Tet_full
     env_set: {}
     env_copy: []
     config:
@@ -129,18 +129,18 @@ hydra:
   runtime:
     version: 1.3.2
     version_base: '1.3'
-    cwd: /users/daml/vmercier/gnn_modulus_project
+    cwd: /users/m24046/m24046mrcr/gnn_modulus_test
     config_sources:
     - path: hydra.conf
       schema: pkg
       provider: hydra
-    - path: /users/daml/vmercier/gnn_modulus_project/bin/conf
+    - path: /users/m24046/m24046mrcr/gnn_modulus_test/bin/conf
       schema: file
       provider: main
     - path: ''
       schema: structured
       provider: schema
-    output_dir: /users/daml/vmercier/gnn_modulus_project/outputs
+    output_dir: /users/m24046/m24046mrcr/gnn_modulus_test/outputs
     choices:
       hydra/env: default
       hydra/callbacks: null
