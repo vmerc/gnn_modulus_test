@@ -449,7 +449,7 @@ def somme_par_groupe(liste_tuples, k):
             resultat.append((x, somme_y))
     return resultat
 
-class TelemacDataset(DGLDataset):
+class TelemacDatasetOld(DGLDataset):
     """In-memory MeshGraphNet Dataset for stationary mesh
     Notes:
         - This dataset prepares and processes the data available in MeshGraphNet's repo:
@@ -734,3 +734,243 @@ def load_json(file):
         var_list = json.load(f)
     var = {k: torch.tensor(v, dtype=torch.float) for k, v in var_list.items()}
     return var
+
+
+class TelemacDataset(DGLDataset):
+    """In-memory MeshGraphNet Dataset for stationary mesh
+    Notes:
+        - This dataset prepares and processes the data available in MeshGraphNet's repo:
+            https://github.com/deepmind/deepmind-research/tree/master/meshgraphnets
+        - A single adjacency matrix is used for each transient simulation.
+          Do not use with adaptive mesh or remeshing
+
+    Parameters
+    ----------
+    name : str, optional
+        Name of the dataset, by default "dataset"
+    data_dir : str, optional
+        Directory that stores the raw data in .TFRecord format, by default None
+    dynamic_data_files : list, optional
+        List of paths to the pickle files containing dynamic node data, by default None
+    split : str, optional
+        Dataset split ["train", "eval", "test"], by default "train"
+    ckpt_path : str, optional 
+        Path where to find or save normalization values
+    force_reload : bool, optional
+        Force reload, by default False
+    verbose : bool, optional
+        Verbose, by default False
+    normalize : bool, optional
+        Whether to normalize the data, by default True
+    sequence_length : int, optional
+        Length of the sequences to provide, by default 1
+    """
+
+    def __init__(
+        self,
+        name="dataset",
+        data_dir=None,
+        dynamic_data_files=None,
+        split="train",
+        ckpt_path='.',
+        force_reload=False,
+        verbose=False,
+        normalize=True,
+        sequence_length=1,
+    ):
+        super().__init__(
+            name=name,
+            force_reload=force_reload,
+            verbose=verbose,
+        )
+        self.data_dir = data_dir
+        self.dynamic_data_files = dynamic_data_files
+        self.split = split
+        self.node_stats = None
+        self.edge_stats = None
+        self.sequence_length = sequence_length
+
+        # Load base graph (assuming a single graph)
+        self.base_graph, _ = dgl.load_graphs(data_dir)
+        self.base_graph = self.base_graph[0]
+
+        # Load dynamic data from multiple pickle files and create sequences
+        self.sequences = []
+        for file_path in dynamic_data_files:
+            with open(file_path, 'rb') as f:
+                dynamic_data = pickle.load(f)
+                num_sequences = len(dynamic_data) // sequence_length
+                for i in range(num_sequences):
+                    start_idx = i * sequence_length
+                    end_idx = (i + 1) * sequence_length
+                    sequence = dynamic_data[start_idx:end_idx]
+                    self.sequences.append(sequence)
+                # Note: Remaining data at the end of the file is ignored to avoid overlapping outputs
+
+        self.length = len(self.sequences)
+
+        # Define dictionaries for nodes and edges
+        self.node_var_info = {
+            "h": {"source": "x", "index": 0},
+            "u": {"source": "x", "index": 1},
+            "v": {"source": "x", "index": 2},
+            
+            "strickler": {"source": "x", "index": 4},
+            "z": {"source": "x", "index": 5},
+            
+            "delta_h": {"source": "y", "index": 0},
+            "delta_u": {"source": "y", "index": 1},
+            "delta_v": {"source": "y", "index": 2},
+        }
+        self.edge_var_info = {
+            "xrel": {"source": "x", "index": 0},
+            "yrel": {"source": "x", "index": 1},
+            "norm": {"source": "x", "index": 2},
+        }
+        
+        if normalize:
+            if split == "train":
+                print("Normalizing data...")
+                self.node_stats = self._get_node_stats(self.node_var_info)
+                self.edge_stats = self._get_edge_stats(self.edge_var_info)
+                # Save normalization statistics
+                save_json(self.node_stats, ckpt_path, "node_stats.json")
+                save_json(self.edge_stats, ckpt_path, "edge_stats.json")
+                # Normalize node and edge data
+                self._normalize_data(self.node_stats, self.edge_stats, self.node_var_info, self.edge_var_info)
+            else:
+                print("Loading normalization statistics...")
+                self.node_stats = load_json(f"{ckpt_path}/node_stats.json")
+                self.edge_stats = load_json(f"{ckpt_path}/edge_stats.json")
+                self._normalize_data(self.node_stats, self.edge_stats, self.node_var_info, self.edge_var_info)
+
+    def _normalize_data(self, node_stats, edge_stats, node_var_info, edge_var_info):
+        """Normalize node and edge data in all graphs based on computed statistics."""
+        # Normalize static node features
+        for var_name, info in node_var_info.items():
+            if var_name in ["strickler", "z"]:
+                mean = node_stats[var_name].item()
+                std = node_stats[f"{var_name}_std"].item()
+                if std != 0.0:
+                    data_tensor = self.base_graph.ndata['static'][:, info['index']:info['index']+1]
+                    self.base_graph.ndata['static'][:, info['index']:info['index']+1] = (data_tensor - mean) / std
+
+        # Normalize edge features
+        for var_name, info in edge_var_info.items():
+            mean = edge_stats[var_name].item()
+            std = edge_stats[f"{var_name}_std"].item()
+            if std != 0.0:
+                data_tensor = self.base_graph.edata[info["source"]][:, info['index']:info['index']+1]
+                self.base_graph.edata[info["source"]][:, info['index']:info['index']+1] = (data_tensor - mean) / std
+
+        # Normalize dynamic node features and targets
+        for seq_index, sequence in enumerate(self.sequences):
+            normalized_sequence = []
+            for x, y in sequence:
+                x = x.copy()
+                y = y.copy()
+                # Normalize node features (h, u, v)
+                for var_name, info in node_var_info.items():
+                    if var_name in ["h", "u", "v"]:
+                        mean = node_stats[var_name].item()
+                        std = node_stats[f"{var_name}_std"].item()
+                        if std != 0.0:
+                            x[:, info['index']:info['index']+1] = (x[:, info['index']:info['index']+1] - mean) / std
+
+                # Normalize target variables (delta_h, delta_u, delta_v)
+                for var_name, info in node_var_info.items():
+                    if var_name in ["delta_h", "delta_u", "delta_v"]:
+                        mean = node_stats[var_name].item()
+                        std = node_stats[f"{var_name}_std"].item()
+                        if std != 0.0:
+                            y[:, info['index']:info['index']+1] = (y[:, info['index']:info['index']+1] - mean) / std
+
+                normalized_sequence.append((x, y))
+            # Update the sequences with normalized data
+            self.sequences[seq_index] = normalized_sequence
+
+    def __getitem__(self, idx):
+        sequence = self.sequences[idx]
+        graphs = []
+        for x, y in sequence:
+            # Combine static and dynamic features
+            static_features = self.base_graph.ndata['static']
+            combined_features = torch.cat((static_features, torch.tensor(x, dtype=torch.float32)), dim=1)
+            # Create a new graph for the current timestep
+            g = self.base_graph.clone()
+            g.ndata.pop('static')
+            g.ndata['x'] = combined_features
+            g.ndata['y'] = torch.tensor(y, dtype=torch.float32)
+            graphs.append(g)
+        return graphs  # Return a list of graphs representing the sequence
+    
+    def __len__(self):
+        return self.length 
+    
+    def _get_node_stats(self, var_info):
+        """
+        Compute statistics (mean and std) for node variables.
+        """
+        # Initialize stats dictionary
+        stats = {key: 0.0 for key in var_info.keys()}
+        meansqr_stats = {f"{key}_meansqr": 0.0 for key in var_info.keys()}
+
+        total_steps = 0
+
+        for sequence in self.sequences:
+            for x, y in sequence:
+                total_steps += 1
+                # Combine static and dynamic features
+                static_features = self.base_graph.ndata['static']
+                combined_features = torch.cat((static_features, torch.tensor(x, dtype=torch.float32)), dim=1)
+                # Create a temporary graph for this step
+                g = self.base_graph.clone()
+                g.ndata.pop('static')
+                g.ndata['x'] = combined_features
+                g.ndata['y'] = torch.tensor(y, dtype=torch.float32)
+
+                for var_name, info in var_info.items():
+                    source = g.ndata[info["source"]]
+                    value = source[:, info['index']:info['index']+1]
+                    mean_value = value.mean().item()
+                    stats[var_name] += mean_value
+                    meansqr_stats[f"{var_name}_meansqr"] += (value ** 2).mean().item()
+
+        # Compute mean and std
+        for var_name in var_info.keys():
+            stats[var_name] /= total_steps
+            meansqr_stats[f"{var_name}_meansqr"] /= total_steps
+            mean = stats[var_name]
+            meansqr = meansqr_stats[f"{var_name}_meansqr"]
+            stats[f"{var_name}_std"] = np.sqrt(meansqr - mean ** 2)
+
+        # Remove intermediate meansqr stats
+        stats = {k: torch.tensor(v, dtype=torch.float32) for k, v in stats.items() if not k.endswith('_meansqr')}
+        return stats
+
+    def _get_edge_stats(self, var_info):
+        """
+        Compute statistics (mean and std) for edge variables.
+        """
+        # Initialize stats dictionary
+        stats = {key: 0.0 for key in var_info.keys()}
+        meansqr_stats = {f"{key}_meansqr": 0.0 for key in var_info.keys()}
+
+        # Use the first graph to compute edge stats (edges are static)
+        graph = self.__getitem__(0)[0]  # Get the first graph in the first sequence
+        for var_name, info in var_info.items():
+            source = graph.edata[info["source"]]
+            value = source[:, info["index"]:info["index"]+1]
+            mean_value = value.mean().item()
+            stats[var_name] += mean_value
+            meansqr_stats[f"{var_name}_meansqr"] += (value ** 2).mean().item()
+
+        # Compute mean and std
+        for var_name in var_info.keys():
+            mean = stats[var_name]
+            meansqr = meansqr_stats[f"{var_name}_meansqr"]
+            stats[f"{var_name}_std"] = np.sqrt(meansqr - mean ** 2)
+
+        # Remove intermediate meansqr stats
+        stats = {k: torch.tensor(v, dtype=torch.float32) for k, v in stats.items() if not k.endswith('_meansqr')}
+        return stats
