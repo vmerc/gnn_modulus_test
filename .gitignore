@@ -10,3 +10,5 @@
 /output/
 *.pt
 *.mdlus
+*.png
+*.pdf
