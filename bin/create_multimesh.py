@@ -16,7 +16,7 @@ import dgl
 
 res_list = ['/projets/aniti-daml/vmercier/simu_valentin/TetQ2500_intermediaire_bdd.res']
 mesh_list = ['/projets/aniti-daml/vmercier/simu_valentin/maillage_3.slf']
-cli_list = ['/projets/aniti-daml/vmercier/simu_valentin/cli']
+cli_list = ['/work/m24046/m24046mrcr/results_data_30min/cli']
 coarse_mesh_list = ['./data/maillage_grossier.slf']
 
 data_folder = './data/TetQ2500inter_1min_chunk/'

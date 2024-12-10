@@ -18,7 +18,7 @@ from torch.nn.parallel import DistributedDataParallel
 project_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', ''))
 sys.path.append(project_path)
 
-from python.create_dgl_dataset import TelemacDataset
+from python.create_dgl_dataset import TelemacDataset,TelemacDatasetOld
 from modulus.distributed.manager import DistributedManager
 from modulus.launch.logging import (
     PythonLogger,

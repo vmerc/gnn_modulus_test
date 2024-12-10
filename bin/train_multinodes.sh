@@ -1,13 +1,15 @@
 #!/bin/bash
-#SBATCH --job-name=test-turpan-small
-#SBATCH --output=ML-%j-gnn.out
-#SBATCH --error=ML-%j-gnn.err
+#SBATCH --job-name=config1_short_x8_no_multimesh
+#SBATCH --output=config1_short_x8_no_multimesh-%j-gnn.out
+#SBATCH --error=config1_short_x8_no_multimesh-%j-gnn.err
 
-#SBATCH -N 5
-#SBATCH -n 10
+#SBATCH -N 2
+#SBATCH -n 4
 #SBATCH --gpus-per-node=2
 #SBATCH -p small
 #SBATCH --ntasks-per-node=2
+#SBATCH --dependency=singleton   # job dependency
+
 # Check if a config name was provided
 if [ -z "$1" ]; then
   echo "No config name provided. Usage: ./your_script.sh <config_name>"

@@ -1,0 +1,51 @@
+# SPDX-FileCopyrightText: Copyright (c) 2023 - 2024 NVIDIA CORPORATION & AFFILIATES.
+# SPDX-FileCopyrightText: All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+hydra:
+  job:
+    chdir: True
+  run:
+    dir: ./new_dataset/
+
+# data configs
+data_dir: /work/m24046/m24046mrcr/results_data_30min_35_70_maillagex16/Multimesh_16_32.bin
+
+dynamic_dir : ['/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex16/Group_3_peak_1000_Group_3_peak_1000_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex16/Group_3_peak_1200_Group_3_peak_1200_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex16/Group_3_peak_1400_Group_3_peak_1400_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex16/Group_3_peak_1800_Group_3_peak_1800_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex16/Group_3_peak_2000_Group_3_peak_2000_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex16/Group_3_peak_2400_Group_3_peak_2400_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex16/Group_3_peak_2600_Group_3_peak_2600_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex16/Group_3_peak_2800_Group_3_peak_2800_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex16/Group_3_peak_3000_Group_3_peak_3000_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex16/Group_3_peak_3400_Group_3_peak_3400_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex16/Group_3_peak_3600_Group_3_peak_3600_0_0-80_interpolated.pkl',]
+
+# training configs
+batch_size: 1
+epochs: 2001
+mp_layers: 10
+lr: 0.0005
+lr_decay_rate: 0.999995
+num_input_features: 9
+num_output_features: 3
+num_edge_features: 3
+custom_loss: False
+
+
+
+# performance configs
+use_apex: True
+amp: True
+jit: False
+num_dataloader_workers: 1
+do_concat_trick: True
+num_processor_checkpoint_segments: 0
+recompute_activation: False
+
+ckpt_path: "/work/m24046/m24046mrcr/new_tests_Group3/config1_short_x16_multimesh"
+
