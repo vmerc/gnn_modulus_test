@@ -170,17 +170,21 @@ class MeshGraphNet(Module):
             num_processor_checkpoint_segments=num_processor_checkpoint_segments,
         )
 
+    
     def forward(
         self,
-        node_features: Tensor,
-        edge_features: Tensor,
-        graph: Union[DGLGraph, List[DGLGraph], CuGraphCSC],
-    ) -> Tensor:
+        node_features: torch.Tensor,
+        edge_features: torch.Tensor,
+        graph: dgl.DGLGraph,
+    ) -> Tuple[torch.Tensor, List[float]]:
         edge_features = self.edge_encoder(edge_features)
         node_features = self.node_encoder(node_features)
-        x = self.processor(node_features, edge_features, graph)
-        x = self.node_decoder(x)
-        return x
+
+        # Call the processor and capture Dirichlet energies
+        node_features, dirichlet_energies = self.processor(node_features, edge_features, graph)
+
+        node_features = self.node_decoder(node_features)
+        return node_features, dirichlet_energies
 
 
 class MeshGraphNetProcessor(nn.Module):
@@ -305,18 +309,45 @@ class MeshGraphNetProcessor(nn.Module):
     @torch.jit.unused
     def forward(
         self,
-        node_features: Tensor,
-        edge_features: Tensor,
-        graph: Union[DGLGraph, List[DGLGraph], CuGraphCSC],
-    ) -> Tensor:
-        for segment_start, segment_end in self.checkpoint_segments:
-            edge_features, node_features = self.checkpoint_fn(
-                self.run_function(segment_start, segment_end),
-                node_features,
-                edge_features,
-                graph,
-                use_reentrant=False,
-                preserve_rng_state=False,
-            )
+        node_features: torch.Tensor,
+        edge_features: torch.Tensor,
+        graph: dgl.DGLGraph,
+    ) -> Tuple[torch.Tensor, List[float]]:
+        dirichlet_energies = []
+        # Process edge and node blocks in pairs (message-passing steps)
+        for i in range(0, len(self.processor_layers), 2):
+            # Apply edge block
+            edge_block = self.processor_layers[i]
+            edge_features, node_features = edge_block(edge_features, node_features, graph)
 
-        return node_features
+            # Apply node block
+            node_block = self.processor_layers[i + 1]
+            edge_features, node_features = node_block(edge_features, node_features, graph)
+
+            # Compute Dirichlet energy after the message-passing step
+            graph.ndata['x'] = node_features  # Ensure node features are updated in the graph
+            energy = compute_dirichlet_energy(graph)
+            dirichlet_energies.append(energy.item())
+
+        return node_features, dirichlet_energies
+def compute_dirichlet_energy(graph: dgl.DGLGraph) -> torch.Tensor:
+    """
+    Compute the Dirichlet energy for the graph's node features.
+    """
+    with graph.local_scope():
+        # Node features
+        node_features = graph.ndata['x']
+        
+        # Broadcast node features to edges
+        graph.ndata['x'] = node_features
+        graph.apply_edges(lambda edges: {
+            'diff': edges.src['x'] - edges.dst['x']
+        })
+        
+        # Compute squared L2 norm for each edge
+        graph.edata['squared_diff'] = torch.sum(graph.edata['diff'] ** 2, dim=-1)
+        
+        # Sum over all edges and normalize by the number of nodes
+        dirichlet_energy = graph.edata['squared_diff'].sum() / graph.num_nodes()
+    
+    return dirichlet_energy
