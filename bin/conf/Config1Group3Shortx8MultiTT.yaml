@@ -27,9 +27,9 @@ dynamic_dir : ['/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Grou
 
 # training configs
 batch_size: 1
-epochs: 2001
+epochs: 2501
 mp_layers: 10
-lr: 0.0005
+lr: 0.0001
 lr_decay_rate: 0.999995
 num_input_features: 9
 num_output_features: 3
@@ -46,6 +46,11 @@ num_dataloader_workers: 1
 do_concat_trick: True
 num_processor_checkpoint_segments: 0
 recompute_activation: False
+sequence_length: 2
 
-ckpt_path: "/work/m24046/m24046mrcr/new_tests_Group3/config1_short_x8_multimesh"
+
+ckpt_path: "/work/m24046/m24046mrcr/new_tests_Group3/config1_short_x8_multimeshTT"
+
+loading_path: "/work/m24046/m24046mrcr/new_tests_Group3/config1_short_x8_multimesh"
+
 
