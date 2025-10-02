@@ -57,6 +57,7 @@ class MGNTrainer:
             ckpt_path=cfg.ckpt_path,
             normalize=True,
             sequence_length=2,  # Set sequence length to 1
+            overlap = cfg.overlap
         )
         
         

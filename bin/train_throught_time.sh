@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=test-train-config1Group3
-#SBATCH --output=config1Group3-througthtime-%j-gnn.out
-#SBATCH --error=config1Group3-througthtime-%j-gnn.err
-#SBATCH -N 4
-#SBATCH -n 8
+#SBATCH --output=config1Group3Short-througthtime-%j-gnn.out
+#SBATCH --error=config1Group3Short-througthtime-%j-gnn.err
+#SBATCH -N 1
+#SBATCH -n 2
 #SBATCH --gpus-per-node=2
 #SBATCH -p small
 #SBATCH --ntasks-per-node=2

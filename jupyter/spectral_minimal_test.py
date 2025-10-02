@@ -67,99 +67,70 @@ def radial_average_spectrum_cupy(spectrum_gpu, center=None):
     return r_vals_cpu, rad_ave_cpu
 
 def radial_average_spectrum_cupy_physical(
-    spectrum_gpu, 
-    dx, dy,             # Physical spacing in x and y
+    spectrum_gpu,
+    dx, dy,
     center=None,
     k_step=None
 ):
-    """
-    Compute radial average of a 2D FFT spectrum in *physical wavenumber* space.
-    
-    Parameters
-    ----------
-    spectrum_gpu : cupy.ndarray, shape (ny, nx)
-        The 2D FFT amplitude (|FFT|) on the GPU.
-    dx, dy : float
-        Physical spacing (e.g., in meters) of your spatial grid in x and y.
-    center : (cx, cy), optional
-        FFT center in pixel indices. By default, it is set to (nx//2, ny//2).
-    k_step : float, optional
-        Bin width in wavenumber space. If None, a default is chosen.
-
-    Returns
-    -------
-    k_vals_cpu : 1D np.ndarray
-        The midpoints (or edges) of the k-bins in *physical wavenumber* [1/length].
-    rad_ave_cpu : 1D np.ndarray
-        The radial average of the spectrum in those bins.
-    """
     ny, nx = spectrum_gpu.shape
     if center is None:
-        # By default, the center is the "fftshifted" origin = (nx//2, ny//2)
         cx = nx // 2
         cy = ny // 2
     else:
         cx, cy = center
 
-    # 1) Build integer index arrays [0..nx-1], [0..ny-1]
-    y_idx_gpu, x_idx_gpu = cp.indices((ny, nx))  # shape each = (ny, nx)
-    
-    # 2) Convert from pixel-index space -> physical wavenumber space
-    #    Each frequency step in x-direction is (2π / (nx*dx)) per pixel step away from cx
-    #    Similarly for y-direction.
+    # Build the wavenumber grid
+    y_idx_gpu, x_idx_gpu = cp.indices((ny, nx))
     kx_gpu = (x_idx_gpu - cx) * (2.0 * np.pi / (nx * dx))
     ky_gpu = (y_idx_gpu - cy) * (2.0 * np.pi / (ny * dy))
-    
-    # 3) Radial wavenumber magnitude
     r_k_gpu = cp.sqrt(kx_gpu**2 + ky_gpu**2)
-    
-    # Free some memory (optional)
-    del x_idx_gpu, y_idx_gpu, kx_gpu, ky_gpu
-    cp._default_memory_pool.free_all_blocks()
-    
-    # 4) Flatten arrays for binning
+
+    # Flatten
     r_k_flat_gpu = r_k_gpu.ravel()
     spectrum_flat_gpu = spectrum_gpu.ravel()
-    del r_k_gpu
+
+    del x_idx_gpu, y_idx_gpu, kx_gpu, ky_gpu, r_k_gpu
     cp._default_memory_pool.free_all_blocks()
 
-    # 5) Choose bin size (k_step). If None, pick a default based on Nyquist or domain size.
-    #    For example, you might choose k_step so that you get ~100-200 bins across the radius.
+    # -------------------------------------------------------------------
+    # 1) We REQUIRE a user-supplied k_step here (the same for all runs).
+    # 2) k_max depends on domain & spacing => "theoretical Nyquist"
+    #    e.g., sqrt((2π/dx)^2 + (2π/dy)^2).
+    # -------------------------------------------------------------------
     if k_step is None:
-        # max possible wavenumber ~ sqrt((π/dx)^2 + (π/dy)^2) after shift,
-        # but let's just pick something simpler:
-        Lx = nx * dx
-        Ly = ny * dy
-        # max radial wavenumber ~ sqrt( (2π/dx)^2 + (2π/dy)^2 )
-        k_max_theoretical = np.sqrt((2.0 * np.pi / dx)**2 + (2.0 * np.pi / dy)**2)
-        # e.g. aim for ~ min(300, int(k_max_theoretical)) bins
-        desired_bins = 300
-        k_step = k_max_theoretical / desired_bins
-    
-    # 6) Convert each r_k to a bin index
+        raise ValueError("You must pass a 'k_step' so all runs share the same bin width!")
+
+    # Example formula for max radial wavenumber:
+    k_max = np.sqrt( (2.0*np.pi/dx)**2 + (2.0*np.pi/dy)**2 )
+
+    # Number of bins for THIS run
+    nbins = int(np.floor(k_max / k_step)) + 1  # +1 to include top edge
+    # If you want a margin above the strict Nyquist, you can add a factor
+
+    # Convert each radius to bin index
     bin_idx_gpu = cp.floor(r_k_flat_gpu / k_step).astype(cp.int32)
 
-    # 7) Bin counts and sums
-    sumvals_gpu = cp.bincount(bin_idx_gpu, weights=spectrum_flat_gpu)
-    counts_gpu  = cp.bincount(bin_idx_gpu)
-    
-    # 8) Avoid division by zero
-    sumvals_gpu  = sumvals_gpu.astype(cp.float32)
-    counts_gpu   = counts_gpu.astype(cp.float32)
+    # Clip any indices that exceed nbins-1
+    bin_idx_gpu = cp.where(bin_idx_gpu >= nbins, nbins - 1, bin_idx_gpu)
+
+    # Bin counts and sums
+    sumvals_gpu = cp.bincount(bin_idx_gpu, weights=spectrum_flat_gpu, minlength=nbins)
+    counts_gpu  = cp.bincount(bin_idx_gpu, minlength=nbins)
+
+    # Avoid div-by-zero
     rad_ave_gpu = sumvals_gpu / cp.where(counts_gpu == 0, cp.float32(1), counts_gpu)
 
-    # 9) The max bin index is bin_idx_gpu.max(), define a 1D array of bin centers
-    nbins = int(bin_idx_gpu.max().get()) + 1
-    # k = (bin_center + 0.5)*k_step is one approach; let's do midpoint of bin
+    # Define bin centers => (i + 0.5)*k_step
     k_vals_gpu = (cp.arange(nbins, dtype=cp.float32) + 0.5) * k_step
 
-    # 10) Move results to CPU
+    # Move to CPU
     k_vals_cpu = cp.asnumpy(k_vals_gpu)
     rad_ave_cpu = cp.asnumpy(rad_ave_gpu)
 
     return k_vals_cpu, rad_ave_cpu
 
-def process_fft_and_radial(data_cpu, window_2d_cpu):
+
+def process_fft_and_radial(data_cpu, window_2d_cpu,global_k_step):
     """
     data_cpu  : un tableau NumPy (Ny, Nx, nb_channels) en float32 (de préférence).
     window_2d_cpu : fenêtre Hann (Ny, Nx) en float32.
@@ -200,7 +171,7 @@ def process_fft_and_radial(data_cpu, window_2d_cpu):
                                                                 dx=min_length,       
                                                                 dy=min_length,       
                                                                 center=(Nx//2, Ny//2),
-                                                                k_step=None          
+                                                                k_step=global_k_step          
                                                                 )
         if r_vals_common is None:
             r_vals_common = r_vals
@@ -492,7 +463,10 @@ print("Min length {}".format(min_length))
 # Number of grid points
 n_grid_points = grid_points.shape[0]
 
-all_rad_profiles = []
+all_rad_profiles_h = []
+all_rad_profiles_u = []
+all_rad_profiles_v = []
+
 r_vals_common = None  # Pour stocker le vecteur r_vals la première fois
 window_2d_cpu = hann_2d(Nx, Ny)
 
@@ -501,6 +475,7 @@ bary_coords_coarse = cp.asarray(bary_coords_coarse, dtype=cp.float32)
 simplex_indices_coarse_masked = cp.asarray(simplex_indices_coarse_masked, dtype=cp.int32)
 simplices = cp.asarray(tri_coarse.simplices, dtype=cp.int32)
 
+global_k_step = 0.002
 for i, pred in enumerate(fine_gd):
     # 1) Interpolation sur la grille
     #    ==========================
@@ -522,25 +497,35 @@ for i, pred in enumerate(fine_gd):
     # 2) FFT et moyenne radiale
     #    ======================
 
-    r_vals, rad_profiles = process_fft_and_radial(data_cpu, window_2d_cpu)
+    r_vals, rad_profiles = process_fft_and_radial(data_cpu, window_2d_cpu,global_k_step = global_k_step)
     # rad_profiles : shape (n_vars, len(r_vals)) si 'n_vars' = nb_channels
 
     # Au besoin, on moyenne sur les canaux
-    rad_profiles_mean = rad_profiles.mean(axis=0)
-
+    #rad_profiles_mean = rad_profiles.mean(axis=0)
     # On mémorise le r_vals la première fois, si besoin
     if r_vals_common is None:
         r_vals_common = r_vals
 
     # On stocke uniquement le profil radial (ou ce qui vous intéresse),
     # pas la grille interpolée en entier
-    all_rad_profiles.append(rad_profiles_mean)
+    #all_rad_profiles_h.append(rad_profiles[0,:])
+    all_rad_profiles_u.append(rad_profiles[1,:])
+    #all_rad_profiles_v.append(rad_profiles[2,:])
     
     cp._default_memory_pool.free_all_blocks()
     
-all_rad_profiles = np.array(all_rad_profiles)  # shape (N, len(r_vals))
+#all_rad_profiles_h = np.array(all_rad_profiles_h)  # shape (N, len(r_vals))
+all_rad_profiles_u = np.array(all_rad_profiles_u)  # shape (N, len(r_vals))
+#all_rad_profiles_v = np.array(all_rad_profiles_v)  # shape (N, len(r_vals))
+
 
 # Moyenne sur le temps (ou sur N)
-rad_profiles_time_mean = all_rad_profiles.mean(axis=0)
-np.save("./datas/rad_proj_mean_"+saving_name+".npy", np.array(rad_profiles_time_mean))
-np.save("./datas/r_proj_"+saving_name+".npy", np.array(r_vals))
+#all_rad_profiles_h_time_mean = all_rad_profiles_h.mean(axis=0)
+#all_rad_profiles_u_time_mean = all_rad_profiles_u.mean(axis=0)
+#all_rad_profiles_v_time_mean = all_rad_profiles_v.mean(axis=0)
+
+#np.save("./datas/rad_proj_full_h_"+saving_name+".npy", np.array(all_rad_profiles_h))
+np.save("./datas/rad_proj_full_u_"+saving_name+".npy", np.array(all_rad_profiles_u))
+#np.save("./datas/rad_proj_full_v_"+saving_name+".npy", np.array(all_rad_profiles_v))
+
+np.save("./datas/r_proj_"+variables_name[variable]+"_"+saving_name+".npy", np.array(r_vals))

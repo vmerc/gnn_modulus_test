@@ -16,7 +16,7 @@ from torch.nn.parallel import DistributedDataParallel
 project_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', ''))
 sys.path.append(project_path)
 
-from python.create_dgl_dataset import TelemacDataset,TelemacDatasetOld  # Import the new dataset
+from python.create_dgl_dataset import TelemacDataset  # Import the new dataset
 from modulus.distributed.manager import DistributedManager
 from modulus.launch.logging import (
     PythonLogger,
@@ -55,10 +55,11 @@ class MGNTrainer:
             name="telemac_train",
             data_dir=to_absolute_path(cfg.data_dir),
             dynamic_data_files=[to_absolute_path(path) for path in cfg.dynamic_dir],  # Handle list of files
-            split="train",
+            split="troughtime",
             ckpt_path=cfg.ckpt_path,
             normalize=True,
             sequence_length=self.sequence_length,  # Set sequence length to 1
+            overlap = cfg.overlap
         )
         
         

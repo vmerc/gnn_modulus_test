@@ -13,9 +13,9 @@ module load gnu/11.2.0
 module load openmpi/gnu/4.1.4-gpu
 # Execute the training script within the container
 
-CONFIG_NAME="Config1Group3Shortx2MultiTest"
-SAVING_NAME="x2"
-MESH_LIST="/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex2/Mesh2_corrige.slf"
+CONFIG_NAME="Config1Group3Shortx4MultiTest"
+SAVING_NAME="x8"
+MESH_LIST="/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Mesh8_corrige.slf"
 
 srun apptainer exec --bind /tmpdir,/work --nv /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif python spectral_minimal_test.py --config_name "$CONFIG_NAME" --saving_name "$SAVING_NAME" --mesh_list "$MESH_LIST" 
 

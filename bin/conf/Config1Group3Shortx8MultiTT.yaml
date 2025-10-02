@@ -26,10 +26,10 @@ data_dir: /work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Multimesh_
 dynamic_dir : ['/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Group_3_peak_1000_Group_3_peak_1000_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Group_3_peak_1200_Group_3_peak_1200_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Group_3_peak_1400_Group_3_peak_1400_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Group_3_peak_1800_Group_3_peak_1800_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Group_3_peak_2000_Group_3_peak_2000_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Group_3_peak_2400_Group_3_peak_2400_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Group_3_peak_2600_Group_3_peak_2600_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Group_3_peak_2800_Group_3_peak_2800_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Group_3_peak_3000_Group_3_peak_3000_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Group_3_peak_3400_Group_3_peak_3400_0_0-80_interpolated.pkl','/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Group_3_peak_3600_Group_3_peak_3600_0_0-80_interpolated.pkl',]
 
 # training configs
-batch_size: 1
-epochs: 2501
+batch_size: 4
+epochs: 4001
 mp_layers: 10
-lr: 0.0001
+lr: 0.0005
 lr_decay_rate: 0.999995
 num_input_features: 9
 num_output_features: 3
@@ -47,7 +47,7 @@ do_concat_trick: True
 num_processor_checkpoint_segments: 0
 recompute_activation: False
 sequence_length: 2
-
+overlap : 2
 
 ckpt_path: "/work/m24046/m24046mrcr/new_tests_Group3/config1_short_x8_multimeshTT"
 

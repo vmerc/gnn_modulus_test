@@ -822,8 +822,14 @@ class TelemacDataset(DGLDataset):
                 self._normalize_data(self.node_stats, self.edge_stats, self.node_var_info, self.edge_var_info)
             else:
                 print("Loading normalization statistics...")
+                self.node_stats = self._get_node_stats(self.node_var_info)
+                self.edge_stats = self._get_edge_stats(self.edge_var_info)
+                #print(self.node_stats)
+                #print(self.edge_stats)
                 self.node_stats = load_json(f"{ckpt_path}/node_stats.json")
                 self.edge_stats = load_json(f"{ckpt_path}/edge_stats.json")
+                #print(self.node_stats)
+                #print(self.edge_stats)
                 self._normalize_data(self.node_stats, self.edge_stats, self.node_var_info, self.edge_var_info)
 
     def _normalize_data(self, node_stats, edge_stats, node_var_info, edge_var_info):

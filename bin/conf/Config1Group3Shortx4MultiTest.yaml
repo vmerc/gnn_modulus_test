@@ -27,6 +27,7 @@ dynamic_dir : ['/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex4/Grou
 '/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex4/Group_3_peak_2200_Group_3_peak_2200_0_0-80_interpolated.pkl',
 '/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex4/Group_3_peak_3200_Group_3_peak_3200_0_0-80_interpolated.pkl']
 
+#dynamic_dir : ['/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex4/Group_3_peak_3200_Group_3_peak_3200_0_0-80_interpolated.pkl']
 # training configs
 batch_size: 1
 epochs: 2001
@@ -38,7 +39,7 @@ num_output_features: 3
 num_edge_features: 3
 custom_loss: False
 sequence_length: 13
-overlap : 1
+overlap : 13
 
 
 # performance configs
