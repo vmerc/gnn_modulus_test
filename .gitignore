@@ -13,3 +13,5 @@
 *.png
 *.pdf
 /datas/
+/uts_Tet_full/
+/outputs/
