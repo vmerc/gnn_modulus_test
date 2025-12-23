@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import random
 import torch
 import dgl
 import hydra
@@ -23,6 +24,14 @@ from python.CustomMeshGraphNet import MeshGraphNet
 from modulus.distributed.manager import DistributedManager
 from modulus.launch.logging import PythonLogger, RankZeroLoggingWrapper
 from modulus.launch.utils import load_checkpoint, save_checkpoint
+
+
+def seed_everything(seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 
 # --- collate: on renvoie la séquence telle quelle (liste de graphs) ---
@@ -249,6 +258,10 @@ def main(cfg: DictConfig):
     logger = PythonLogger("train")
     r0 = RankZeroLoggingWrapper(logger, dist)
     r0.file_logging()
+
+    base_seed = int(getattr(cfg, "seed", 0))
+    seed_everything(base_seed + int(dist.rank))
+    r0.info(f"Seed: {base_seed} (rank-adjusted: {base_seed + int(dist.rank)})")
 
     trainer = MGNTrainer(cfg, r0)
 
