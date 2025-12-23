@@ -215,6 +215,10 @@ if __name__ == "__main__":
 
     # Laisse Hydra gérer `config_path="conf"` si tu utilises un répertoire de confs
     config_name = sys.argv.pop(1)
-    with hydra.initialize_config_dir(config_dir=os.path.abspath("./bin/conf")):
+    if config_name.endswith((".yaml", ".yml")):
+        config_name = os.path.splitext(config_name)[0]
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    conf_dir = os.path.join(script_dir, "conf")
+    with hydra.initialize_config_dir(version_base=None, config_dir=conf_dir):
         cfg = hydra.compose(config_name=config_name)
         main(cfg)
