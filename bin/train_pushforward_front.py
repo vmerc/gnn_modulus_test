@@ -245,7 +245,9 @@ class MGNTrainer:
         g = graphs[0].to(self.dist.device)
         onehot = g.ndata['x'][:, :4]  # constant sur la séquence
 
-        total_loss = 0.0
+        total_loss = torch.zeros((), device=self.dist.device)
+        mse_loss_sum = torch.zeros((), device=self.dist.device)
+        front_loss_sum = torch.zeros((), device=self.dist.device)
         self.optimizer.zero_grad()
 
         for t in range(K):
@@ -279,6 +281,8 @@ class MGNTrainer:
             )
 
             # combine (hors autocast pour maîtriser la somme en FP32)
+            mse_loss_sum = mse_loss_sum + loss_t
+            front_loss_sum = front_loss_sum + front_loss_t
             total_loss = total_loss + loss_t + self.lambda_front * front_loss_t
 
             # teacher forcing
@@ -303,7 +307,7 @@ class MGNTrainer:
             total_loss.backward()
             self.optimizer.step()
 
-        return total_loss.detach()
+        return total_loss.detach(), mse_loss_sum.detach(), front_loss_sum.detach()
 
 @hydra.main(version_base="1.3", config_path="conf", config_name=None)
 def main(cfg: DictConfig):
@@ -327,19 +331,36 @@ def main(cfg: DictConfig):
 
     for epoch in range(trainer.epoch_init, cfg.epochs):
         epoch_loss = 0.0
+        epoch_mse_loss = 0.0
+        epoch_front_loss = 0.0
         for graphs in trainer.dataloader:  # graphs = liste [g_t0, ..., g_tK] batched
-            loss = trainer.train_pushforward(graphs, epoch)
+            loss, mse_loss, front_loss = trainer.train_pushforward(graphs, epoch)
             epoch_loss += loss.item()
+            epoch_mse_loss += mse_loss.item()
+            epoch_front_loss += front_loss.item()
         epoch_loss /= len(trainer.dataloader)
+        epoch_mse_loss /= len(trainer.dataloader)
+        epoch_front_loss /= len(trainer.dataloader)
 
         # scheduler -> par epoch
         trainer.scheduler.step()
 
-        r0.info(
-            f"epoch: {epoch}, p_tf={trainer.p_tf(epoch):.3f}, "
-            f"lr: {trainer.optimizer.param_groups[0]['lr']:.3e}, "
-            f"loss: {epoch_loss:10.3e}, time/epoch: {(time.time()-start):.2f}s"
-        )
+        if epoch % 10 == 0:
+            r0.info(
+                f"epoch: {epoch}, p_tf={trainer.p_tf(epoch):.3f}, "
+                f"lr: {trainer.optimizer.param_groups[0]['lr']:.3e}, "
+                f"loss: {epoch_loss:10.3e}, "
+                f"loss_t: {epoch_mse_loss:10.3e}, "
+                f"front_loss_t: {epoch_front_loss:10.3e}, "
+                f"lambda*front: {(trainer.lambda_front * epoch_front_loss):10.3e}, "
+                f"time/epoch: {(time.time()-start):.2f}s"
+            )
+        else:
+            r0.info(
+                f"epoch: {epoch}, p_tf={trainer.p_tf(epoch):.3f}, "
+                f"lr: {trainer.optimizer.param_groups[0]['lr']:.3e}, "
+                f"loss: {epoch_loss:10.3e}, time/epoch: {(time.time()-start):.2f}s"
+            )
         start = time.time()
 
         # checkpoint
