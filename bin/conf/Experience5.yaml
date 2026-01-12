@@ -52,7 +52,7 @@ dynamic_dir : [
 
 # training configs
 batch_size: 1
-epochs: 991
+epochs: 901
 mp_layers: 10
 lr: 0.0005
 lr_decay_rate: 0.999995
@@ -71,10 +71,15 @@ num_processor_checkpoint_segments: 0
 recompute_activation: False
 
 # pushforward (sans dice)
-sequence_length: 4
-overlap: 4
-pf_warmup_epochs: 100
+sequence_length: 3
+overlap: 3
+pf_warmup_epochs: 150
 
 seed : 0
-ckpt_path: "/work/m24046/m24046mrcr/paper/Experience3_2/Seed0/"
+ckpt_path: "/work/m24046/m24046mrcr/paper/Experience5_1/Seed0/"
 
+# front loss
+lambda_front: 0.1     
+eps_front: 0.05       
+tau_front: 0.02       
+exclude_bc_in_front: true

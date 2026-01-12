@@ -52,7 +52,7 @@ dynamic_dir : [
 
 # training configs
 batch_size: 1
-epochs: 801
+epochs: 901
 mp_layers: 10
 lr: 0.0005
 lr_decay_rate: 0.999995
@@ -73,7 +73,7 @@ recompute_activation: False
 # pushforward (sans dice)
 sequence_length: 3
 overlap: 3
-pf_warmup_epochs: 100
+pf_warmup_epochs: 150
 
 seed : 0
 ckpt_path: "/work/m24046/m24046mrcr/paper/Experience4_1/Seed0/"

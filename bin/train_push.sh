@@ -2,7 +2,7 @@
 #SBATCH --output=%x-%j-gnn.out
 #SBATCH --error=%x-%j-gnn.err
 #SBATCH --dependency=singleton
-#SBATCH -N 3
+#SBATCH -N 5
 #SBATCH --gpus-per-node=2
 #SBATCH -p small
 #SBATCH --ntasks-per-node=2
