@@ -5,7 +5,7 @@ hydra:
     dir: ./new_dataset/
 
 # data configs
-data_dir: /work/m24046/m24046mrcr/paper/Experience1/Mesh8_base.bin
+data_dir: /work/m24046/m24046mrcr/paper/Experience2/Multimesh_8_32.bin
 
 dynamic_dir : [
 '/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Group_3_peak_1400_Group_3_peak_1400_0_0-80_interpolated.pkl',
@@ -52,7 +52,7 @@ dynamic_dir : [
 
 # training configs
 batch_size: 1
-epochs: 921
+epochs: 901
 mp_layers: 10
 lr: 0.0005
 lr_decay_rate: 0.999995
@@ -76,10 +76,10 @@ overlap: 3
 pf_warmup_epochs: 150
 
 seed : 0
-ckpt_path: "/work/m24046/m24046mrcr/paper/Experience5_1/Seed0/"
+ckpt_path: "/work/m24046/m24046mrcr/paper/Experience6_1/Seed0/"
 
 # front loss
-lambda_front: 1     
+lambda_front: 0.1     
 eps_front: 0.05       
 tau_front: 0.02       
 exclude_bc_in_front: true
