@@ -172,14 +172,14 @@ class MGNTrainer:
 
         # === Hyperparamètres "front d'eau" (Focal Tversky multi-seuils) ===
         self.lambda_front = float(getattr(cfg, "lambda_front", 0.1))
+        self.lambda_fp_amp = float(getattr(cfg, "lambda_fp_amp", 0.05))
         self.exclude_bc_in_front = bool(getattr(cfg, "exclude_bc_in_front", True))
+        self.eps_front = float(getattr(cfg, "eps_front", 0.05))
+        # seuil spécifique pour la pénalisation FP-amp (peut être < eps_front)
+        self.eps_fp_amp = float(getattr(cfg, "eps_fp_amp", 0.02))
 
         # seuils (m) et poids associés
-        default_thresholds = [
-            float(getattr(cfg, "eps_front", 0.05)),
-            0.2,
-            0.5,
-        ]
+        default_thresholds = [self.eps_front, 0.2, 0.5]
         front_thresholds = getattr(cfg, "front_thresholds", None)
         self.front_thresholds = list(front_thresholds) if front_thresholds is not None else default_thresholds
         self.front_thresholds = [float(x) for x in self.front_thresholds]
@@ -276,6 +276,50 @@ class MGNTrainer:
             return torch.zeros((), device=p.device, dtype=p.dtype)
         return loss
 
+    def _fp_amp_loss(self, h_pred, h_gt, onehot):
+        device = h_pred.device
+        if self.exclude_bc_in_front:
+            q_mask = (onehot == torch.tensor([0,0,1,0], device=device)).all(dim=1)
+            h_mask = (onehot == torch.tensor([0,1,0,0], device=device)).all(dim=1)
+            valid = ~(q_mask | h_mask)
+        else:
+            valid = torch.ones_like(h_pred, dtype=torch.bool, device=device)
+
+        h_pred = h_pred[valid]
+        h_gt = h_gt[valid]
+
+        if h_pred.numel() == 0:
+            return torch.zeros((), device=device, dtype=h_pred.dtype)
+
+        dry = (h_gt < self.eps_fp_amp).float()
+        fp_amp = torch.relu(h_pred - self.eps_fp_amp).pow(2) * dry
+        return fp_amp.mean()
+
+    def _wet_metrics(self, h_pred, h_gt, onehot):
+        device = h_pred.device
+        if self.exclude_bc_in_front:
+            q_mask = (onehot == torch.tensor([0,0,1,0], device=device)).all(dim=1)
+            h_mask = (onehot == torch.tensor([0,1,0,0], device=device)).all(dim=1)
+            valid = ~(q_mask | h_mask)
+        else:
+            valid = torch.ones_like(h_pred, dtype=torch.bool, device=device)
+
+        h_pred = h_pred[valid]
+        h_gt = h_gt[valid]
+
+        if h_pred.numel() == 0:
+            z = torch.zeros((), device=device, dtype=h_pred.dtype)
+            return z, z, z
+
+        wet_gt = (h_gt >= self.eps_front)
+        wet_pred = (h_pred >= self.eps_front)
+        wet_ratio_gt = wet_gt.float().mean()
+        wet_ratio_pred = wet_pred.float().mean()
+        inter = (wet_gt & wet_pred).sum().float()
+        union = (wet_gt | wet_pred).sum().float()
+        iou = inter / (union + 1e-6)
+        return wet_ratio_gt, wet_ratio_pred, iou
+
     def _front_loss_multithr(self, h_pred, h_gt, onehot):
         """
         Focal-Tversky multi-seuils entre proba d'inondation prédite et masque GT.
@@ -326,6 +370,10 @@ class MGNTrainer:
         total_loss = torch.zeros((), device=self.dist.device)
         mse_loss_sum = torch.zeros((), device=self.dist.device)
         front_loss_sum = torch.zeros((), device=self.dist.device)
+        fp_amp_loss_sum = torch.zeros((), device=self.dist.device)
+        wet_gt_sum = torch.zeros((), device=self.dist.device)
+        wet_pred_sum = torch.zeros((), device=self.dist.device)
+        iou_sum = torch.zeros((), device=self.dist.device)
         self.optimizer.zero_grad()
 
         for t in range(K):
@@ -358,10 +406,27 @@ class MGNTrainer:
                 onehot = onehot
             )
 
+            fp_amp_loss_t = self._fp_amp_loss(
+                h_pred = x_t1_pred[:, 0].contiguous(),
+                h_gt   = x_t1_gt[:,   0].contiguous(),
+                onehot = onehot
+            )
+
             # combine (hors autocast pour maîtriser la somme en FP32)
             mse_loss_sum = mse_loss_sum + loss_t
             front_loss_sum = front_loss_sum + front_loss_t
-            total_loss = total_loss + loss_t + self.lambda_front * front_loss_t
+            fp_amp_loss_sum = fp_amp_loss_sum + fp_amp_loss_t
+            total_loss = total_loss + loss_t + self.lambda_front * front_loss_t + self.lambda_fp_amp * fp_amp_loss_t
+
+            with torch.no_grad():
+                wet_gt, wet_pred, iou = self._wet_metrics(
+                    h_pred = x_t1_pred[:, 0].contiguous(),
+                    h_gt   = x_t1_gt[:,   0].contiguous(),
+                    onehot = onehot
+                )
+            wet_gt_sum = wet_gt_sum + wet_gt
+            wet_pred_sum = wet_pred_sum + wet_pred
+            iou_sum = iou_sum + iou
 
             # teacher forcing
             use_tf = (torch.rand(1, device=xn_t.device).item() < self.p_tf(epoch))
@@ -385,7 +450,20 @@ class MGNTrainer:
             total_loss.backward()
             self.optimizer.step()
 
-        return total_loss.detach(), mse_loss_sum.detach(), front_loss_sum.detach()
+        denom = max(1, K)
+        wet_gt_mean = wet_gt_sum / denom
+        wet_pred_mean = wet_pred_sum / denom
+        iou_mean = iou_sum / denom
+
+        return (
+            total_loss.detach(),
+            mse_loss_sum.detach(),
+            front_loss_sum.detach(),
+            fp_amp_loss_sum.detach(),
+            wet_gt_mean.detach(),
+            wet_pred_mean.detach(),
+            iou_mean.detach(),
+        )
 
 @hydra.main(version_base="1.3", config_path="conf", config_name=None)
 def main(cfg: DictConfig):
@@ -411,14 +489,26 @@ def main(cfg: DictConfig):
         epoch_loss = 0.0
         epoch_mse_loss = 0.0
         epoch_front_loss = 0.0
+        epoch_fp_amp_loss = 0.0
+        epoch_wet_gt = 0.0
+        epoch_wet_pred = 0.0
+        epoch_iou = 0.0
         for graphs in trainer.dataloader:  # graphs = liste [g_t0, ..., g_tK] batched
-            loss, mse_loss, front_loss = trainer.train_pushforward(graphs, epoch)
+            loss, mse_loss, front_loss, fp_amp_loss, wet_gt, wet_pred, iou = trainer.train_pushforward(graphs, epoch)
             epoch_loss += loss.item()
             epoch_mse_loss += mse_loss.item()
             epoch_front_loss += front_loss.item()
+            epoch_fp_amp_loss += fp_amp_loss.item()
+            epoch_wet_gt += wet_gt.item()
+            epoch_wet_pred += wet_pred.item()
+            epoch_iou += iou.item()
         epoch_loss /= len(trainer.dataloader)
         epoch_mse_loss /= len(trainer.dataloader)
         epoch_front_loss /= len(trainer.dataloader)
+        epoch_fp_amp_loss /= len(trainer.dataloader)
+        epoch_wet_gt /= len(trainer.dataloader)
+        epoch_wet_pred /= len(trainer.dataloader)
+        epoch_iou /= len(trainer.dataloader)
 
         # scheduler -> par epoch
         trainer.scheduler.step()
@@ -431,6 +521,11 @@ def main(cfg: DictConfig):
                 f"loss_t: {epoch_mse_loss:10.3e}, "
                 f"front_loss_t: {epoch_front_loss:10.3e}, "
                 f"lambda*front: {(trainer.lambda_front * epoch_front_loss):10.3e}, "
+                f"fp_amp_loss_t: {epoch_fp_amp_loss:10.3e}, "
+                f"lambda*fp_amp: {(trainer.lambda_fp_amp * epoch_fp_amp_loss):10.3e}, "
+                f"wet_gt: {epoch_wet_gt:8.4f}, "
+                f"wet_pred: {epoch_wet_pred:8.4f}, "
+                f"iou: {epoch_iou:8.4f}, "
                 f"time/epoch: {(time.time()-start):.2f}s"
             )
         else:
