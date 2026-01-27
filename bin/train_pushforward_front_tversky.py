@@ -291,9 +291,17 @@ class MGNTrainer:
         if h_pred.numel() == 0:
             return torch.zeros((), device=device, dtype=h_pred.dtype)
 
-        dry = (h_gt < self.eps_fp_amp).float()
-        fp_amp = torch.relu(h_pred - self.eps_fp_amp).pow(2) * dry
-        return fp_amp.mean()
+        # "dry" est défini au même seuil que le front wet/dry (eps_front),
+        # mais on pénalise l'amplitude des faux positifs à partir d'un seuil
+        # potentiellement plus bas (eps_fp_amp). Version sans unité et
+        # moyennée uniquement sur les nœuds secs.
+        dry = (h_gt < self.eps_front)
+        if dry.any():
+            overshoot = torch.relu(h_pred - self.eps_fp_amp) / (self.eps_fp_amp + 1e-12)
+            fp_amp = (overshoot.pow(2))[dry].mean()
+        else:
+            fp_amp = torch.zeros((), device=device, dtype=h_pred.dtype)
+        return fp_amp
 
     def _wet_metrics(self, h_pred, h_gt, onehot):
         device = h_pred.device
@@ -441,6 +449,12 @@ class MGNTrainer:
             g.ndata['x'] = x_next_full
             g.edata['x'] = graphs[0].edata['x'].to(g.device)
 
+        denom = max(1, K)
+        total_loss = total_loss / denom
+        mse_loss_sum = mse_loss_sum / denom
+        front_loss_sum = front_loss_sum / denom
+        fp_amp_loss_sum = fp_amp_loss_sum / denom
+
         # --- backward / step ---
         if self.amp:
             self.scaler.scale(total_loss).backward()
@@ -450,7 +464,6 @@ class MGNTrainer:
             total_loss.backward()
             self.optimizer.step()
 
-        denom = max(1, K)
         wet_gt_mean = wet_gt_sum / denom
         wet_pred_mean = wet_pred_sum / denom
         iou_mean = iou_sum / denom
