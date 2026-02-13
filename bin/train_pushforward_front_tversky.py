@@ -10,7 +10,7 @@ import numpy as np
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig
 from dgl.dataloading import GraphDataLoader
-from torch.cuda.amp import GradScaler
+from torch.cuda.amp import GradScaler, autocast
 from torch.nn.parallel import DistributedDataParallel
 
 # repo root (ajuste si besoin)
@@ -50,6 +50,7 @@ class MGNTrainer:
     def __init__(self, cfg: DictConfig, r0: RankZeroLoggingWrapper):
         assert DistributedManager.is_initialized()
         self.dist = DistributedManager()
+        self.amp = bool(getattr(cfg, "amp", False)) and self.dist.device.type == "cuda"
 
         # === Dataset ===
         # IMPORTANT : sequence_length >= 2 pour le pushforward (K = seq_len-1)
@@ -127,8 +128,7 @@ class MGNTrainer:
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(
             self.optimizer, lr_lambda=lambda e: cfg.lr_decay_rate**e
         )
-        # AMP désactivé, mais on conserve un scaler (no-op) pour compatibilité checkpoints Modulus.
-        self.scaler = GradScaler(enabled=False)
+        self.scaler = GradScaler(enabled=self.amp)
 
         # === Checkpoint load ===
         if self.dist.world_size > 1:
@@ -290,9 +290,10 @@ class MGNTrainer:
 
         for t in range(K):
             # --- forward one-step (targets normalisés = Δ normalisés) ---
-            y_pred_n = self.model(g.ndata["x"], g.edata["x"], g)                # (N,3), normalisé
-            y_gt_n   = graphs[t].ndata["y"].to(self.dist.device)                # (N,3), normalisé
-            loss_t   = self.criterion(y_pred_n, y_gt_n)                         # MSE(Δ)
+            with autocast(enabled=self.amp):
+                y_pred_n = self.model(g.ndata["x"], g.edata["x"], g)            # (N,3), normalisé
+                y_gt_n   = graphs[t].ndata["y"].to(self.dist.device)            # (N,3), normalisé
+                loss_t   = self.criterion(y_pred_n, y_gt_n)                     # MSE(Δ)
 
             # --- réinjection pushforward ---
             # x_t (non norm)
@@ -351,8 +352,13 @@ class MGNTrainer:
         front_loss_sum = front_loss_sum / denom
 
         # --- backward / step ---
-        total_loss.backward()
-        self.optimizer.step()
+        if self.amp:
+            self.scaler.scale(total_loss).backward()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
+        else:
+            total_loss.backward()
+            self.optimizer.step()
 
         wet_gt_mean = wet_gt_sum / denom
         wet_pred_mean = wet_pred_sum / denom
