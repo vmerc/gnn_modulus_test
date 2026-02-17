@@ -76,10 +76,15 @@ overlap: 3
 pf_warmup_epochs: 150
 
 seed : 0
-ckpt_path: "/work/m24046/m24046mrcr/paper/Experience6_1/Seed0/"
+ckpt_path: "/work/m24046/m24046mrcr/paper/Experience6_2/Seed0/"
 
 # front loss
 lambda_front: 0.5     
 eps_front: 0.05       
-tau_front: 0.03   
+tau_front: 0.03       
+
+front_alpha : 0.5
+front_beta : 0.5
+front_gamma : 1
+
 exclude_bc_in_front: true

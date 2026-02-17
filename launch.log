@@ -1,0 +1,447 @@
+[13:44:22 - train - INFO] Seed: 0 (rank-adjusted: 0)
+[13:44:33 - train - INFO] Optimizer: FusedAdam
+[13:44:34 - train - INFO] len(dataloader) = 96
+[13:44:34 - train - INFO] Training (pushforward + Focal-Tversky front) started...
+[13:45:04 - train - INFO] epoch: 600, p_tf=1.000, lr: 4.985e-04, loss:  2.122e-01, loss_t:  1.391e-01, front_loss_t:  1.462e-01, lambda*front:  7.310e-02, wet_gt:   0.3235, wet_pred:   0.3210, iou:   0.9699, time/epoch: 30.68s
+[13:45:05 - train - INFO] Saved model on rank 0
+[13:45:34 - train - INFO] epoch: 601, p_tf=0.993, lr: 4.985e-04, loss:  2.038e-01, time/epoch: 29.51s
+[13:46:03 - train - INFO] epoch: 602, p_tf=0.987, lr: 4.985e-04, loss:  2.011e-01, time/epoch: 29.04s
+[13:46:31 - train - INFO] epoch: 603, p_tf=0.980, lr: 4.985e-04, loss:  1.996e-01, time/epoch: 28.55s
+[13:47:01 - train - INFO] epoch: 604, p_tf=0.973, lr: 4.985e-04, loss:  2.028e-01, time/epoch: 29.80s
+[13:47:30 - train - INFO] epoch: 605, p_tf=0.967, lr: 4.985e-04, loss:  2.040e-01, time/epoch: 28.77s
+[13:47:59 - train - INFO] epoch: 606, p_tf=0.960, lr: 4.985e-04, loss:  1.990e-01, time/epoch: 28.89s
+[13:48:27 - train - INFO] epoch: 607, p_tf=0.953, lr: 4.985e-04, loss:  2.003e-01, time/epoch: 28.40s
+[13:48:56 - train - INFO] epoch: 608, p_tf=0.947, lr: 4.985e-04, loss:  2.290e-01, time/epoch: 28.75s
+[13:49:24 - train - INFO] epoch: 609, p_tf=0.940, lr: 4.985e-04, loss:  1.987e-01, time/epoch: 27.94s
+[13:49:52 - train - INFO] epoch: 610, p_tf=0.933, lr: 4.985e-04, loss:  2.004e-01, loss_t:  1.301e-01, front_loss_t:  1.404e-01, lambda*front:  7.022e-02, wet_gt:   0.3235, wet_pred:   0.3218, iou:   0.9718, time/epoch: 28.29s
+[13:49:52 - train - INFO] Saved model on rank 0
+[13:50:21 - train - INFO] epoch: 611, p_tf=0.927, lr: 4.985e-04, loss:  2.116e-01, time/epoch: 29.05s
+[13:50:50 - train - INFO] epoch: 612, p_tf=0.920, lr: 4.985e-04, loss:  2.070e-01, time/epoch: 28.83s
+[13:51:21 - train - INFO] epoch: 613, p_tf=0.913, lr: 4.985e-04, loss:  2.080e-01, time/epoch: 30.54s
+[13:51:49 - train - INFO] epoch: 614, p_tf=0.907, lr: 4.985e-04, loss:  2.058e-01, time/epoch: 28.50s
+[13:52:18 - train - INFO] epoch: 615, p_tf=0.900, lr: 4.985e-04, loss:  2.078e-01, time/epoch: 28.81s
+[13:52:47 - train - INFO] epoch: 616, p_tf=0.893, lr: 4.985e-04, loss:  1.998e-01, time/epoch: 28.66s
+[13:53:15 - train - INFO] epoch: 617, p_tf=0.887, lr: 4.985e-04, loss:  2.031e-01, time/epoch: 28.91s
+[13:53:44 - train - INFO] epoch: 618, p_tf=0.880, lr: 4.984e-04, loss:  2.030e-01, time/epoch: 29.01s
+[13:54:13 - train - INFO] epoch: 619, p_tf=0.873, lr: 4.984e-04, loss:  2.065e-01, time/epoch: 28.93s
+[13:54:42 - train - INFO] epoch: 620, p_tf=0.867, lr: 4.984e-04, loss:  2.134e-01, loss_t:  1.438e-01, front_loss_t:  1.393e-01, lambda*front:  6.965e-02, wet_gt:   0.3235, wet_pred:   0.3222, iou:   0.9715, time/epoch: 28.79s
+[13:54:42 - train - INFO] Saved model on rank 0
+[13:55:11 - train - INFO] epoch: 621, p_tf=0.860, lr: 4.984e-04, loss:  2.345e-01, time/epoch: 29.11s
+[13:55:40 - train - INFO] epoch: 622, p_tf=0.853, lr: 4.984e-04, loss:  2.160e-01, time/epoch: 28.80s
+[13:56:09 - train - INFO] epoch: 623, p_tf=0.847, lr: 4.984e-04, loss:  2.267e-01, time/epoch: 28.56s
+[13:56:37 - train - INFO] epoch: 624, p_tf=0.840, lr: 4.984e-04, loss:  2.210e-01, time/epoch: 28.60s
+[13:57:06 - train - INFO] epoch: 625, p_tf=0.833, lr: 4.984e-04, loss:  2.437e-01, time/epoch: 28.33s
+[13:57:35 - train - INFO] epoch: 626, p_tf=0.827, lr: 4.984e-04, loss:  2.151e-01, time/epoch: 29.18s
+[13:58:06 - train - INFO] epoch: 627, p_tf=0.820, lr: 4.984e-04, loss:  2.151e-01, time/epoch: 30.75s
+[13:58:35 - train - INFO] epoch: 628, p_tf=0.813, lr: 4.984e-04, loss:  2.098e-01, time/epoch: 29.02s
+[13:59:03 - train - INFO] epoch: 629, p_tf=0.807, lr: 4.984e-04, loss:  2.139e-01, time/epoch: 28.72s
+[13:59:32 - train - INFO] epoch: 630, p_tf=0.800, lr: 4.984e-04, loss:  2.225e-01, loss_t:  1.538e-01, front_loss_t:  1.373e-01, lambda*front:  6.867e-02, wet_gt:   0.3235, wet_pred:   0.3225, iou:   0.9710, time/epoch: 28.87s
+[13:59:32 - train - INFO] Saved model on rank 0
+[14:00:01 - train - INFO] epoch: 631, p_tf=0.793, lr: 4.984e-04, loss:  2.150e-01, time/epoch: 29.35s
+[14:00:31 - train - INFO] epoch: 632, p_tf=0.787, lr: 4.984e-04, loss:  2.220e-01, time/epoch: 29.33s
+[14:01:00 - train - INFO] epoch: 633, p_tf=0.780, lr: 4.984e-04, loss:  2.096e-01, time/epoch: 29.69s
+[14:01:29 - train - INFO] epoch: 634, p_tf=0.773, lr: 4.984e-04, loss:  2.157e-01, time/epoch: 28.39s
+[14:01:57 - train - INFO] epoch: 635, p_tf=0.767, lr: 4.984e-04, loss:  2.238e-01, time/epoch: 28.20s
+[14:02:26 - train - INFO] epoch: 636, p_tf=0.760, lr: 4.984e-04, loss:  2.085e-01, time/epoch: 28.53s
+[14:02:55 - train - INFO] epoch: 637, p_tf=0.753, lr: 4.984e-04, loss:  2.418e-01, time/epoch: 29.14s
+[14:03:23 - train - INFO] epoch: 638, p_tf=0.747, lr: 4.984e-04, loss:  2.212e-01, time/epoch: 28.47s
+[14:03:52 - train - INFO] epoch: 639, p_tf=0.740, lr: 4.984e-04, loss:  2.089e-01, time/epoch: 28.96s
+[14:04:21 - train - INFO] epoch: 640, p_tf=0.733, lr: 4.984e-04, loss:  2.140e-01, loss_t:  1.452e-01, front_loss_t:  1.374e-01, lambda*front:  6.872e-02, wet_gt:   0.3235, wet_pred:   0.3227, iou:   0.9717, time/epoch: 29.01s
+[14:04:21 - train - INFO] Saved model on rank 0
+[14:04:51 - train - INFO] epoch: 641, p_tf=0.727, lr: 4.984e-04, loss:  2.471e-01, time/epoch: 29.96s
+[14:05:19 - train - INFO] epoch: 642, p_tf=0.720, lr: 4.984e-04, loss:  2.146e-01, time/epoch: 28.18s
+[14:05:48 - train - INFO] epoch: 643, p_tf=0.713, lr: 4.984e-04, loss:  2.120e-01, time/epoch: 28.98s
+[14:06:17 - train - INFO] epoch: 644, p_tf=0.707, lr: 4.984e-04, loss:  2.197e-01, time/epoch: 28.23s
+[14:06:45 - train - INFO] epoch: 645, p_tf=0.700, lr: 4.984e-04, loss:  2.368e-01, time/epoch: 28.48s
+[14:07:14 - train - INFO] epoch: 646, p_tf=0.693, lr: 4.984e-04, loss:  2.504e-01, time/epoch: 29.01s
+[14:07:43 - train - INFO] epoch: 647, p_tf=0.687, lr: 4.984e-04, loss:  2.148e-01, time/epoch: 28.84s
+[14:08:12 - train - INFO] epoch: 648, p_tf=0.680, lr: 4.984e-04, loss:  2.396e-01, time/epoch: 29.47s
+[14:08:42 - train - INFO] epoch: 649, p_tf=0.673, lr: 4.984e-04, loss:  2.414e-01, time/epoch: 29.73s
+[14:09:11 - train - INFO] epoch: 650, p_tf=0.667, lr: 4.984e-04, loss:  2.409e-01, loss_t:  1.740e-01, front_loss_t:  1.338e-01, lambda*front:  6.688e-02, wet_gt:   0.3235, wet_pred:   0.3228, iou:   0.9694, time/epoch: 28.78s
+[14:09:11 - train - INFO] Saved model on rank 0
+[14:09:40 - train - INFO] epoch: 651, p_tf=0.660, lr: 4.984e-04, loss:  2.160e-01, time/epoch: 29.03s
+[14:10:09 - train - INFO] epoch: 652, p_tf=0.653, lr: 4.984e-04, loss:  2.359e-01, time/epoch: 29.41s
+[14:10:38 - train - INFO] epoch: 653, p_tf=0.647, lr: 4.984e-04, loss:  2.414e-01, time/epoch: 29.12s
+[14:11:08 - train - INFO] epoch: 654, p_tf=0.640, lr: 4.984e-04, loss:  2.118e-01, time/epoch: 29.78s
+[14:11:37 - train - INFO] epoch: 655, p_tf=0.633, lr: 4.984e-04, loss:  2.127e-01, time/epoch: 29.13s
+[14:12:06 - train - INFO] epoch: 656, p_tf=0.627, lr: 4.984e-04, loss:  2.171e-01, time/epoch: 28.26s
+[14:12:35 - train - INFO] epoch: 657, p_tf=0.620, lr: 4.984e-04, loss:  2.096e-01, time/epoch: 29.23s
+[14:13:04 - train - INFO] epoch: 658, p_tf=0.613, lr: 4.984e-04, loss:  2.430e-01, time/epoch: 28.85s
+[14:13:32 - train - INFO] epoch: 659, p_tf=0.607, lr: 4.983e-04, loss:  2.427e-01, time/epoch: 28.67s
+[14:14:02 - train - INFO] epoch: 660, p_tf=0.600, lr: 4.983e-04, loss:  2.439e-01, loss_t:  1.761e-01, front_loss_t:  1.356e-01, lambda*front:  6.781e-02, wet_gt:   0.3235, wet_pred:   0.3230, iou:   0.9701, time/epoch: 29.26s
+[14:14:02 - train - INFO] Saved model on rank 0
+[14:14:31 - train - INFO] epoch: 661, p_tf=0.593, lr: 4.983e-04, loss:  2.261e-01, time/epoch: 29.36s
+[14:15:01 - train - INFO] epoch: 662, p_tf=0.587, lr: 4.983e-04, loss:  2.240e-01, time/epoch: 29.99s
+[14:15:29 - train - INFO] epoch: 663, p_tf=0.580, lr: 4.983e-04, loss:  2.277e-01, time/epoch: 28.16s
+[14:15:58 - train - INFO] epoch: 664, p_tf=0.573, lr: 4.983e-04, loss:  2.391e-01, time/epoch: 29.04s
+[14:16:27 - train - INFO] epoch: 665, p_tf=0.567, lr: 4.983e-04, loss:  2.166e-01, time/epoch: 28.82s
+[14:16:56 - train - INFO] epoch: 666, p_tf=0.560, lr: 4.983e-04, loss:  2.394e-01, time/epoch: 29.10s
+[14:17:25 - train - INFO] epoch: 667, p_tf=0.553, lr: 4.983e-04, loss:  2.307e-01, time/epoch: 29.33s
+[14:17:56 - train - INFO] epoch: 668, p_tf=0.547, lr: 4.983e-04, loss:  2.305e-01, time/epoch: 30.45s
+[14:18:25 - train - INFO] epoch: 669, p_tf=0.540, lr: 4.983e-04, loss:  2.198e-01, time/epoch: 29.01s
+[14:18:54 - train - INFO] epoch: 670, p_tf=0.533, lr: 4.983e-04, loss:  2.171e-01, loss_t:  1.500e-01, front_loss_t:  1.343e-01, lambda*front:  6.714e-02, wet_gt:   0.3235, wet_pred:   0.3234, iou:   0.9704, time/epoch: 28.96s
+[14:18:54 - train - INFO] Saved model on rank 0
+[14:19:23 - train - INFO] epoch: 671, p_tf=0.527, lr: 4.983e-04, loss:  2.216e-01, time/epoch: 29.00s
+[14:19:52 - train - INFO] epoch: 672, p_tf=0.520, lr: 4.983e-04, loss:  2.461e-01, time/epoch: 29.29s
+[14:20:20 - train - INFO] epoch: 673, p_tf=0.513, lr: 4.983e-04, loss:  2.168e-01, time/epoch: 28.25s
+[14:20:50 - train - INFO] epoch: 674, p_tf=0.507, lr: 4.983e-04, loss:  2.253e-01, time/epoch: 29.49s
+[14:21:19 - train - INFO] epoch: 675, p_tf=0.500, lr: 4.983e-04, loss:  2.404e-01, time/epoch: 28.90s
+[14:21:47 - train - INFO] epoch: 676, p_tf=0.493, lr: 4.983e-04, loss:  2.155e-01, time/epoch: 28.60s
+[14:22:16 - train - INFO] epoch: 677, p_tf=0.487, lr: 4.983e-04, loss:  2.386e-01, time/epoch: 28.82s
+[14:22:45 - train - INFO] epoch: 678, p_tf=0.480, lr: 4.983e-04, loss:  2.389e-01, time/epoch: 28.89s
+[14:23:14 - train - INFO] epoch: 679, p_tf=0.473, lr: 4.983e-04, loss:  2.258e-01, time/epoch: 28.62s
+[14:23:43 - train - INFO] epoch: 680, p_tf=0.467, lr: 4.983e-04, loss:  2.350e-01, loss_t:  1.690e-01, front_loss_t:  1.320e-01, lambda*front:  6.602e-02, wet_gt:   0.3235, wet_pred:   0.3233, iou:   0.9681, time/epoch: 29.03s
+[14:23:43 - train - INFO] Saved model on rank 0
+[14:24:12 - train - INFO] epoch: 681, p_tf=0.460, lr: 4.983e-04, loss:  2.326e-01, time/epoch: 29.54s
+[14:24:41 - train - INFO] epoch: 682, p_tf=0.453, lr: 4.983e-04, loss:  2.339e-01, time/epoch: 29.26s
+[14:25:11 - train - INFO] epoch: 683, p_tf=0.447, lr: 4.983e-04, loss:  2.356e-01, time/epoch: 29.51s
+[14:25:40 - train - INFO] epoch: 684, p_tf=0.440, lr: 4.983e-04, loss:  2.251e-01, time/epoch: 29.45s
+[14:26:09 - train - INFO] epoch: 685, p_tf=0.433, lr: 4.983e-04, loss:  2.353e-01, time/epoch: 28.83s
+[14:26:39 - train - INFO] epoch: 686, p_tf=0.427, lr: 4.983e-04, loss:  2.293e-01, time/epoch: 29.33s
+[14:27:08 - train - INFO] epoch: 687, p_tf=0.420, lr: 4.983e-04, loss:  2.389e-01, time/epoch: 29.36s
+[14:27:37 - train - INFO] epoch: 688, p_tf=0.413, lr: 4.983e-04, loss:  2.309e-01, time/epoch: 28.55s
+[14:28:05 - train - INFO] epoch: 689, p_tf=0.407, lr: 4.983e-04, loss:  2.377e-01, time/epoch: 28.72s
+[14:28:34 - train - INFO] epoch: 690, p_tf=0.400, lr: 4.983e-04, loss:  2.186e-01, loss_t:  1.530e-01, front_loss_t:  1.312e-01, lambda*front:  6.561e-02, wet_gt:   0.3235, wet_pred:   0.3234, iou:   0.9693, time/epoch: 29.03s
+[14:28:34 - train - INFO] Saved model on rank 0
+[14:29:03 - train - INFO] epoch: 691, p_tf=0.393, lr: 4.983e-04, loss:  2.312e-01, time/epoch: 28.80s
+[14:29:32 - train - INFO] epoch: 692, p_tf=0.387, lr: 4.983e-04, loss:  2.222e-01, time/epoch: 29.24s
+[14:30:01 - train - INFO] epoch: 693, p_tf=0.380, lr: 4.983e-04, loss:  2.369e-01, time/epoch: 28.30s
+[14:30:30 - train - INFO] epoch: 694, p_tf=0.373, lr: 4.983e-04, loss:  2.260e-01, time/epoch: 29.06s
+[14:30:59 - train - INFO] epoch: 695, p_tf=0.367, lr: 4.983e-04, loss:  2.349e-01, time/epoch: 29.18s
+[14:31:28 - train - INFO] epoch: 696, p_tf=0.360, lr: 4.983e-04, loss:  2.201e-01, time/epoch: 29.50s
+[14:31:57 - train - INFO] epoch: 697, p_tf=0.353, lr: 4.983e-04, loss:  2.150e-01, time/epoch: 28.31s
+[14:32:26 - train - INFO] epoch: 698, p_tf=0.347, lr: 4.983e-04, loss:  2.304e-01, time/epoch: 28.85s
+[14:32:54 - train - INFO] epoch: 699, p_tf=0.340, lr: 4.982e-04, loss:  2.356e-01, time/epoch: 28.27s
+[14:33:22 - train - INFO] epoch: 700, p_tf=0.333, lr: 4.982e-04, loss:  2.437e-01, loss_t:  1.787e-01, front_loss_t:  1.301e-01, lambda*front:  6.503e-02, wet_gt:   0.3235, wet_pred:   0.3235, iou:   0.9671, time/epoch: 28.62s
+[14:33:23 - train - INFO] Saved model on rank 0
+[14:33:51 - train - INFO] epoch: 701, p_tf=0.327, lr: 4.982e-04, loss:  2.289e-01, time/epoch: 28.48s
+[14:34:19 - train - INFO] epoch: 702, p_tf=0.320, lr: 4.982e-04, loss:  2.423e-01, time/epoch: 28.53s
+[14:34:48 - train - INFO] epoch: 703, p_tf=0.313, lr: 4.982e-04, loss:  2.325e-01, time/epoch: 28.38s
+[14:35:17 - train - INFO] epoch: 704, p_tf=0.307, lr: 4.982e-04, loss:  2.342e-01, time/epoch: 29.25s
+[14:35:46 - train - INFO] epoch: 705, p_tf=0.300, lr: 4.982e-04, loss:  2.391e-01, time/epoch: 28.74s
+[14:36:15 - train - INFO] epoch: 706, p_tf=0.293, lr: 4.982e-04, loss:  2.403e-01, time/epoch: 28.72s
+[14:36:44 - train - INFO] epoch: 707, p_tf=0.287, lr: 4.982e-04, loss:  2.340e-01, time/epoch: 29.11s
+[14:37:12 - train - INFO] epoch: 708, p_tf=0.280, lr: 4.982e-04, loss:  2.301e-01, time/epoch: 28.40s
+[14:37:43 - train - INFO] epoch: 709, p_tf=0.273, lr: 4.982e-04, loss:  2.437e-01, time/epoch: 30.73s
+[14:38:12 - train - INFO] epoch: 710, p_tf=0.267, lr: 4.982e-04, loss:  2.345e-01, loss_t:  1.687e-01, front_loss_t:  1.316e-01, lambda*front:  6.578e-02, wet_gt:   0.3235, wet_pred:   0.3235, iou:   0.9683, time/epoch: 29.44s
+[14:38:12 - train - INFO] Saved model on rank 0
+[14:38:41 - train - INFO] epoch: 711, p_tf=0.260, lr: 4.982e-04, loss:  2.424e-01, time/epoch: 28.31s
+[14:39:09 - train - INFO] epoch: 712, p_tf=0.253, lr: 4.982e-04, loss:  2.526e-01, time/epoch: 28.83s
+[14:39:38 - train - INFO] epoch: 713, p_tf=0.247, lr: 4.982e-04, loss:  2.359e-01, time/epoch: 28.76s
+[14:40:07 - train - INFO] epoch: 714, p_tf=0.240, lr: 4.982e-04, loss:  2.375e-01, time/epoch: 28.83s
+[14:40:36 - train - INFO] epoch: 715, p_tf=0.233, lr: 4.982e-04, loss:  2.391e-01, time/epoch: 28.94s
+[14:41:05 - train - INFO] epoch: 716, p_tf=0.227, lr: 4.982e-04, loss:  2.424e-01, time/epoch: 28.69s
+[14:41:34 - train - INFO] epoch: 717, p_tf=0.220, lr: 4.982e-04, loss:  2.384e-01, time/epoch: 29.08s
+[14:42:03 - train - INFO] epoch: 718, p_tf=0.213, lr: 4.982e-04, loss:  2.402e-01, time/epoch: 29.14s
+[14:42:32 - train - INFO] epoch: 719, p_tf=0.207, lr: 4.982e-04, loss:  2.423e-01, time/epoch: 29.38s
+[14:43:01 - train - INFO] epoch: 720, p_tf=0.200, lr: 4.982e-04, loss:  2.350e-01, loss_t:  1.705e-01, front_loss_t:  1.291e-01, lambda*front:  6.456e-02, wet_gt:   0.3235, wet_pred:   0.3237, iou:   0.9681, time/epoch: 29.07s
+[14:43:01 - train - INFO] Saved model on rank 0
+[14:43:30 - train - INFO] epoch: 721, p_tf=0.193, lr: 4.982e-04, loss:  2.275e-01, time/epoch: 28.88s
+[14:43:59 - train - INFO] epoch: 722, p_tf=0.187, lr: 4.982e-04, loss:  2.376e-01, time/epoch: 28.84s
+[14:44:29 - train - INFO] epoch: 723, p_tf=0.180, lr: 4.982e-04, loss:  2.379e-01, time/epoch: 30.13s
+[14:44:59 - train - INFO] epoch: 724, p_tf=0.173, lr: 4.982e-04, loss:  2.408e-01, time/epoch: 30.10s
+[14:45:28 - train - INFO] epoch: 725, p_tf=0.167, lr: 4.982e-04, loss:  2.443e-01, time/epoch: 29.09s
+[14:45:58 - train - INFO] epoch: 726, p_tf=0.160, lr: 4.982e-04, loss:  2.388e-01, time/epoch: 29.48s
+[14:46:26 - train - INFO] epoch: 727, p_tf=0.153, lr: 4.982e-04, loss:  2.424e-01, time/epoch: 28.55s
+[14:46:56 - train - INFO] epoch: 728, p_tf=0.147, lr: 4.982e-04, loss:  2.383e-01, time/epoch: 29.71s
+[14:47:24 - train - INFO] epoch: 729, p_tf=0.140, lr: 4.982e-04, loss:  2.301e-01, time/epoch: 28.27s
+[14:47:53 - train - INFO] epoch: 730, p_tf=0.133, lr: 4.982e-04, loss:  2.340e-01, loss_t:  1.706e-01, front_loss_t:  1.268e-01, lambda*front:  6.342e-02, wet_gt:   0.3235, wet_pred:   0.3237, iou:   0.9668, time/epoch: 28.30s
+[14:47:53 - train - INFO] Saved model on rank 0
+[14:48:21 - train - INFO] epoch: 731, p_tf=0.127, lr: 4.982e-04, loss:  2.392e-01, time/epoch: 28.78s
+[14:48:50 - train - INFO] epoch: 732, p_tf=0.120, lr: 4.982e-04, loss:  2.421e-01, time/epoch: 29.02s
+[14:49:20 - train - INFO] epoch: 733, p_tf=0.113, lr: 4.982e-04, loss:  2.433e-01, time/epoch: 29.50s
+[14:49:49 - train - INFO] epoch: 734, p_tf=0.107, lr: 4.982e-04, loss:  2.383e-01, time/epoch: 29.16s
+[14:50:18 - train - INFO] epoch: 735, p_tf=0.100, lr: 4.982e-04, loss:  2.428e-01, time/epoch: 29.06s
+[14:50:48 - train - INFO] epoch: 736, p_tf=0.093, lr: 4.982e-04, loss:  2.375e-01, time/epoch: 30.20s
+[14:51:17 - train - INFO] epoch: 737, p_tf=0.087, lr: 4.982e-04, loss:  2.433e-01, time/epoch: 28.96s
+[14:51:46 - train - INFO] epoch: 738, p_tf=0.080, lr: 4.982e-04, loss:  2.460e-01, time/epoch: 29.20s
+[14:52:15 - train - INFO] epoch: 739, p_tf=0.073, lr: 4.981e-04, loss:  2.628e-01, time/epoch: 28.95s
+[14:52:44 - train - INFO] epoch: 740, p_tf=0.067, lr: 4.981e-04, loss:  2.531e-01, loss_t:  1.895e-01, front_loss_t:  1.272e-01, lambda*front:  6.362e-02, wet_gt:   0.3235, wet_pred:   0.3242, iou:   0.9647, time/epoch: 28.77s
+[14:52:44 - train - INFO] Saved model on rank 0
+[14:53:12 - train - INFO] epoch: 741, p_tf=0.060, lr: 4.981e-04, loss:  2.462e-01, time/epoch: 28.29s
+[14:53:41 - train - INFO] epoch: 742, p_tf=0.053, lr: 4.981e-04, loss:  2.635e-01, time/epoch: 28.98s
+[14:54:11 - train - INFO] epoch: 743, p_tf=0.047, lr: 4.981e-04, loss:  2.693e-01, time/epoch: 29.38s
+[14:54:40 - train - INFO] epoch: 744, p_tf=0.040, lr: 4.981e-04, loss:  2.631e-01, time/epoch: 29.37s
+[14:55:09 - train - INFO] epoch: 745, p_tf=0.033, lr: 4.981e-04, loss:  2.551e-01, time/epoch: 29.16s
+[14:55:39 - train - INFO] epoch: 746, p_tf=0.027, lr: 4.981e-04, loss:  2.478e-01, time/epoch: 29.60s
+[14:56:08 - train - INFO] epoch: 747, p_tf=0.020, lr: 4.981e-04, loss:  2.500e-01, time/epoch: 28.66s
+[14:56:37 - train - INFO] epoch: 748, p_tf=0.013, lr: 4.981e-04, loss:  2.446e-01, time/epoch: 28.94s
+[14:57:06 - train - INFO] epoch: 749, p_tf=0.007, lr: 4.981e-04, loss:  2.384e-01, time/epoch: 29.66s
+[14:57:36 - train - INFO] epoch: 750, p_tf=0.000, lr: 4.981e-04, loss:  2.409e-01, loss_t:  1.782e-01, front_loss_t:  1.253e-01, lambda*front:  6.267e-02, wet_gt:   0.3235, wet_pred:   0.3238, iou:   0.9657, time/epoch: 29.36s
+[14:57:36 - train - INFO] Saved model on rank 0
+[14:58:06 - train - INFO] epoch: 751, p_tf=0.000, lr: 4.981e-04, loss:  2.366e-01, time/epoch: 29.91s
+[14:58:35 - train - INFO] epoch: 752, p_tf=0.000, lr: 4.981e-04, loss:  2.421e-01, time/epoch: 29.33s
+[14:59:03 - train - INFO] epoch: 753, p_tf=0.000, lr: 4.981e-04, loss:  2.380e-01, time/epoch: 28.13s
+[14:59:33 - train - INFO] epoch: 754, p_tf=0.000, lr: 4.981e-04, loss:  2.385e-01, time/epoch: 29.68s
+[15:00:01 - train - INFO] epoch: 755, p_tf=0.000, lr: 4.981e-04, loss:  2.369e-01, time/epoch: 28.74s
+[15:00:30 - train - INFO] epoch: 756, p_tf=0.000, lr: 4.981e-04, loss:  2.367e-01, time/epoch: 28.80s
+[15:00:59 - train - INFO] epoch: 757, p_tf=0.000, lr: 4.981e-04, loss:  2.380e-01, time/epoch: 28.65s
+[15:01:28 - train - INFO] epoch: 758, p_tf=0.000, lr: 4.981e-04, loss:  2.381e-01, time/epoch: 28.98s
+[15:01:57 - train - INFO] epoch: 759, p_tf=0.000, lr: 4.981e-04, loss:  2.407e-01, time/epoch: 28.99s
+[15:02:26 - train - INFO] epoch: 760, p_tf=0.000, lr: 4.981e-04, loss:  2.353e-01, loss_t:  1.728e-01, front_loss_t:  1.250e-01, lambda*front:  6.248e-02, wet_gt:   0.3235, wet_pred:   0.3238, iou:   0.9661, time/epoch: 28.89s
+[15:02:26 - train - INFO] Saved model on rank 0
+[15:02:55 - train - INFO] epoch: 761, p_tf=0.000, lr: 4.981e-04, loss:  2.347e-01, time/epoch: 29.40s
+[15:03:24 - train - INFO] epoch: 762, p_tf=0.000, lr: 4.981e-04, loss:  2.359e-01, time/epoch: 28.81s
+[15:03:54 - train - INFO] epoch: 763, p_tf=0.000, lr: 4.981e-04, loss:  2.351e-01, time/epoch: 29.75s
+[15:04:23 - train - INFO] epoch: 764, p_tf=0.000, lr: 4.981e-04, loss:  2.361e-01, time/epoch: 29.81s
+[15:04:53 - train - INFO] epoch: 765, p_tf=0.000, lr: 4.981e-04, loss:  2.383e-01, time/epoch: 29.32s
+[15:05:22 - train - INFO] epoch: 766, p_tf=0.000, lr: 4.981e-04, loss:  2.327e-01, time/epoch: 29.10s
+[15:05:51 - train - INFO] epoch: 767, p_tf=0.000, lr: 4.981e-04, loss:  2.338e-01, time/epoch: 29.30s
+[15:06:20 - train - INFO] epoch: 768, p_tf=0.000, lr: 4.981e-04, loss:  2.291e-01, time/epoch: 29.26s
+[15:06:49 - train - INFO] epoch: 769, p_tf=0.000, lr: 4.981e-04, loss:  2.398e-01, time/epoch: 28.54s
+[15:07:18 - train - INFO] epoch: 770, p_tf=0.000, lr: 4.981e-04, loss:  2.374e-01, loss_t:  1.747e-01, front_loss_t:  1.254e-01, lambda*front:  6.269e-02, wet_gt:   0.3235, wet_pred:   0.3237, iou:   0.9660, time/epoch: 29.06s
+[15:07:18 - train - INFO] Saved model on rank 0
+[15:07:47 - train - INFO] epoch: 771, p_tf=0.000, lr: 4.981e-04, loss:  2.355e-01, time/epoch: 28.88s
+[15:08:15 - train - INFO] epoch: 772, p_tf=0.000, lr: 4.981e-04, loss:  2.410e-01, time/epoch: 28.35s
+[15:08:44 - train - INFO] epoch: 773, p_tf=0.000, lr: 4.981e-04, loss:  2.361e-01, time/epoch: 28.99s
+[15:09:13 - train - INFO] epoch: 774, p_tf=0.000, lr: 4.981e-04, loss:  2.313e-01, time/epoch: 28.47s
+[15:09:41 - train - INFO] epoch: 775, p_tf=0.000, lr: 4.981e-04, loss:  2.573e-01, time/epoch: 28.63s
+[15:10:10 - train - INFO] epoch: 776, p_tf=0.000, lr: 4.981e-04, loss:  2.525e-01, time/epoch: 29.04s
+[15:10:40 - train - INFO] epoch: 777, p_tf=0.000, lr: 4.981e-04, loss:  2.355e-01, time/epoch: 29.42s
+[15:11:09 - train - INFO] epoch: 778, p_tf=0.000, lr: 4.981e-04, loss:  2.337e-01, time/epoch: 29.35s
+[15:11:39 - train - INFO] epoch: 779, p_tf=0.000, lr: 4.980e-04, loss:  2.321e-01, time/epoch: 29.64s
+[15:12:08 - train - INFO] epoch: 780, p_tf=0.000, lr: 4.980e-04, loss:  2.357e-01, loss_t:  1.732e-01, front_loss_t:  1.250e-01, lambda*front:  6.248e-02, wet_gt:   0.3235, wet_pred:   0.3240, iou:   0.9661, time/epoch: 28.87s
+[15:12:08 - train - INFO] Saved model on rank 0
+[15:12:36 - train - INFO] epoch: 781, p_tf=0.000, lr: 4.980e-04, loss:  2.342e-01, time/epoch: 28.49s
+[15:13:06 - train - INFO] epoch: 782, p_tf=0.000, lr: 4.980e-04, loss:  2.303e-01, time/epoch: 29.42s
+[15:13:35 - train - INFO] epoch: 783, p_tf=0.000, lr: 4.980e-04, loss:  2.336e-01, time/epoch: 29.35s
+[15:14:04 - train - INFO] epoch: 784, p_tf=0.000, lr: 4.980e-04, loss:  2.338e-01, time/epoch: 29.33s
+[15:14:33 - train - INFO] epoch: 785, p_tf=0.000, lr: 4.980e-04, loss:  2.313e-01, time/epoch: 28.53s
+[15:15:02 - train - INFO] epoch: 786, p_tf=0.000, lr: 4.980e-04, loss:  2.294e-01, time/epoch: 29.07s
+[15:15:31 - train - INFO] epoch: 787, p_tf=0.000, lr: 4.980e-04, loss:  2.334e-01, time/epoch: 29.41s
+[15:16:00 - train - INFO] epoch: 788, p_tf=0.000, lr: 4.980e-04, loss:  2.375e-01, time/epoch: 28.90s
+[15:16:30 - train - INFO] epoch: 789, p_tf=0.000, lr: 4.980e-04, loss:  2.386e-01, time/epoch: 29.42s
+[15:16:59 - train - INFO] epoch: 790, p_tf=0.000, lr: 4.980e-04, loss:  2.330e-01, loss_t:  1.703e-01, front_loss_t:  1.254e-01, lambda*front:  6.269e-02, wet_gt:   0.3235, wet_pred:   0.3240, iou:   0.9660, time/epoch: 28.97s
+[15:16:59 - train - INFO] Saved model on rank 0
+[15:17:28 - train - INFO] epoch: 791, p_tf=0.000, lr: 4.980e-04, loss:  2.348e-01, time/epoch: 29.75s
+[15:17:58 - train - INFO] epoch: 792, p_tf=0.000, lr: 4.980e-04, loss:  2.336e-01, time/epoch: 29.80s
+[15:18:27 - train - INFO] epoch: 793, p_tf=0.000, lr: 4.980e-04, loss:  2.339e-01, time/epoch: 29.20s
+[15:18:56 - train - INFO] epoch: 794, p_tf=0.000, lr: 4.980e-04, loss:  2.377e-01, time/epoch: 28.17s
+[15:19:24 - train - INFO] epoch: 795, p_tf=0.000, lr: 4.980e-04, loss:  2.348e-01, time/epoch: 28.25s
+[15:19:53 - train - INFO] epoch: 796, p_tf=0.000, lr: 4.980e-04, loss:  2.318e-01, time/epoch: 29.15s
+[15:20:22 - train - INFO] epoch: 797, p_tf=0.000, lr: 4.980e-04, loss:  2.296e-01, time/epoch: 28.94s
+[15:20:52 - train - INFO] epoch: 798, p_tf=0.000, lr: 4.980e-04, loss:  2.374e-01, time/epoch: 29.73s
+[15:21:21 - train - INFO] epoch: 799, p_tf=0.000, lr: 4.980e-04, loss:  2.369e-01, time/epoch: 29.00s
+[15:21:50 - train - INFO] epoch: 800, p_tf=0.000, lr: 4.980e-04, loss:  2.319e-01, loss_t:  1.695e-01, front_loss_t:  1.248e-01, lambda*front:  6.239e-02, wet_gt:   0.3235, wet_pred:   0.3239, iou:   0.9661, time/epoch: 29.73s
+[15:21:50 - train - INFO] Saved model on rank 0
+[15:22:19 - train - INFO] epoch: 801, p_tf=0.000, lr: 4.980e-04, loss:  2.330e-01, time/epoch: 28.79s
+[15:22:47 - train - INFO] epoch: 802, p_tf=0.000, lr: 4.980e-04, loss:  2.286e-01, time/epoch: 28.23s
+[15:23:16 - train - INFO] epoch: 803, p_tf=0.000, lr: 4.980e-04, loss:  2.269e-01, time/epoch: 28.38s
+[15:23:45 - train - INFO] epoch: 804, p_tf=0.000, lr: 4.980e-04, loss:  2.266e-01, time/epoch: 29.64s
+[15:24:15 - train - INFO] epoch: 805, p_tf=0.000, lr: 4.980e-04, loss:  2.281e-01, time/epoch: 30.15s
+[15:24:45 - train - INFO] epoch: 806, p_tf=0.000, lr: 4.980e-04, loss:  2.281e-01, time/epoch: 29.30s
+[15:25:14 - train - INFO] epoch: 807, p_tf=0.000, lr: 4.980e-04, loss:  2.355e-01, time/epoch: 29.19s
+[15:25:43 - train - INFO] epoch: 808, p_tf=0.000, lr: 4.980e-04, loss:  2.353e-01, time/epoch: 28.70s
+[15:26:12 - train - INFO] epoch: 809, p_tf=0.000, lr: 4.980e-04, loss:  2.266e-01, time/epoch: 28.93s
+[15:26:41 - train - INFO] epoch: 810, p_tf=0.000, lr: 4.980e-04, loss:  2.291e-01, loss_t:  1.669e-01, front_loss_t:  1.245e-01, lambda*front:  6.223e-02, wet_gt:   0.3235, wet_pred:   0.3239, iou:   0.9669, time/epoch: 29.36s
+[15:26:41 - train - INFO] Saved model on rank 0
+[15:27:10 - train - INFO] epoch: 811, p_tf=0.000, lr: 4.980e-04, loss:  2.285e-01, time/epoch: 29.10s
+[15:27:39 - train - INFO] epoch: 812, p_tf=0.000, lr: 4.980e-04, loss:  2.247e-01, time/epoch: 29.13s
+[15:28:07 - train - INFO] epoch: 813, p_tf=0.000, lr: 4.980e-04, loss:  2.263e-01, time/epoch: 27.68s
+[15:28:36 - train - INFO] epoch: 814, p_tf=0.000, lr: 4.980e-04, loss:  2.291e-01, time/epoch: 29.19s
+[15:29:06 - train - INFO] epoch: 815, p_tf=0.000, lr: 4.980e-04, loss:  2.249e-01, time/epoch: 29.70s
+[15:29:35 - train - INFO] epoch: 816, p_tf=0.000, lr: 4.980e-04, loss:  2.290e-01, time/epoch: 29.22s
+[15:30:04 - train - INFO] epoch: 817, p_tf=0.000, lr: 4.980e-04, loss:  2.394e-01, time/epoch: 28.70s
+[15:30:33 - train - INFO] epoch: 818, p_tf=0.000, lr: 4.980e-04, loss:  2.591e-01, time/epoch: 29.00s
+[15:31:02 - train - INFO] epoch: 819, p_tf=0.000, lr: 4.979e-04, loss:  2.400e-01, time/epoch: 29.65s
+[15:31:32 - train - INFO] epoch: 820, p_tf=0.000, lr: 4.979e-04, loss:  2.374e-01, loss_t:  1.750e-01, front_loss_t:  1.248e-01, lambda*front:  6.238e-02, wet_gt:   0.3235, wet_pred:   0.3240, iou:   0.9660, time/epoch: 29.39s
+[15:31:32 - train - INFO] Saved model on rank 0
+[15:32:00 - train - INFO] epoch: 821, p_tf=0.000, lr: 4.979e-04, loss:  2.646e-01, time/epoch: 28.56s
+[15:32:29 - train - INFO] epoch: 822, p_tf=0.000, lr: 4.979e-04, loss:  2.449e-01, time/epoch: 28.35s
+[15:32:58 - train - INFO] epoch: 823, p_tf=0.000, lr: 4.979e-04, loss:  2.324e-01, time/epoch: 29.02s
+[15:33:26 - train - INFO] epoch: 824, p_tf=0.000, lr: 4.979e-04, loss:  2.261e-01, time/epoch: 27.91s
+[15:33:54 - train - INFO] epoch: 825, p_tf=0.000, lr: 4.979e-04, loss:  2.298e-01, time/epoch: 28.58s
+[15:34:23 - train - INFO] epoch: 826, p_tf=0.000, lr: 4.979e-04, loss:  2.282e-01, time/epoch: 29.20s
+[15:34:52 - train - INFO] epoch: 827, p_tf=0.000, lr: 4.979e-04, loss:  2.239e-01, time/epoch: 28.72s
+[15:35:21 - train - INFO] epoch: 828, p_tf=0.000, lr: 4.979e-04, loss:  2.234e-01, time/epoch: 28.68s
+[15:35:49 - train - INFO] epoch: 829, p_tf=0.000, lr: 4.979e-04, loss:  2.229e-01, time/epoch: 28.57s
+[15:36:19 - train - INFO] epoch: 830, p_tf=0.000, lr: 4.979e-04, loss:  2.344e-01, loss_t:  1.723e-01, front_loss_t:  1.242e-01, lambda*front:  6.211e-02, wet_gt:   0.3235, wet_pred:   0.3239, iou:   0.9666, time/epoch: 29.45s
+[15:36:19 - train - INFO] Saved model on rank 0
+[15:36:48 - train - INFO] epoch: 831, p_tf=0.000, lr: 4.979e-04, loss:  2.384e-01, time/epoch: 29.26s
+[15:37:18 - train - INFO] epoch: 832, p_tf=0.000, lr: 4.979e-04, loss:  2.428e-01, time/epoch: 30.27s
+[15:37:49 - train - INFO] epoch: 833, p_tf=0.000, lr: 4.979e-04, loss:  2.301e-01, time/epoch: 30.44s
+[15:38:18 - train - INFO] epoch: 834, p_tf=0.000, lr: 4.979e-04, loss:  2.248e-01, time/epoch: 28.81s
+[15:38:46 - train - INFO] epoch: 835, p_tf=0.000, lr: 4.979e-04, loss:  2.307e-01, time/epoch: 28.93s
+[15:39:15 - train - INFO] epoch: 836, p_tf=0.000, lr: 4.979e-04, loss:  2.270e-01, time/epoch: 28.70s
+[15:39:44 - train - INFO] epoch: 837, p_tf=0.000, lr: 4.979e-04, loss:  2.285e-01, time/epoch: 29.23s
+[15:40:13 - train - INFO] epoch: 838, p_tf=0.000, lr: 4.979e-04, loss:  2.255e-01, time/epoch: 28.99s
+[15:40:42 - train - INFO] epoch: 839, p_tf=0.000, lr: 4.979e-04, loss:  2.236e-01, time/epoch: 28.47s
+[15:41:11 - train - INFO] epoch: 840, p_tf=0.000, lr: 4.979e-04, loss:  2.248e-01, loss_t:  1.628e-01, front_loss_t:  1.241e-01, lambda*front:  6.205e-02, wet_gt:   0.3235, wet_pred:   0.3239, iou:   0.9670, time/epoch: 28.82s
+[15:41:11 - train - INFO] Saved model on rank 0
+[15:41:39 - train - INFO] epoch: 841, p_tf=0.000, lr: 4.979e-04, loss:  2.193e-01, time/epoch: 27.99s
+[15:42:07 - train - INFO] epoch: 842, p_tf=0.000, lr: 4.979e-04, loss:  2.227e-01, time/epoch: 28.64s
+[15:42:36 - train - INFO] epoch: 843, p_tf=0.000, lr: 4.979e-04, loss:  2.216e-01, time/epoch: 28.52s
+[15:43:05 - train - INFO] epoch: 844, p_tf=0.000, lr: 4.979e-04, loss:  2.180e-01, time/epoch: 28.90s
+[15:43:34 - train - INFO] epoch: 845, p_tf=0.000, lr: 4.979e-04, loss:  2.229e-01, time/epoch: 29.75s
+[15:44:04 - train - INFO] epoch: 846, p_tf=0.000, lr: 4.979e-04, loss:  2.240e-01, time/epoch: 29.15s
+[15:44:33 - train - INFO] epoch: 847, p_tf=0.000, lr: 4.979e-04, loss:  2.272e-01, time/epoch: 29.35s
+[15:45:03 - train - INFO] epoch: 848, p_tf=0.000, lr: 4.979e-04, loss:  2.163e-01, time/epoch: 29.56s
+[15:45:32 - train - INFO] epoch: 849, p_tf=0.000, lr: 4.979e-04, loss:  2.294e-01, time/epoch: 29.08s
+[15:46:00 - train - INFO] epoch: 850, p_tf=0.000, lr: 4.979e-04, loss:  2.515e-01, loss_t:  1.890e-01, front_loss_t:  1.251e-01, lambda*front:  6.256e-02, wet_gt:   0.3235, wet_pred:   0.3242, iou:   0.9648, time/epoch: 28.78s
+[15:46:01 - train - INFO] Saved model on rank 0
+[15:46:29 - train - INFO] epoch: 851, p_tf=0.000, lr: 4.979e-04, loss:  2.372e-01, time/epoch: 28.50s
+[15:46:58 - train - INFO] epoch: 852, p_tf=0.000, lr: 4.979e-04, loss:  2.273e-01, time/epoch: 28.84s
+[15:47:27 - train - INFO] epoch: 853, p_tf=0.000, lr: 4.979e-04, loss:  2.251e-01, time/epoch: 29.25s
+[15:47:55 - train - INFO] epoch: 854, p_tf=0.000, lr: 4.979e-04, loss:  2.212e-01, time/epoch: 28.34s
+[15:48:24 - train - INFO] epoch: 855, p_tf=0.000, lr: 4.979e-04, loss:  2.210e-01, time/epoch: 28.70s
+[15:48:53 - train - INFO] epoch: 856, p_tf=0.000, lr: 4.979e-04, loss:  2.285e-01, time/epoch: 29.18s
+[15:49:22 - train - INFO] epoch: 857, p_tf=0.000, lr: 4.979e-04, loss:  2.253e-01, time/epoch: 28.67s
+[15:49:51 - train - INFO] epoch: 858, p_tf=0.000, lr: 4.979e-04, loss:  2.207e-01, time/epoch: 29.04s
+[15:50:20 - train - INFO] epoch: 859, p_tf=0.000, lr: 4.978e-04, loss:  2.250e-01, time/epoch: 29.33s
+[15:50:50 - train - INFO] epoch: 860, p_tf=0.000, lr: 4.978e-04, loss:  2.213e-01, loss_t:  1.593e-01, front_loss_t:  1.240e-01, lambda*front:  6.198e-02, wet_gt:   0.3235, wet_pred:   0.3240, iou:   0.9674, time/epoch: 29.52s
+[15:50:50 - train - INFO] Saved model on rank 0
+[15:51:19 - train - INFO] epoch: 861, p_tf=0.000, lr: 4.978e-04, loss:  2.211e-01, time/epoch: 28.72s
+[15:51:48 - train - INFO] epoch: 862, p_tf=0.000, lr: 4.978e-04, loss:  2.298e-01, time/epoch: 29.33s
+[15:52:17 - train - INFO] epoch: 863, p_tf=0.000, lr: 4.978e-04, loss:  2.435e-01, time/epoch: 29.32s
+[15:52:47 - train - INFO] epoch: 864, p_tf=0.000, lr: 4.978e-04, loss:  2.387e-01, time/epoch: 29.45s
+[15:53:15 - train - INFO] epoch: 865, p_tf=0.000, lr: 4.978e-04, loss:  2.312e-01, time/epoch: 28.63s
+[15:53:44 - train - INFO] epoch: 866, p_tf=0.000, lr: 4.978e-04, loss:  2.338e-01, time/epoch: 28.33s
+[15:54:13 - train - INFO] epoch: 867, p_tf=0.000, lr: 4.978e-04, loss:  2.212e-01, time/epoch: 29.53s
+[15:54:42 - train - INFO] epoch: 868, p_tf=0.000, lr: 4.978e-04, loss:  2.213e-01, time/epoch: 28.63s
+[15:55:10 - train - INFO] epoch: 869, p_tf=0.000, lr: 4.978e-04, loss:  2.233e-01, time/epoch: 28.54s
+[15:55:39 - train - INFO] epoch: 870, p_tf=0.000, lr: 4.978e-04, loss:  2.234e-01, loss_t:  1.615e-01, front_loss_t:  1.239e-01, lambda*front:  6.193e-02, wet_gt:   0.3235, wet_pred:   0.3239, iou:   0.9675, time/epoch: 28.77s
+[15:55:39 - train - INFO] Saved model on rank 0
+[15:56:08 - train - INFO] epoch: 871, p_tf=0.000, lr: 4.978e-04, loss:  2.243e-01, time/epoch: 29.10s
+[15:56:37 - train - INFO] epoch: 872, p_tf=0.000, lr: 4.978e-04, loss:  2.233e-01, time/epoch: 29.35s
+[15:57:07 - train - INFO] epoch: 873, p_tf=0.000, lr: 4.978e-04, loss:  2.192e-01, time/epoch: 29.56s
+[15:57:37 - train - INFO] epoch: 874, p_tf=0.000, lr: 4.978e-04, loss:  2.139e-01, time/epoch: 30.27s
+[15:58:07 - train - INFO] epoch: 875, p_tf=0.000, lr: 4.978e-04, loss:  2.176e-01, time/epoch: 30.09s
+[15:58:37 - train - INFO] epoch: 876, p_tf=0.000, lr: 4.978e-04, loss:  2.150e-01, time/epoch: 29.18s
+[15:59:05 - train - INFO] epoch: 877, p_tf=0.000, lr: 4.978e-04, loss:  2.193e-01, time/epoch: 28.24s
+[15:59:34 - train - INFO] epoch: 878, p_tf=0.000, lr: 4.978e-04, loss:  2.269e-01, time/epoch: 28.96s
+[16:00:02 - train - INFO] epoch: 879, p_tf=0.000, lr: 4.978e-04, loss:  2.244e-01, time/epoch: 28.42s
+[16:00:31 - train - INFO] epoch: 880, p_tf=0.000, lr: 4.978e-04, loss:  2.317e-01, loss_t:  1.697e-01, front_loss_t:  1.240e-01, lambda*front:  6.202e-02, wet_gt:   0.3235, wet_pred:   0.3242, iou:   0.9670, time/epoch: 28.95s
+[16:00:31 - train - INFO] Saved model on rank 0
+[16:01:01 - train - INFO] epoch: 881, p_tf=0.000, lr: 4.978e-04, loss:  2.371e-01, time/epoch: 29.60s
+[16:01:29 - train - INFO] epoch: 882, p_tf=0.000, lr: 4.978e-04, loss:  2.606e-01, time/epoch: 28.74s
+[16:01:58 - train - INFO] epoch: 883, p_tf=0.000, lr: 4.978e-04, loss:  2.215e-01, time/epoch: 28.48s
+[16:02:27 - train - INFO] epoch: 884, p_tf=0.000, lr: 4.978e-04, loss:  2.229e-01, time/epoch: 29.17s
+[16:02:56 - train - INFO] epoch: 885, p_tf=0.000, lr: 4.978e-04, loss:  2.230e-01, time/epoch: 28.39s
+[16:03:24 - train - INFO] epoch: 886, p_tf=0.000, lr: 4.978e-04, loss:  2.202e-01, time/epoch: 28.55s
+[16:03:54 - train - INFO] epoch: 887, p_tf=0.000, lr: 4.978e-04, loss:  2.164e-01, time/epoch: 29.88s
+[16:04:23 - train - INFO] epoch: 888, p_tf=0.000, lr: 4.978e-04, loss:  2.213e-01, time/epoch: 28.91s
+[16:04:52 - train - INFO] epoch: 889, p_tf=0.000, lr: 4.978e-04, loss:  2.199e-01, time/epoch: 28.95s
+[16:05:20 - train - INFO] epoch: 890, p_tf=0.000, lr: 4.978e-04, loss:  2.155e-01, loss_t:  1.539e-01, front_loss_t:  1.233e-01, lambda*front:  6.166e-02, wet_gt:   0.3235, wet_pred:   0.3241, iou:   0.9677, time/epoch: 28.50s
+[16:05:20 - train - INFO] Saved model on rank 0
+[16:05:49 - train - INFO] epoch: 891, p_tf=0.000, lr: 4.978e-04, loss:  2.210e-01, time/epoch: 28.67s
+[16:06:18 - train - INFO] epoch: 892, p_tf=0.000, lr: 4.978e-04, loss:  2.187e-01, time/epoch: 29.23s
+[16:06:47 - train - INFO] epoch: 893, p_tf=0.000, lr: 4.978e-04, loss:  2.201e-01, time/epoch: 29.03s
+[16:07:17 - train - INFO] epoch: 894, p_tf=0.000, lr: 4.978e-04, loss:  2.250e-01, time/epoch: 29.30s
+[16:07:45 - train - INFO] epoch: 895, p_tf=0.000, lr: 4.978e-04, loss:  2.292e-01, time/epoch: 28.91s
+[16:08:15 - train - INFO] epoch: 896, p_tf=0.000, lr: 4.978e-04, loss:  2.225e-01, time/epoch: 29.60s
+[16:08:43 - train - INFO] epoch: 897, p_tf=0.000, lr: 4.978e-04, loss:  2.184e-01, time/epoch: 28.36s
+[16:09:12 - train - INFO] epoch: 898, p_tf=0.000, lr: 4.978e-04, loss:  2.219e-01, time/epoch: 28.73s
+[16:09:41 - train - INFO] epoch: 899, p_tf=0.000, lr: 4.978e-04, loss:  2.160e-01, time/epoch: 28.59s
+[16:10:10 - train - INFO] epoch: 900, p_tf=0.000, lr: 4.977e-04, loss:  2.252e-01, loss_t:  1.635e-01, front_loss_t:  1.235e-01, lambda*front:  6.174e-02, wet_gt:   0.3235, wet_pred:   0.3239, iou:   0.9676, time/epoch: 29.51s
+[16:10:10 - train - INFO] Saved model on rank 0
+[16:10:40 - train - INFO] epoch: 901, p_tf=0.000, lr: 4.977e-04, loss:  2.169e-01, time/epoch: 29.61s
+[16:11:10 - train - INFO] epoch: 902, p_tf=0.000, lr: 4.977e-04, loss:  2.174e-01, time/epoch: 29.66s
+[16:11:39 - train - INFO] epoch: 903, p_tf=0.000, lr: 4.977e-04, loss:  2.130e-01, time/epoch: 29.26s
+[16:12:08 - train - INFO] epoch: 904, p_tf=0.000, lr: 4.977e-04, loss:  2.174e-01, time/epoch: 29.01s
+[16:12:37 - train - INFO] epoch: 905, p_tf=0.000, lr: 4.977e-04, loss:  2.416e-01, time/epoch: 29.00s
+[16:13:06 - train - INFO] epoch: 906, p_tf=0.000, lr: 4.977e-04, loss:  2.245e-01, time/epoch: 29.36s
+[16:13:36 - train - INFO] epoch: 907, p_tf=0.000, lr: 4.977e-04, loss:  2.188e-01, time/epoch: 29.62s
+[16:14:05 - train - INFO] epoch: 908, p_tf=0.000, lr: 4.977e-04, loss:  2.161e-01, time/epoch: 29.10s
+[16:14:33 - train - INFO] epoch: 909, p_tf=0.000, lr: 4.977e-04, loss:  2.130e-01, time/epoch: 28.50s
+[16:15:03 - train - INFO] epoch: 910, p_tf=0.000, lr: 4.977e-04, loss:  2.136e-01, loss_t:  1.520e-01, front_loss_t:  1.233e-01, lambda*front:  6.165e-02, wet_gt:   0.3235, wet_pred:   0.3240, iou:   0.9682, time/epoch: 30.08s
+[16:15:04 - train - INFO] Saved model on rank 0
+[16:15:32 - train - INFO] epoch: 911, p_tf=0.000, lr: 4.977e-04, loss:  2.192e-01, time/epoch: 28.85s
+[16:16:02 - train - INFO] epoch: 912, p_tf=0.000, lr: 4.977e-04, loss:  2.230e-01, time/epoch: 29.36s
+[16:16:30 - train - INFO] epoch: 913, p_tf=0.000, lr: 4.977e-04, loss:  2.203e-01, time/epoch: 28.73s
+[16:17:00 - train - INFO] epoch: 914, p_tf=0.000, lr: 4.977e-04, loss:  2.136e-01, time/epoch: 30.00s
+[16:17:31 - train - INFO] epoch: 915, p_tf=0.000, lr: 4.977e-04, loss:  2.133e-01, time/epoch: 30.20s
+[16:18:00 - train - INFO] epoch: 916, p_tf=0.000, lr: 4.977e-04, loss:  2.100e-01, time/epoch: 29.24s
+[16:18:29 - train - INFO] epoch: 917, p_tf=0.000, lr: 4.977e-04, loss:  2.110e-01, time/epoch: 29.33s
+[16:18:58 - train - INFO] epoch: 918, p_tf=0.000, lr: 4.977e-04, loss:  2.300e-01, time/epoch: 29.13s
+[16:19:27 - train - INFO] epoch: 919, p_tf=0.000, lr: 4.977e-04, loss:  2.154e-01, time/epoch: 28.88s
+[16:19:55 - train - INFO] epoch: 920, p_tf=0.000, lr: 4.977e-04, loss:  2.147e-01, loss_t:  1.530e-01, front_loss_t:  1.233e-01, lambda*front:  6.164e-02, wet_gt:   0.3235, wet_pred:   0.3241, iou:   0.9679, time/epoch: 28.28s
+[16:19:56 - train - INFO] Saved model on rank 0
+[16:20:24 - train - INFO] epoch: 921, p_tf=0.000, lr: 4.977e-04, loss:  2.139e-01, time/epoch: 28.29s
+[16:20:53 - train - INFO] epoch: 922, p_tf=0.000, lr: 4.977e-04, loss:  2.198e-01, time/epoch: 29.19s
+[16:21:21 - train - INFO] epoch: 923, p_tf=0.000, lr: 4.977e-04, loss:  2.150e-01, time/epoch: 28.13s
+[16:21:50 - train - INFO] epoch: 924, p_tf=0.000, lr: 4.977e-04, loss:  2.273e-01, time/epoch: 29.00s
+[16:22:19 - train - INFO] epoch: 925, p_tf=0.000, lr: 4.977e-04, loss:  2.242e-01, time/epoch: 29.17s
+[16:22:48 - train - INFO] epoch: 926, p_tf=0.000, lr: 4.977e-04, loss:  2.232e-01, time/epoch: 28.87s
+[16:23:18 - train - INFO] epoch: 927, p_tf=0.000, lr: 4.977e-04, loss:  2.235e-01, time/epoch: 29.43s
+[16:23:47 - train - INFO] epoch: 928, p_tf=0.000, lr: 4.977e-04, loss:  2.244e-01, time/epoch: 29.21s
+[16:24:15 - train - INFO] epoch: 929, p_tf=0.000, lr: 4.977e-04, loss:  2.157e-01, time/epoch: 28.62s
+[16:24:45 - train - INFO] epoch: 930, p_tf=0.000, lr: 4.977e-04, loss:  2.231e-01, loss_t:  1.615e-01, front_loss_t:  1.233e-01, lambda*front:  6.166e-02, wet_gt:   0.3235, wet_pred:   0.3240, iou:   0.9678, time/epoch: 29.20s
+[16:24:45 - train - INFO] Saved model on rank 0
+[16:25:13 - train - INFO] epoch: 931, p_tf=0.000, lr: 4.977e-04, loss:  2.242e-01, time/epoch: 28.28s
+[16:25:41 - train - INFO] epoch: 932, p_tf=0.000, lr: 4.977e-04, loss:  2.339e-01, time/epoch: 28.43s
+[16:26:10 - train - INFO] epoch: 933, p_tf=0.000, lr: 4.977e-04, loss:  2.315e-01, time/epoch: 28.64s
+[16:26:39 - train - INFO] epoch: 934, p_tf=0.000, lr: 4.977e-04, loss:  2.196e-01, time/epoch: 29.38s
+[16:27:08 - train - INFO] epoch: 935, p_tf=0.000, lr: 4.977e-04, loss:  2.192e-01, time/epoch: 28.44s
+[16:27:37 - train - INFO] epoch: 936, p_tf=0.000, lr: 4.977e-04, loss:  2.174e-01, time/epoch: 29.27s
+[16:28:06 - train - INFO] epoch: 937, p_tf=0.000, lr: 4.977e-04, loss:  2.157e-01, time/epoch: 28.92s
+[16:28:35 - train - INFO] epoch: 938, p_tf=0.000, lr: 4.977e-04, loss:  2.162e-01, time/epoch: 29.51s
+[16:29:04 - train - INFO] epoch: 939, p_tf=0.000, lr: 4.977e-04, loss:  2.258e-01, time/epoch: 28.45s
+[16:29:33 - train - INFO] epoch: 940, p_tf=0.000, lr: 4.976e-04, loss:  2.307e-01, loss_t:  1.690e-01, front_loss_t:  1.233e-01, lambda*front:  6.167e-02, wet_gt:   0.3235, wet_pred:   0.3240, iou:   0.9672, time/epoch: 29.24s
+[16:29:33 - train - INFO] Saved model on rank 0
+[16:30:02 - train - INFO] epoch: 941, p_tf=0.000, lr: 4.976e-04, loss:  2.247e-01, time/epoch: 28.77s
+[16:30:32 - train - INFO] epoch: 942, p_tf=0.000, lr: 4.976e-04, loss:  2.213e-01, time/epoch: 29.73s
+[16:31:01 - train - INFO] epoch: 943, p_tf=0.000, lr: 4.976e-04, loss:  2.310e-01, time/epoch: 29.04s
+[16:31:30 - train - INFO] epoch: 944, p_tf=0.000, lr: 4.976e-04, loss:  2.169e-01, time/epoch: 29.65s
+[16:31:59 - train - INFO] epoch: 945, p_tf=0.000, lr: 4.976e-04, loss:  2.140e-01, time/epoch: 28.59s
+[16:32:28 - train - INFO] epoch: 946, p_tf=0.000, lr: 4.976e-04, loss:  2.214e-01, time/epoch: 28.76s
+[16:32:56 - train - INFO] epoch: 947, p_tf=0.000, lr: 4.976e-04, loss:  2.233e-01, time/epoch: 27.94s
+[16:33:25 - train - INFO] epoch: 948, p_tf=0.000, lr: 4.976e-04, loss:  2.215e-01, time/epoch: 29.65s
+[16:33:55 - train - INFO] epoch: 949, p_tf=0.000, lr: 4.976e-04, loss:  2.181e-01, time/epoch: 29.44s
+[16:34:23 - train - INFO] epoch: 950, p_tf=0.000, lr: 4.976e-04, loss:  2.219e-01, loss_t:  1.604e-01, front_loss_t:  1.231e-01, lambda*front:  6.156e-02, wet_gt:   0.3235, wet_pred:   0.3243, iou:   0.9673, time/epoch: 28.82s
+[16:34:24 - train - INFO] Saved model on rank 0
+[16:34:53 - train - INFO] epoch: 951, p_tf=0.000, lr: 4.976e-04, loss:  2.252e-01, time/epoch: 29.38s
+[16:35:22 - train - INFO] epoch: 952, p_tf=0.000, lr: 4.976e-04, loss:  2.204e-01, time/epoch: 28.90s
+[16:35:50 - train - INFO] epoch: 953, p_tf=0.000, lr: 4.976e-04, loss:  2.305e-01, time/epoch: 28.32s
+[16:36:19 - train - INFO] epoch: 954, p_tf=0.000, lr: 4.976e-04, loss:  2.275e-01, time/epoch: 28.65s
+[16:36:48 - train - INFO] epoch: 955, p_tf=0.000, lr: 4.976e-04, loss:  2.341e-01, time/epoch: 29.69s
+[16:37:18 - train - INFO] epoch: 956, p_tf=0.000, lr: 4.976e-04, loss:  2.280e-01, time/epoch: 29.85s
+[16:37:47 - train - INFO] epoch: 957, p_tf=0.000, lr: 4.976e-04, loss:  2.290e-01, time/epoch: 29.17s
+[16:38:17 - train - INFO] epoch: 958, p_tf=0.000, lr: 4.976e-04, loss:  2.471e-01, time/epoch: 29.65s
+[16:38:46 - train - INFO] epoch: 959, p_tf=0.000, lr: 4.976e-04, loss:  2.234e-01, time/epoch: 28.74s
+[16:39:15 - train - INFO] epoch: 960, p_tf=0.000, lr: 4.976e-04, loss:  2.171e-01, loss_t:  1.556e-01, front_loss_t:  1.231e-01, lambda*front:  6.155e-02, wet_gt:   0.3235, wet_pred:   0.3240, iou:   0.9676, time/epoch: 29.19s
+[16:39:15 - train - INFO] Saved model on rank 0
+[16:39:44 - train - INFO] epoch: 961, p_tf=0.000, lr: 4.976e-04, loss:  2.198e-01, time/epoch: 28.91s
+[16:40:13 - train - INFO] epoch: 962, p_tf=0.000, lr: 4.976e-04, loss:  2.221e-01, time/epoch: 29.48s
+[16:40:43 - train - INFO] epoch: 963, p_tf=0.000, lr: 4.976e-04, loss:  2.170e-01, time/epoch: 29.12s
+[16:41:12 - train - INFO] epoch: 964, p_tf=0.000, lr: 4.976e-04, loss:  2.200e-01, time/epoch: 29.52s
+[16:41:41 - train - INFO] epoch: 965, p_tf=0.000, lr: 4.976e-04, loss:  2.310e-01, time/epoch: 28.56s
+[16:42:09 - train - INFO] epoch: 966, p_tf=0.000, lr: 4.976e-04, loss:  2.161e-01, time/epoch: 28.51s
+[16:42:38 - train - INFO] epoch: 967, p_tf=0.000, lr: 4.976e-04, loss:  2.142e-01, time/epoch: 28.41s
+[16:43:07 - train - INFO] epoch: 968, p_tf=0.000, lr: 4.976e-04, loss:  2.109e-01, time/epoch: 29.36s
+[16:43:36 - train - INFO] epoch: 969, p_tf=0.000, lr: 4.976e-04, loss:  2.114e-01, time/epoch: 28.76s
+[16:44:05 - train - INFO] epoch: 970, p_tf=0.000, lr: 4.976e-04, loss:  2.113e-01, loss_t:  1.500e-01, front_loss_t:  1.226e-01, lambda*front:  6.128e-02, wet_gt:   0.3235, wet_pred:   0.3240, iou:   0.9684, time/epoch: 29.08s
+[16:44:05 - train - INFO] Saved model on rank 0
+[16:44:34 - train - INFO] epoch: 971, p_tf=0.000, lr: 4.976e-04, loss:  2.155e-01, time/epoch: 28.81s
+[16:45:02 - train - INFO] epoch: 972, p_tf=0.000, lr: 4.976e-04, loss:  2.147e-01, time/epoch: 28.14s
+[16:45:31 - train - INFO] epoch: 973, p_tf=0.000, lr: 4.976e-04, loss:  2.190e-01, time/epoch: 29.04s
+[16:46:00 - train - INFO] epoch: 974, p_tf=0.000, lr: 4.976e-04, loss:  2.153e-01, time/epoch: 29.17s
+[16:46:29 - train - INFO] epoch: 975, p_tf=0.000, lr: 4.976e-04, loss:  2.127e-01, time/epoch: 28.67s
+[16:46:57 - train - INFO] epoch: 976, p_tf=0.000, lr: 4.976e-04, loss:  2.113e-01, time/epoch: 28.75s
+[16:47:26 - train - INFO] epoch: 977, p_tf=0.000, lr: 4.976e-04, loss:  2.096e-01, time/epoch: 28.79s
+[16:47:54 - train - INFO] epoch: 978, p_tf=0.000, lr: 4.976e-04, loss:  2.180e-01, time/epoch: 28.25s
+[16:48:23 - train - INFO] epoch: 979, p_tf=0.000, lr: 4.976e-04, loss:  2.126e-01, time/epoch: 28.80s
+[16:48:52 - train - INFO] epoch: 980, p_tf=0.000, lr: 4.975e-04, loss:  2.084e-01, loss_t:  1.471e-01, front_loss_t:  1.226e-01, lambda*front:  6.131e-02, wet_gt:   0.3235, wet_pred:   0.3239, iou:   0.9689, time/epoch: 28.49s
+[16:48:52 - train - INFO] Saved model on rank 0
+[16:49:20 - train - INFO] epoch: 981, p_tf=0.000, lr: 4.975e-04, loss:  2.144e-01, time/epoch: 28.53s
+[16:49:50 - train - INFO] epoch: 982, p_tf=0.000, lr: 4.975e-04, loss:  2.276e-01, time/epoch: 29.76s
+[16:50:20 - train - INFO] epoch: 983, p_tf=0.000, lr: 4.975e-04, loss:  2.127e-01, time/epoch: 29.79s
+[16:50:49 - train - INFO] epoch: 984, p_tf=0.000, lr: 4.975e-04, loss:  2.209e-01, time/epoch: 29.06s
+[16:51:19 - train - INFO] epoch: 985, p_tf=0.000, lr: 4.975e-04, loss:  2.188e-01, time/epoch: 29.71s
+[16:51:48 - train - INFO] epoch: 986, p_tf=0.000, lr: 4.975e-04, loss:  2.095e-01, time/epoch: 29.10s
+[16:52:17 - train - INFO] epoch: 987, p_tf=0.000, lr: 4.975e-04, loss:  2.202e-01, time/epoch: 29.35s
+[16:52:44 - train - INFO] epoch: 988, p_tf=0.000, lr: 4.975e-04, loss:  2.206e-01, time/epoch: 27.49s
+[16:53:13 - train - INFO] epoch: 989, p_tf=0.000, lr: 4.975e-04, loss:  2.203e-01, time/epoch: 28.91s
+[16:53:42 - train - INFO] epoch: 990, p_tf=0.000, lr: 4.975e-04, loss:  2.180e-01, loss_t:  1.567e-01, front_loss_t:  1.224e-01, lambda*front:  6.122e-02, wet_gt:   0.3235, wet_pred:   0.3240, iou:   0.9682, time/epoch: 28.75s
+[16:53:42 - train - INFO] Saved model on rank 0
+[16:54:11 - train - INFO] epoch: 991, p_tf=0.000, lr: 4.975e-04, loss:  2.108e-01, time/epoch: 28.95s
+[16:54:40 - train - INFO] epoch: 992, p_tf=0.000, lr: 4.975e-04, loss:  2.100e-01, time/epoch: 29.04s
+[16:55:09 - train - INFO] epoch: 993, p_tf=0.000, lr: 4.975e-04, loss:  2.085e-01, time/epoch: 29.31s
+[16:55:38 - train - INFO] epoch: 994, p_tf=0.000, lr: 4.975e-04, loss:  2.092e-01, time/epoch: 28.71s
+[16:56:07 - train - INFO] epoch: 995, p_tf=0.000, lr: 4.975e-04, loss:  2.143e-01, time/epoch: 28.67s
+[16:56:37 - train - INFO] epoch: 996, p_tf=0.000, lr: 4.975e-04, loss:  2.060e-01, time/epoch: 29.87s
+[16:57:06 - train - INFO] epoch: 997, p_tf=0.000, lr: 4.975e-04, loss:  2.063e-01, time/epoch: 29.65s
+[16:57:35 - train - INFO] epoch: 998, p_tf=0.000, lr: 4.975e-04, loss:  2.338e-01, time/epoch: 28.39s
+[16:58:05 - train - INFO] epoch: 999, p_tf=0.000, lr: 4.975e-04, loss:  2.317e-01, time/epoch: 30.21s
+[16:58:34 - train - INFO] epoch: 1000, p_tf=0.000, lr: 4.975e-04, loss:  2.615e-01, loss_t:  1.991e-01, front_loss_t:  1.247e-01, lambda*front:  6.236e-02, wet_gt:   0.3235, wet_pred:   0.3241, iou:   0.9658, time/epoch: 29.38s
+[16:58:34 - train - INFO] Saved model on rank 0
+[16:58:34 - train - INFO] Training completed!

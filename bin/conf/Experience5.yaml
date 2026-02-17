@@ -52,7 +52,7 @@ dynamic_dir : [
 
 # training configs
 batch_size: 1
-epochs: 921
+epochs: 1001
 mp_layers: 10
 lr: 0.0005
 lr_decay_rate: 0.999995
@@ -79,7 +79,7 @@ seed : 0
 ckpt_path: "/work/m24046/m24046mrcr/paper/Experience5_1/Seed0/"
 
 # front loss
-lambda_front: 1     
+lambda_front: 0.5
 eps_front: 0.05       
-tau_front: 0.02       
+tau_front: 0.03       
 exclude_bc_in_front: true
