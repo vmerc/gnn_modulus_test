@@ -770,3 +770,192 @@ class TelemacDataset(DGLDataset):
             del meansqr_stats[f"{var_name}_meansqr"]
 
         return stats
+
+
+def load_liq_hydrograph(liq_path):
+    """
+    Load TELEMAC .liq hydrograph file and return (time_seconds, discharge_q).
+    Expected numeric columns include at least time in first column and Q in last column.
+    """
+    t_vals = []
+    q_vals = []
+    with open(liq_path, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+            try:
+                t = float(parts[0])
+                q = float(parts[-1])
+            except ValueError:
+                continue
+            t_vals.append(t)
+            q_vals.append(q)
+
+    if len(t_vals) == 0:
+        raise ValueError(f"No numeric hydrograph data found in {liq_path}")
+
+    t = np.asarray(t_vals, dtype=np.float32)
+    q = np.asarray(q_vals, dtype=np.float32)
+    order = np.argsort(t)
+    return t[order], q[order]
+
+
+class TelemacDatasetWithQ(TelemacDataset):
+    """
+    Separate dataset class that augments dynamic node features with global Q(t),
+    interpolated from associated .liq hydrographs using per-sample ts.
+    """
+
+    def __init__(
+        self,
+        name="dataset_q",
+        data_dir=None,
+        dynamic_data_files=None,
+        hydro_data_files=None,
+        split="train",
+        ckpt_path='.',
+        force_reload=False,
+        verbose=False,
+        normalize=True,
+        sequence_length=1,
+        overlap=0,
+        dt_seconds=1800.0,
+    ):
+        if hydro_data_files is None:
+            raise ValueError("hydro_data_files is required for TelemacDatasetWithQ.")
+        if dynamic_data_files is None:
+            raise ValueError("dynamic_data_files is required for TelemacDatasetWithQ.")
+        if len(dynamic_data_files) != len(hydro_data_files):
+            raise ValueError("dynamic_data_files and hydro_data_files must have same length.")
+
+        self.hydro_data_files = [str(p) for p in hydro_data_files]
+        self.dt_seconds = float(dt_seconds)
+        self.sequence_meta = []
+        self.hydrographs = {}
+
+        super().__init__(
+            name=name,
+            data_dir=data_dir,
+            dynamic_data_files=dynamic_data_files,
+            split=split,
+            ckpt_path=ckpt_path,
+            force_reload=force_reload,
+            verbose=verbose,
+            normalize=normalize,
+            sequence_length=sequence_length,
+            overlap=overlap,
+        )
+
+        self._build_sequence_meta(dynamic_data_files)
+        self._load_hydrographs()
+        self.node_var_info["q"] = {"source": "x", "index": 3}
+
+        if normalize:
+            if split == "train":
+                q_mean, q_std = self._get_q_stats()
+                self.node_stats["q"] = q_mean
+                self.node_stats["q_std"] = q_std
+                save_json(self.node_stats, ckpt_path, "node_stats.json")
+            else:
+                if ("q" not in self.node_stats) or ("q_std" not in self.node_stats):
+                    raise ValueError(
+                        "Missing q/q_std in node_stats.json for eval/test with TelemacDatasetWithQ."
+                    )
+
+    def _build_sequence_meta(self, dynamic_data_files):
+        step = max(1, self.sequence_length - self.overlap)
+        for file_path, hydro_path in zip(dynamic_data_files, self.hydro_data_files):
+            with open(file_path, 'rb') as f:
+                dynamic_data = pickle.load(f)
+            for _ in range(0, len(dynamic_data) - self.sequence_length + 1, step):
+                self.sequence_meta.append({"hydro_path": hydro_path})
+
+        if len(self.sequence_meta) != len(self.sequences):
+            raise ValueError(
+                f"Sequence metadata mismatch: {len(self.sequence_meta)} meta vs {len(self.sequences)} sequences."
+            )
+
+    def _load_hydrographs(self):
+        for hydro_path in set(self.hydro_data_files):
+            self.hydrographs[hydro_path] = load_liq_hydrograph(hydro_path)
+
+    def _q_at_ts(self, hydro_path, ts):
+        if ts is None:
+            raise ValueError("Sample is missing ts. TelemacDatasetWithQ requires (x, y, ts).")
+        t_sec = float(ts) * self.dt_seconds
+        t_arr, q_arr = self.hydrographs[hydro_path]
+        return float(np.interp(t_sec, t_arr, q_arr, left=q_arr[0], right=q_arr[-1]))
+
+    def _get_q_stats(self):
+        sum_q = 0.0
+        sum_q2 = 0.0
+        total = 0
+        for seq_idx, sequence in enumerate(self.sequences):
+            hydro_path = self.sequence_meta[seq_idx]["hydro_path"]
+            for sample in sequence:
+                _, _, ts = unpack_dynamic_sample(sample)
+                q_val = self._q_at_ts(hydro_path, ts)
+                sum_q += q_val
+                sum_q2 += q_val * q_val
+                total += 1
+
+        denom = max(total, 1)
+        mean_q = sum_q / denom
+        var_q = max(sum_q2 / denom - mean_q * mean_q, 0.0)
+        std_q = float(np.sqrt(var_q))
+        return (
+            torch.tensor([mean_q], dtype=torch.float32),
+            torch.tensor([std_q], dtype=torch.float32),
+        )
+
+    def __getitem__(self, idx):
+        sequence = self.sequences[idx]
+        hydro_path = self.sequence_meta[idx]["hydro_path"]
+        graphs = []
+        for sample in sequence:
+            x, y, ts = unpack_dynamic_sample(sample)
+            static_features = self.base_graph.ndata['static']
+            dynamic_features = torch.tensor(x, dtype=torch.float32)
+
+            q_val = self._q_at_ts(hydro_path, ts)
+            q_tensor = torch.full((dynamic_features.shape[0], 1), q_val, dtype=torch.float32)
+
+            if self.node_stats is not None and "q" in self.node_stats and "q_std" in self.node_stats:
+                q_mean = self.node_stats["q"].item()
+                q_std = self.node_stats["q_std"].item()
+                if q_std != 0.0:
+                    q_tensor = (q_tensor - q_mean) / q_std
+
+            dynamic_features = torch.cat((dynamic_features, q_tensor), dim=1)
+            combined_features = torch.cat((static_features, dynamic_features), dim=1)
+
+            g = self.base_graph.clone()
+            g.ndata.pop('static')
+            g.ndata['x'] = combined_features
+            g.ndata['y'] = torch.tensor(y, dtype=torch.float32)
+            graphs.append(g)
+        return graphs
+
+    def _get_edge_stats(self, var_info):
+        # Keep independent from __getitem__ so super().__init__ remains safe.
+        stats = {key: torch.zeros(1, dtype=torch.float32) for key in var_info.keys()}
+        meansqr_stats = {f"{key}_meansqr": torch.zeros(1, dtype=torch.float32) for key in var_info.keys()}
+
+        for var_name, info in var_info.items():
+            value = self.base_graph.edata[info["source"]][:, info["index"]:info["index"]+1].to(torch.float32)
+            m = value.mean()
+            stats[var_name] = stats[var_name] + m
+            meansqr_stats[f"{var_name}_meansqr"] = meansqr_stats[f"{var_name}_meansqr"] + (value*value).mean()
+
+        for var_name in var_info.keys():
+            mean = stats[var_name]
+            ms = meansqr_stats[f"{var_name}_meansqr"]
+            var = torch.clamp(ms - mean*mean, min=0.0)
+            stats[f"{var_name}_std"] = torch.sqrt(var)
+            del meansqr_stats[f"{var_name}_meansqr"]
+
+        return stats
