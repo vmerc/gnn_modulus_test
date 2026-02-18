@@ -372,7 +372,7 @@ def create_dgl_dataset_chunked(mesh_list, res_list, cli_list, dt_list, data_fold
                 
                 y = put_boundary_infos_on_changes(y,static_node_features) #put 0 on changes  
 
-                dynamic_data_list.append((dynamic_node_features, y))
+                dynamic_data_list.append((dynamic_node_features, y, int(ts)))
 
             # Save dynamic data for this chunk
             with open(os.path.join(data_folder, f"{dataset_name}_{traj}_{start_ts}-{end_ts}.pkl"), 'wb') as f:
@@ -494,6 +494,26 @@ def load_json(file, dtype=torch.float32):
     var = {k: torch.tensor(v, dtype=dtype) for k, v in var_list.items()}
     return var
 
+
+def unpack_dynamic_sample(sample):
+    """
+    Support legacy samples (x, y) and timestamped samples (x, y, ts).
+    Also supports dict format {"x": ..., "y": ..., "ts": ...}.
+    """
+    if isinstance(sample, dict):
+        if "x" not in sample or "y" not in sample:
+            raise ValueError("Dynamic sample dict must contain keys 'x' and 'y'.")
+        return sample["x"], sample["y"], sample.get("ts", None)
+
+    if isinstance(sample, (tuple, list)):
+        if len(sample) == 2:
+            x, y = sample
+            return x, y, None
+        if len(sample) == 3:
+            x, y, ts = sample
+            return x, y, ts
+
+    raise ValueError("Unsupported dynamic sample format. Expected (x,y), (x,y,ts) or dict.")
 
 
 class TelemacDataset(DGLDataset):
@@ -623,7 +643,8 @@ class TelemacDataset(DGLDataset):
         # dynamic node features and targets
         for seq_index, sequence in enumerate(self.sequences):
             normalized_sequence = []
-            for x, y in sequence:
+            for sample in sequence:
+                x, y, ts = unpack_dynamic_sample(sample)
                 x = x.copy()
                 y = y.copy()
                 # dynamic h,u,v
@@ -643,14 +664,18 @@ class TelemacDataset(DGLDataset):
                             idx = info['index']
                             y[:, idx:idx+1] = (y[:, idx:idx+1] - mean) / std
 
-                normalized_sequence.append((x, y))
+                if ts is None:
+                    normalized_sequence.append((x, y))
+                else:
+                    normalized_sequence.append((x, y, int(ts)))
             self.sequences[seq_index] = normalized_sequence
 
 
     def __getitem__(self, idx):
         sequence = self.sequences[idx]
         graphs = []
-        for x, y in sequence:
+        for sample in sequence:
+            x, y, _ = unpack_dynamic_sample(sample)
             # Combine static and dynamic features
             static_features = self.base_graph.ndata['static']
             dynamic_features = torch.tensor(x, dtype=torch.float32)
@@ -690,7 +715,8 @@ class TelemacDataset(DGLDataset):
         # ----- dynamiques & deltas -----
         total_steps = 0
         for sequence in self.sequences:
-            for x, y in sequence:
+            for sample in sequence:
+                x, y, _ = unpack_dynamic_sample(sample)
                 total_steps += 1
                 x_t = torch.tensor(x, dtype=torch.float32)
                 y_t = torch.tensor(y, dtype=torch.float32)
