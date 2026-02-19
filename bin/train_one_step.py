@@ -18,7 +18,7 @@ project_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '')
 if project_path not in sys.path:
     sys.path.append(project_path)
 
-from python.create_dgl_dataset import TelemacDataset
+from python.create_dgl_dataset import TelemacDataset, TelemacDatasetWithQ
 from python.CustomMeshGraphNet import MeshGraphNet
 
 from modulus.distributed.manager import DistributedManager
@@ -47,17 +47,40 @@ class MGNTrainer:
         self.dist = DistributedManager()
         self.amp = bool(cfg.amp)
 
-        # === Dataset ===
-        dataset = TelemacDataset(
-            name="telemac_train",
-            data_dir=to_absolute_path(cfg.data_dir),
-            dynamic_data_files=[to_absolute_path(p) for p in cfg.dynamic_dir],
-            split="train",
-            ckpt_path=to_absolute_path(cfg.ckpt_path),
-            normalize=True,
-            sequence_length=1,
-            overlap=0,
-        )
+        self.use_q_feature = bool(getattr(cfg, "use_q_feature", False))
+        if self.use_q_feature:
+            hydro_files = getattr(cfg, "hydro_dir", None)
+            if hydro_files is None:
+                raise ValueError("use_q_feature=True requires hydro_dir in config.")
+            dataset = TelemacDatasetWithQ(
+                name="telemac_train_q",
+                data_dir=to_absolute_path(cfg.data_dir),
+                dynamic_data_files=[to_absolute_path(p) for p in cfg.dynamic_dir],
+                hydro_data_files=[to_absolute_path(p) for p in hydro_files],
+                split="train",
+                ckpt_path=to_absolute_path(cfg.ckpt_path),
+                normalize=True,
+                sequence_length=1,
+                overlap=0,
+                dt_seconds=float(getattr(cfg, "dt_seconds", 1800.0)),
+            )
+        else:
+            dataset = TelemacDataset(
+                name="telemac_train",
+                data_dir=to_absolute_path(cfg.data_dir),
+                dynamic_data_files=[to_absolute_path(p) for p in cfg.dynamic_dir],
+                split="train",
+                ckpt_path=to_absolute_path(cfg.ckpt_path),
+                normalize=True,
+                sequence_length=1,
+                overlap=0,
+            )
+
+        expected_input_features = dataset.base_graph.ndata['static'].shape[1] + (4 if self.use_q_feature else 3)
+        if int(cfg.num_input_features) != int(expected_input_features):
+            raise ValueError(
+                f"num_input_features={cfg.num_input_features} incompatible with dataset ({expected_input_features})."
+            )
 
         # === DataLoader ===
         self.dataloader = GraphDataLoader(
