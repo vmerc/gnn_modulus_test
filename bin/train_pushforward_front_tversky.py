@@ -18,7 +18,7 @@ project_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '')
 if project_path not in sys.path:
     sys.path.append(project_path)
 
-from python.create_dgl_dataset import TelemacDataset
+from python.create_dgl_dataset import TelemacDataset, TelemacDatasetWithQ
 from python.CustomMeshGraphNet import MeshGraphNet
 
 from modulus.distributed.manager import DistributedManager
@@ -57,16 +57,40 @@ class MGNTrainer:
         self.sequence_length = int(cfg.sequence_length)
         assert self.sequence_length >= 2, "sequence_length doit être >= 2 pour le pushforward."
 
-        dataset = TelemacDataset(
-            name="telemac_train",
-            data_dir=to_absolute_path(cfg.data_dir),
-            dynamic_data_files=[to_absolute_path(p) for p in cfg.dynamic_dir],
-            split="train",
-            ckpt_path=to_absolute_path(cfg.ckpt_path),
-            normalize=True,
-            sequence_length=self.sequence_length,
-            overlap=self.sequence_length,  # 1 séquence par pas de temps (stride=1)
-        )
+        self.use_q_feature = bool(getattr(cfg, "use_q_feature", False))
+        if self.use_q_feature:
+            hydro_files = getattr(cfg, "hydro_dir", None)
+            if hydro_files is None:
+                raise ValueError("use_q_feature=True requires hydro_dir in config.")
+            dataset = TelemacDatasetWithQ(
+                name="telemac_train_q",
+                data_dir=to_absolute_path(cfg.data_dir),
+                dynamic_data_files=[to_absolute_path(p) for p in cfg.dynamic_dir],
+                hydro_data_files=[to_absolute_path(p) for p in hydro_files],
+                split="train",
+                ckpt_path=to_absolute_path(cfg.ckpt_path),
+                normalize=True,
+                sequence_length=self.sequence_length,
+                overlap=self.sequence_length,
+                dt_seconds=float(getattr(cfg, "dt_seconds", 1800.0)),
+            )
+        else:
+            dataset = TelemacDataset(
+                name="telemac_train",
+                data_dir=to_absolute_path(cfg.data_dir),
+                dynamic_data_files=[to_absolute_path(p) for p in cfg.dynamic_dir],
+                split="train",
+                ckpt_path=to_absolute_path(cfg.ckpt_path),
+                normalize=True,
+                sequence_length=self.sequence_length,
+                overlap=self.sequence_length,
+            )
+
+        expected_input_features = dataset.base_graph.ndata['static'].shape[1] + (4 if self.use_q_feature else 3)
+        if int(cfg.num_input_features) != int(expected_input_features):
+            raise ValueError(
+                f"num_input_features={cfg.num_input_features} incompatible with dataset ({expected_input_features})."
+            )
 
         # === DataLoader ===
         self.dataloader = GraphDataLoader(
@@ -167,7 +191,7 @@ class MGNTrainer:
 
         # indices dynamiques
         self.DYN_START = dataset.base_graph.ndata['static'].shape[1]  # 6 (onehot4 + strickler + z)
-        self.DYN_LEN   = 3
+        self.DYN_LEN   = 4 if self.use_q_feature else 3
 
         # === Hyperparamètres "front d'eau" (Tversky simple, seuil unique) ===
         self.lambda_front = float(getattr(cfg, "lambda_front", 0.1))
@@ -297,7 +321,8 @@ class MGNTrainer:
 
             # --- réinjection pushforward ---
             # x_t (non norm)
-            xn_t = g.ndata['x'][:, self.DYN_START:self.DYN_START+self.DYN_LEN]
+            xn_t_full = g.ndata['x'][:, self.DYN_START:self.DYN_START+self.DYN_LEN]
+            xn_t = xn_t_full[:, :3]
             x_t  = self._denorm(xn_t, self.mx.to(xn_t.device), self.sx.to(xn_t.device))
 
             # y_pred (non norm) -> x_{t+1}^{pred}
@@ -305,7 +330,8 @@ class MGNTrainer:
             x_t1_pred = x_t + y_pred
 
             # GT @ t+1 (pour CL & TF)
-            xn_t1_gt = graphs[t+1].ndata['x'][:, self.DYN_START:self.DYN_START+self.DYN_LEN].to(xn_t.device)
+            xn_t1_gt_full = graphs[t+1].ndata['x'][:, self.DYN_START:self.DYN_START+self.DYN_LEN].to(xn_t.device)
+            xn_t1_gt = xn_t1_gt_full[:, :3]
             x_t1_gt  = self._denorm(xn_t1_gt, self.mx.to(xn_t.device), self.sx.to(xn_t.device))
 
             # conditions aux limites
@@ -339,7 +365,12 @@ class MGNTrainer:
 
             # renormalise & réinjecte (DETACH pour casser le graphe)
             xn_t1_next = self._renorm(x_t1_next, self.mx.to(xn_t.device), self.sx.to(xn_t.device))
-            x_next_full = torch.cat([g.ndata['x'][:, :self.DYN_START], xn_t1_next], dim=1).detach()
+            if self.use_q_feature:
+                q_t1_n = xn_t1_gt_full[:, 3:4]
+                xn_t1_next_full = torch.cat([xn_t1_next, q_t1_n], dim=1)
+            else:
+                xn_t1_next_full = xn_t1_next
+            x_next_full = torch.cat([g.ndata['x'][:, :self.DYN_START], xn_t1_next_full], dim=1).detach()
 
             # reconstruire un graph identique pour t+1
             g = dgl.graph(g.edges(), num_nodes=g.num_nodes(), device=g.device)
