@@ -1,13 +1,11 @@
 #!/bin/bash
 #SBATCH --output=%x-%j-gnn.out
 #SBATCH --error=%x-%j-gnn.err
-#SBATCH --dependency=singleton
 #SBATCH -N 2
-#SBATCH -n 4
+#SBATCH -n 3
 #SBATCH --gpus-per-node=2
 #SBATCH -p small
 #SBATCH --ntasks-per-node=2
-#SBATCH --dependency=singleton   # job dependency
 # Check if a config name was provided
 if [ -z "$1" ]; then
   echo "No config name provided. Usage: ./your_script.sh <config_name>"

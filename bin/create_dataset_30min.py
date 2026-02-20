@@ -25,7 +25,7 @@ for res_file in res_files:
 
         print(f"Création du dataset pour {res_file} avec le nom {dataset_name}")
         create_dgl_dataset_chunked(
-            mesh_list, res_list, cli_list, dt_list, data_folder, dataset_name, chunk_size=80
+            mesh_list, res_list, cli_list, dt_list, '/work/m24046/m24046mrcr/dataset_x8_avec_ts/full/', dataset_name, chunk_size=80
         )
     except Exception as e:
         print(f"Erreur lors de la création du dataset pour {res_file}: {e}")
