@@ -105,7 +105,7 @@ dt_seconds: 1800.0
 # pushforward
 sequence_length: 3
 overlap: 3
-pf_warmup_epochs: 300
+pf_warmup_epochs: 0
 
 # performance configs
 use_apex: True
