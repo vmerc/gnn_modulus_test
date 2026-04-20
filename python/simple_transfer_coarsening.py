@@ -271,6 +271,76 @@ def _filter_long_triangles(
     return triangles[keep]
 
 
+def _points_inside_triangular_domain(
+    points: np.ndarray,
+    domain_xy: np.ndarray,
+    domain_triangles: np.ndarray,
+) -> np.ndarray:
+    """Return True for points inside the original triangular Telemac domain."""
+    try:
+        import matplotlib.tri as mtri
+    except ImportError as exc:
+        raise RuntimeError(
+            "matplotlib is required to filter Delaunay triangles against the "
+            "original Telemac triangular domain."
+        ) from exc
+
+    points = np.asarray(points, dtype=np.float64)
+    domain_xy = np.asarray(domain_xy, dtype=np.float64)
+    domain_triangles = np.asarray(domain_triangles, dtype=np.int64)
+
+    triangulation = mtri.Triangulation(
+        domain_xy[:, 0],
+        domain_xy[:, 1],
+        domain_triangles,
+    )
+    tri_finder = triangulation.get_trifinder()
+    return tri_finder(points[:, 0], points[:, 1]) >= 0
+
+
+def filter_triangles_inside_domain(
+    xy: np.ndarray,
+    triangles: np.ndarray,
+    domain_xy: np.ndarray,
+    domain_triangles: np.ndarray,
+) -> np.ndarray:
+    """
+    Remove coarse Delaunay triangles outside the original Telemac domain.
+
+    Delaunay fills the convex hull of the coarse points. For a river mesh this
+    can create triangles over concave exterior areas or holes. A triangle is
+    kept only if its vertices, edge midpoints, and centroid all lie inside the
+    original fine triangular mesh.
+    """
+    xy = np.asarray(xy, dtype=np.float64)
+    triangles = np.asarray(triangles, dtype=np.int64)
+
+    if len(triangles) == 0:
+        return triangles
+
+    p = xy[triangles]
+    samples = np.stack(
+        [
+            p[:, 0],
+            p[:, 1],
+            p[:, 2],
+            0.5 * (p[:, 0] + p[:, 1]),
+            0.5 * (p[:, 1] + p[:, 2]),
+            0.5 * (p[:, 2] + p[:, 0]),
+            p.mean(axis=1),
+        ],
+        axis=1,
+    )
+
+    inside = _points_inside_triangular_domain(
+        samples.reshape(-1, 2),
+        domain_xy=domain_xy,
+        domain_triangles=domain_triangles,
+    )
+    keep = inside.reshape(len(triangles), samples.shape[1]).all(axis=1)
+    return triangles[keep]
+
+
 def delaunay_triangles(
     xy: np.ndarray,
     max_edge_length: float | None = None,
@@ -403,7 +473,13 @@ def build_simple_coarse_mesh(
     base_strickler = None if strickler is None else np.asarray(base_P @ strickler)
     base_region = coarse_label_from_cluster(base_cluster, region_id)
     base_edges = coarse_edges_from_fine_edges(fine_edges, base_cluster)
-    base_triangles = delaunay_triangles(base_xy)
+    raw_base_triangles = delaunay_triangles(base_xy)
+    base_triangles = filter_triangles_inside_domain(
+        xy=base_xy,
+        triangles=raw_base_triangles,
+        domain_xy=xy,
+        domain_triangles=triangles,
+    )
     coarse_boundary_type = coarse_label_from_cluster(base_cluster, boundary_type)
 
     print(
@@ -411,6 +487,7 @@ def build_simple_coarse_mesh(
         f"fine_nodes={len(xy)}",
         f"coarse_nodes={len(base_xy)}",
         f"triangles={len(base_triangles)}",
+        f"removed_outside_domain={len(raw_base_triangles) - len(base_triangles)}",
         f"undirected_edges={len(base_edges)}",
         f"spacing={spacing}",
         f"dz_min={used_dz_min:.3g}",
