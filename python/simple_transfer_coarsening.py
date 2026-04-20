@@ -271,6 +271,41 @@ def _filter_long_triangles(
     return triangles[keep]
 
 
+def filter_degenerate_triangles(
+    xy: np.ndarray,
+    triangles: np.ndarray,
+    min_edge_length: float = 1e-9,
+    min_area: float = 1e-12,
+) -> np.ndarray:
+    """Remove triangles with repeated nodes, near-zero edges, or near-zero area."""
+    xy = np.asarray(xy, dtype=np.float64)
+    triangles = np.asarray(triangles, dtype=np.int64)
+
+    if len(triangles) == 0:
+        return triangles
+
+    p = xy[triangles]
+    repeated_node = (
+        (triangles[:, 0] == triangles[:, 1])
+        | (triangles[:, 1] == triangles[:, 2])
+        | (triangles[:, 2] == triangles[:, 0])
+    )
+    finite = np.isfinite(p).all(axis=(1, 2))
+
+    edge01 = p[:, 1] - p[:, 0]
+    edge12 = p[:, 2] - p[:, 1]
+    edge20 = p[:, 0] - p[:, 2]
+    l01 = np.linalg.norm(edge01, axis=1)
+    l12 = np.linalg.norm(edge12, axis=1)
+    l20 = np.linalg.norm(edge20, axis=1)
+    min_length = np.minimum.reduce([l01, l12, l20])
+
+    twice_area = np.abs(edge01[:, 0] * (p[:, 2, 1] - p[:, 0, 1]) - edge01[:, 1] * (p[:, 2, 0] - p[:, 0, 0]))
+
+    keep = finite & ~repeated_node & (min_length > min_edge_length) & (0.5 * twice_area > min_area)
+    return triangles[keep]
+
+
 def _points_inside_triangular_domain(
     points: np.ndarray,
     domain_xy: np.ndarray,
@@ -480,6 +515,8 @@ def build_simple_coarse_mesh(
         domain_xy=xy,
         domain_triangles=triangles,
     )
+    domain_filtered_count = len(base_triangles)
+    base_triangles = filter_degenerate_triangles(base_xy, base_triangles)
     coarse_boundary_type = coarse_label_from_cluster(base_cluster, boundary_type)
 
     print(
@@ -487,7 +524,8 @@ def build_simple_coarse_mesh(
         f"fine_nodes={len(xy)}",
         f"coarse_nodes={len(base_xy)}",
         f"triangles={len(base_triangles)}",
-        f"removed_outside_domain={len(raw_base_triangles) - len(base_triangles)}",
+        f"removed_outside_domain={len(raw_base_triangles) - domain_filtered_count}",
+        f"removed_degenerate={domain_filtered_count - len(base_triangles)}",
         f"undirected_edges={len(base_edges)}",
         f"spacing={spacing}",
         f"dz_min={used_dz_min:.3g}",
