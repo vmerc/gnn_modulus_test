@@ -127,11 +127,15 @@ def get_preserve_node_mask(
     Mark fine nodes that must stay isolated during coarse point construction.
 
     We preserve:
-    - Telemac boundary nodes,
+    - hydraulic Telemac boundary nodes (prescribed H / prescribed Q),
     - strong topographic-break nodes.
     """
     boundary_type = np.asarray(boundary_type, dtype=np.int64)
-    return (boundary_type != NORMAL) | topo_barrier_node_mask
+    hydraulic_boundary_mask = (
+        (boundary_type == PRESCRIBED_H) |
+        (boundary_type == PRESCRIBED_Q)
+    )
+    return hydraulic_boundary_mask | topo_barrier_node_mask
 
 
 def connected_regions_after_cuts(
@@ -424,7 +428,7 @@ def build_simple_coarse_mesh(
     0 = normal, 1 = prescribed H, 2 = prescribed Q, 3 = wall.
 
     The method keeps:
-    - Telemac boundary nodes,
+    - hydraulic Telemac boundary nodes,
     - strong topographic jumps as a bank/dike/levee proxy,
     - coarse clustering elsewhere.
     """
