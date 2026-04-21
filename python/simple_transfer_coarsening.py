@@ -135,7 +135,7 @@ def get_preserve_node_mask(
         (boundary_type == PRESCRIBED_H) |
         (boundary_type == PRESCRIBED_Q)
     )
-    return hydraulic_boundary_mask | topo_barrier_node_mask
+    return hydraulic_boundary_mask #| topo_barrier_node_mask
 
 
 def connected_regions_after_cuts(
