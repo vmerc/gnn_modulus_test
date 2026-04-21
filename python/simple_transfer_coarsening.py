@@ -248,6 +248,17 @@ def merge_components_from_edges(n_nodes: int, edges: np.ndarray) -> np.ndarray:
     return _compact_labels(labels)
 
 
+def float32_duplicate_labels(xy: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Group nodes that collapse to the same coordinates in float32.
+
+    This matches what happens when exporting a mesh to SERAFIN single precision.
+    """
+    xy32 = np.asarray(xy, dtype=np.float64).astype(np.float32).astype(np.float64)
+    _, inverse, counts = np.unique(xy32, axis=0, return_inverse=True, return_counts=True)
+    return _compact_labels(inverse), counts
+
+
 def _delaunay_triangles_for_points(xy: np.ndarray) -> np.ndarray:
     """Run a robust Delaunay triangulation on one point cloud."""
     xy = np.asarray(xy, dtype=np.float64)
@@ -537,6 +548,8 @@ def build_simple_coarse_mesh(
     weights: np.ndarray | None = None,
     min_coarse_edge_from_fine_factor: float | None = 1.0,
     max_short_edge_merge_iter: int = 8,
+    enforce_serafin_safe_nodes: bool = True,
+    max_serafin_safe_merge_iter: int = 8,
 ) -> CoarseMesh:
     """
     Build a first-transfer coarse mesh support without GIS data.
@@ -552,6 +565,9 @@ def build_simple_coarse_mesh(
     - if min_coarse_edge_from_fine_factor is not None, iteratively merge coarse
       nodes involved in triangulation edges shorter than
       min_coarse_edge_from_fine_factor * min_positive_edge_length(fine_mesh).
+    - if enforce_serafin_safe_nodes is True, iteratively merge coarse nodes
+      that would collapse to identical coordinates in float32, to avoid zero
+      edges after SERAFIN export.
     """
     xy = np.asarray(xy, dtype=np.float64)
     triangles = np.asarray(triangles, dtype=np.int64)
@@ -614,6 +630,8 @@ def build_simple_coarse_mesh(
 
     short_edge_merge_iter = 0
     removed_short_edge_nodes = 0
+    serafin_safe_merge_iter = 0
+    removed_serafin_duplicate_nodes = 0
 
     while True:
         (
@@ -636,6 +654,17 @@ def build_simple_coarse_mesh(
             weights=weights,
             fine_edges=fine_edges,
         )
+
+        if enforce_serafin_safe_nodes and serafin_safe_merge_iter < max_serafin_safe_merge_iter:
+            float32_labels, _ = float32_duplicate_labels(base_xy)
+            serafin_safe_n_coarse = int(float32_labels.max()) + 1
+            current_n_coarse = len(base_xy)
+            if serafin_safe_n_coarse < current_n_coarse:
+                removed_serafin_duplicate_nodes += current_n_coarse - serafin_safe_n_coarse
+                serafin_safe_merge_iter += 1
+                base_cluster = float32_labels[base_cluster]
+                base_cluster = _compact_labels(base_cluster)
+                continue
 
         if short_edge_threshold is None or short_edge_merge_iter >= max_short_edge_merge_iter:
             break
@@ -673,6 +702,8 @@ def build_simple_coarse_mesh(
         f"short_edge_threshold={short_edge_threshold if short_edge_threshold is not None else 'disabled'}",
         f"short_edge_merge_iter={short_edge_merge_iter}",
         f"removed_short_edge_nodes={removed_short_edge_nodes}",
+        f"serafin_safe_merge_iter={serafin_safe_merge_iter}",
+        f"removed_serafin_duplicate_nodes={removed_serafin_duplicate_nodes}",
     )
 
     return CoarseMesh(
