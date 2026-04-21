@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 from scipy.sparse import coo_matrix, csr_matrix
@@ -254,6 +255,130 @@ def representative_fine_nodes_from_clusters(
     return representative
 
 
+def node_type_one_hot(boundary_type: np.ndarray, size: int = 4) -> np.ndarray:
+    """Convert integer node-type codes into one-hot vectors."""
+    boundary_type = np.asarray(boundary_type, dtype=np.int64)
+    if boundary_type.ndim != 1:
+        raise ValueError("boundary_type must be a 1D array")
+    if boundary_type.size == 0:
+        return np.zeros((0, size), dtype=np.float32)
+    if boundary_type.min() < 0 or boundary_type.max() >= size:
+        raise ValueError(f"boundary_type values must lie in [0, {size - 1}]")
+
+    one_hot = np.zeros((len(boundary_type), size), dtype=np.float32)
+    one_hot[np.arange(len(boundary_type)), boundary_type] = 1.0
+    return one_hot
+
+
+def directed_edges_and_features(
+    xy: np.ndarray,
+    undirected_edges: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Build directed edges and edge features compatible with create_dgl_dataset.
+
+    Edge features follow the existing convention:
+    [dx, dy, norm] with dx, dy computed as pos[src] - pos[dst].
+    """
+    xy = np.asarray(xy, dtype=np.float64)
+    undirected_edges = np.asarray(undirected_edges, dtype=np.int64)
+
+    if len(undirected_edges) == 0:
+        return (
+            np.empty((0, 2), dtype=np.int64),
+            np.empty((0, 3), dtype=np.float32),
+        )
+
+    directed_edges = np.vstack([undirected_edges, undirected_edges[:, ::-1]]).astype(np.int64)
+    src = directed_edges[:, 0]
+    dst = directed_edges[:, 1]
+    delta = xy[src] - xy[dst]
+    norm = np.linalg.norm(delta, axis=1, keepdims=True)
+    edge_features = np.concatenate([delta, norm], axis=1).astype(np.float32)
+    return directed_edges, edge_features
+
+
+def build_coarse_dgl_graph(coarse: CoarseMesh):
+    """
+    Convert the coarse mesh into a DGL base graph saved later as `.bin`.
+
+    The node and edge feature names match the conventions already used in
+    python/create_dgl_dataset.py.
+    """
+    try:
+        import dgl
+        import torch
+    except ImportError as exc:
+        raise ImportError(
+            "build_coarse_dgl_graph requires both dgl and torch to be installed."
+        ) from exc
+
+    directed_edges, edge_features = directed_edges_and_features(
+        xy=coarse.xy,
+        undirected_edges=coarse.undirected_edges,
+    )
+
+    src = torch.as_tensor(directed_edges[:, 0], dtype=torch.int64)
+    dst = torch.as_tensor(directed_edges[:, 1], dtype=torch.int64)
+    graph = dgl.graph((src, dst), num_nodes=len(coarse.xy))
+
+    if coarse.strickler is None:
+        strickler = np.zeros(len(coarse.xy), dtype=np.float32)
+    else:
+        strickler = np.asarray(coarse.strickler, dtype=np.float32)
+
+    static = np.concatenate(
+        [
+            node_type_one_hot(coarse.boundary_type),
+            strickler[:, None],
+            np.asarray(coarse.z, dtype=np.float32)[:, None],
+        ],
+        axis=1,
+    )
+
+    graph.edata["x"] = torch.as_tensor(edge_features, dtype=torch.float32)
+    graph.ndata["static"] = torch.as_tensor(static, dtype=torch.float32)
+    graph.ndata["pos"] = torch.as_tensor(coarse.xy, dtype=torch.float32)
+    graph.ndata["boundary_type"] = torch.as_tensor(coarse.boundary_type, dtype=torch.int64)
+    graph.ndata["region_id"] = torch.as_tensor(coarse.coarse_region_id, dtype=torch.int64)
+    graph.ndata["representative_fine_node"] = torch.as_tensor(
+        coarse.representative_fine_node,
+        dtype=torch.int64,
+    )
+    return graph
+
+
+def write_coarse_bin(
+    output_path: str | Path,
+    coarse: CoarseMesh,
+    overwrite: bool = False,
+) -> Path:
+    """
+    Save the coarse mesh as a DGL `.bin` file.
+
+    This writes a single base graph, in the same spirit as the
+    `*_base.bin` files created by create_dgl_dataset.
+    """
+    try:
+        import dgl
+    except ImportError as exc:
+        raise ImportError("write_coarse_bin requires dgl to be installed.") from exc
+
+    output_path = Path(output_path)
+    if output_path.suffix == "":
+        output_path = output_path.with_suffix(".bin")
+    if output_path.suffix != ".bin":
+        raise ValueError("output_path must end with .bin")
+
+    if output_path.exists() and not overwrite:
+        raise FileExistsError(f"{output_path} already exists. Use overwrite=True.")
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    graph = build_coarse_dgl_graph(coarse)
+    dgl.save_graphs(str(output_path), [graph])
+    return output_path
+
+
 def restrict_time_series(P: csr_matrix, values: np.ndarray) -> np.ndarray:
     """
     Restrict fine time series to the coarse points.
@@ -426,5 +551,5 @@ if __name__ == "__main__":
     print(
         "Import this module and call build_simple_coarse_mesh(xy, triangles, z, "
         "boundary_type) to build coarse points, inherited coarse edges, and the "
-        "restriction matrix."
+        "restriction matrix. Use write_coarse_bin(...) to export a DGL .bin."
     )
