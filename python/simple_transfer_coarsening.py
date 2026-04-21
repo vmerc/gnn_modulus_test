@@ -31,6 +31,9 @@ class CoarseMesh:
     restriction: csr_matrix
     topo_barrier_node_mask: np.ndarray
     preserve_node_mask: np.ndarray
+    topo_node_score: np.ndarray | None = None
+    topo_strong_node_mask: np.ndarray | None = None
+    sampled_topo_node_mask: np.ndarray | None = None
 
 
 def unique_edges_from_triangles(triangles: np.ndarray) -> np.ndarray:
@@ -113,19 +116,173 @@ def get_topo_barrier_node_mask(
     return topo_barrier_node_mask, topo_edge_mask, used_dz_min, used_slope_min
 
 
+def get_topo_node_score(
+    xy: np.ndarray,
+    edges: np.ndarray,
+    z: np.ndarray,
+    topo_edge_mask: np.ndarray,
+    dz_ref: float,
+    slope_ref: float,
+) -> np.ndarray:
+    """
+    Score each node from the strongest adjacent topographic-break edge.
+
+    The score is dimensionless and normalized by the thresholds used to detect
+    topographic barriers. Nodes not incident to a detected barrier edge get 0.
+    """
+    xy = np.asarray(xy, dtype=np.float64)
+    edges = np.asarray(edges, dtype=np.int64)
+    z = np.asarray(z, dtype=np.float64)
+    topo_edge_mask = np.asarray(topo_edge_mask, dtype=bool)
+
+    u = edges[:, 0]
+    v = edges[:, 1]
+    length = np.linalg.norm(xy[v] - xy[u], axis=1)
+    dz = np.abs(z[v] - z[u])
+    slope = dz / np.maximum(length, 1e-12)
+
+    dz_scale = max(float(dz_ref), 1e-12)
+    slope_scale = max(float(slope_ref), 1e-12)
+    edge_score = np.maximum(dz / dz_scale, slope / slope_scale)
+    edge_score = np.where(topo_edge_mask, edge_score, 0.0)
+
+    node_score = np.zeros(len(xy), dtype=np.float64)
+    np.maximum.at(node_score, u, edge_score)
+    np.maximum.at(node_score, v, edge_score)
+    return node_score
+
+
+def get_strong_topo_node_mask(
+    topo_barrier_node_mask: np.ndarray,
+    topo_node_score: np.ndarray,
+    keep_quantile: float = 0.95,
+) -> np.ndarray:
+    """
+    Keep the strongest topographic-mask nodes unconditionally.
+
+    The quantile is computed only on nodes that have a strictly positive score.
+    """
+    topo_barrier_node_mask = np.asarray(topo_barrier_node_mask, dtype=bool)
+    topo_node_score = np.asarray(topo_node_score, dtype=np.float64)
+
+    positive_mask = topo_barrier_node_mask & (topo_node_score > 0.0)
+    if not positive_mask.any():
+        return np.zeros_like(topo_barrier_node_mask, dtype=bool)
+
+    threshold = float(np.quantile(topo_node_score[positive_mask], keep_quantile))
+    threshold = max(threshold, 1.0)
+    return topo_barrier_node_mask & (topo_node_score >= threshold)
+
+
+def subsample_node_mask_by_distance(
+    xy: np.ndarray,
+    candidate_mask: np.ndarray,
+    min_distance: float | None,
+    priority: np.ndarray | None = None,
+    seed_mask: np.ndarray | None = None,
+) -> np.ndarray:
+    """
+    Greedy spatial subsampling with a minimum distance between kept nodes.
+
+    Candidates with higher priority are kept first. Nodes in seed_mask are
+    treated as already locked and can prevent nearby candidates from being kept.
+    """
+    candidate_mask = np.asarray(candidate_mask, dtype=bool)
+    if not candidate_mask.any():
+        return np.zeros_like(candidate_mask, dtype=bool)
+    if min_distance is None or min_distance <= 0.0:
+        return candidate_mask.copy()
+
+    xy = np.asarray(xy, dtype=np.float64)
+    min_distance = float(min_distance)
+    min_distance2 = min_distance * min_distance
+
+    if priority is None:
+        priority = np.zeros(len(xy), dtype=np.float64)
+    else:
+        priority = np.asarray(priority, dtype=np.float64)
+
+    if seed_mask is None:
+        seed_mask = np.zeros(len(xy), dtype=bool)
+    else:
+        seed_mask = np.asarray(seed_mask, dtype=bool)
+
+    origin = xy.min(axis=0)
+    cell_size = min_distance
+    kept_mask = seed_mask.copy()
+    grid: dict[tuple[int, int], list[int]] = {}
+
+    def cell_key(point: np.ndarray) -> tuple[int, int]:
+        cell = np.floor((point - origin) / cell_size).astype(np.int64)
+        return int(cell[0]), int(cell[1])
+
+    def has_close_kept(node_idx: int) -> bool:
+        cx, cy = cell_key(xy[node_idx])
+        point = xy[node_idx]
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for other in grid.get((cx + dx, cy + dy), []):
+                    if np.sum((point - xy[other]) ** 2) < min_distance2:
+                        return True
+        return False
+
+    for node_idx in np.flatnonzero(seed_mask):
+        key = cell_key(xy[node_idx])
+        grid.setdefault(key, []).append(int(node_idx))
+
+    candidate_idx = np.flatnonzero(candidate_mask)
+    order = np.lexsort((candidate_idx, -priority[candidate_idx]))
+
+    selected_mask = np.zeros(len(xy), dtype=bool)
+    for node_idx in candidate_idx[order]:
+        if kept_mask[node_idx]:
+            continue
+        if has_close_kept(int(node_idx)):
+            continue
+        kept_mask[node_idx] = True
+        selected_mask[node_idx] = True
+        key = cell_key(xy[node_idx])
+        grid.setdefault(key, []).append(int(node_idx))
+
+    return selected_mask
+
+
 def get_preserve_node_mask(
     boundary_type: np.ndarray,
     topo_barrier_node_mask: np.ndarray,
+    xy: np.ndarray | None = None,
+    topo_node_score: np.ndarray | None = None,
+    d_mask: float | None = None,
+    topo_keep_quantile: float = 0.95,
 ) -> np.ndarray:
     """
     Mark fine nodes that must stay isolated during coarse point construction.
 
     We preserve:
     - Telemac boundary nodes,
-    - strong topographic-break nodes.
+    - the strongest topographic-break nodes,
+    - a spatially subsampled set of the remaining topographic-mask nodes.
     """
     boundary_type = np.asarray(boundary_type, dtype=np.int64)
-    return (boundary_type != NORMAL) | topo_barrier_node_mask
+    boundary_mask = boundary_type != NORMAL
+
+    if xy is None or topo_node_score is None or d_mask is None:
+        return boundary_mask | topo_barrier_node_mask
+
+    topo_strong_node_mask = get_strong_topo_node_mask(
+        topo_barrier_node_mask=topo_barrier_node_mask,
+        topo_node_score=topo_node_score,
+        keep_quantile=topo_keep_quantile,
+    )
+    remaining_topo_mask = topo_barrier_node_mask & ~boundary_mask & ~topo_strong_node_mask
+    sampled_topo_node_mask = subsample_node_mask_by_distance(
+        xy=xy,
+        candidate_mask=remaining_topo_mask,
+        min_distance=d_mask,
+        priority=topo_node_score,
+        seed_mask=boundary_mask | topo_strong_node_mask,
+    )
+    return boundary_mask | topo_strong_node_mask | sampled_topo_node_mask
 
 
 def connected_regions_after_cuts(
@@ -405,6 +562,8 @@ def build_simple_coarse_mesh(
     preserve_expand: int = 1,
     dz_min: float | None = None,
     slope_min: float | None = None,
+    d_mask: float | None = None,
+    topo_keep_quantile: float = 0.95,
     weights: np.ndarray | None = None,
 ) -> CoarseMesh:
     """
@@ -442,6 +601,14 @@ def build_simple_coarse_mesh(
         slope_min=slope_min,
         expand=preserve_expand,
     )
+    topo_node_score = get_topo_node_score(
+        xy=xy,
+        edges=fine_edges,
+        z=z,
+        topo_edge_mask=topo_edge_mask,
+        dz_ref=used_dz_min,
+        slope_ref=used_slope_min,
+    )
 
     u = fine_edges[:, 0]
     v = fine_edges[:, 1]
@@ -457,7 +624,17 @@ def build_simple_coarse_mesh(
     preserve_node_mask = get_preserve_node_mask(
         boundary_type=boundary_type,
         topo_barrier_node_mask=topo_barrier_node_mask,
+        xy=xy,
+        topo_node_score=topo_node_score,
+        d_mask=d_mask,
+        topo_keep_quantile=topo_keep_quantile,
     )
+    topo_strong_node_mask = get_strong_topo_node_mask(
+        topo_barrier_node_mask=topo_barrier_node_mask,
+        topo_node_score=topo_node_score,
+        keep_quantile=topo_keep_quantile,
+    )
+    sampled_topo_node_mask = preserve_node_mask & ~(boundary_type != NORMAL) & ~topo_strong_node_mask
 
     cluster = constrained_grid_clusters(
         xy=xy,
@@ -489,6 +666,9 @@ def build_simple_coarse_mesh(
         f"spacing={spacing}",
         f"dz_min={used_dz_min:.3g}",
         f"slope_min={used_slope_min:.3g}",
+        f"topo_nodes={int(topo_barrier_node_mask.sum())}",
+        f"strong_topo_nodes={int(topo_strong_node_mask.sum())}",
+        f"sampled_topo_nodes={int(sampled_topo_node_mask.sum())}",
         f"regions={len(np.unique(coarse_region_id))}",
         "geometry=fine_representative_nearest_centroid",
     )
@@ -506,6 +686,9 @@ def build_simple_coarse_mesh(
         restriction=restriction,
         topo_barrier_node_mask=topo_barrier_node_mask,
         preserve_node_mask=preserve_node_mask,
+        topo_node_score=topo_node_score,
+        topo_strong_node_mask=topo_strong_node_mask,
+        sampled_topo_node_mask=sampled_topo_node_mask,
     )
 
 
