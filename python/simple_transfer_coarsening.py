@@ -211,6 +211,43 @@ def coarse_label_from_cluster(cluster: np.ndarray, labels: np.ndarray) -> np.nda
     return coarse_labels
 
 
+def min_positive_edge_length(xy: np.ndarray, edges: np.ndarray) -> float | None:
+    """Return the smallest strictly positive edge length, or None if absent."""
+    if len(edges) == 0:
+        return None
+
+    src = edges[:, 0]
+    dst = edges[:, 1]
+    length = np.linalg.norm(np.asarray(xy)[dst] - np.asarray(xy)[src], axis=1)
+    positive = length[length > 0.0]
+    if len(positive) == 0:
+        return None
+    return float(positive.min())
+
+
+def _compact_labels(labels: np.ndarray) -> np.ndarray:
+    """Remap integer labels to a compact 0..K-1 range."""
+    _, compact = np.unique(np.asarray(labels, dtype=np.int64), return_inverse=True)
+    return compact.astype(np.int64)
+
+
+def merge_components_from_edges(n_nodes: int, edges: np.ndarray) -> np.ndarray:
+    """
+    Merge nodes connected by the provided undirected edges.
+
+    Returns a compact label per input node describing the merged components.
+    """
+    if len(edges) == 0:
+        return np.arange(n_nodes, dtype=np.int64)
+
+    row = edges[:, 0]
+    col = edges[:, 1]
+    data = np.ones(2 * len(row), dtype=np.float64)
+    adj = coo_matrix((data, (np.r_[row, col], np.r_[col, row])), shape=(n_nodes, n_nodes))
+    _, labels = connected_components(adj, directed=False)
+    return _compact_labels(labels)
+
+
 def _delaunay_triangles_for_points(xy: np.ndarray) -> np.ndarray:
     """Run a robust Delaunay triangulation on one point cloud."""
     xy = np.asarray(xy, dtype=np.float64)
@@ -432,6 +469,61 @@ def restrict_time_series(P: csr_matrix, values: np.ndarray) -> np.ndarray:
     return coarse.reshape(t_size, n_features, P.shape[0]).transpose(0, 2, 1)
 
 
+def _rebuild_coarse_support(
+    cluster: np.ndarray,
+    xy: np.ndarray,
+    triangles: np.ndarray,
+    z: np.ndarray,
+    region_id: np.ndarray,
+    boundary_type: np.ndarray,
+    strickler: np.ndarray | None,
+    weights: np.ndarray | None,
+    fine_edges: np.ndarray,
+) -> tuple[
+    csr_matrix,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray | None,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+]:
+    """
+    Recompute coarse geometry and labels from a fine->coarse cluster map.
+    """
+    restriction = build_restriction_matrix(cluster, weights=weights)
+    coarse_xy = np.asarray(restriction @ xy)
+    coarse_z = np.asarray(restriction @ z)
+    coarse_strickler = None if strickler is None else np.asarray(restriction @ strickler)
+    coarse_region = coarse_label_from_cluster(cluster, region_id)
+    coarse_boundary_type = coarse_label_from_cluster(cluster, boundary_type)
+    coarse_edges = coarse_edges_from_fine_edges(fine_edges, cluster)
+
+    coarse_triangles = delaunay_triangles(
+        coarse_xy,
+        region_labels=coarse_region,
+    )
+    coarse_triangles = filter_triangles_inside_domain(
+        xy=coarse_xy,
+        triangles=coarse_triangles,
+        domain_xy=xy,
+        domain_triangles=triangles,
+    )
+    coarse_triangles = filter_degenerate_triangles(coarse_xy, coarse_triangles)
+
+    return (
+        restriction,
+        coarse_xy,
+        coarse_z,
+        coarse_strickler,
+        coarse_region,
+        coarse_boundary_type,
+        coarse_edges,
+        coarse_triangles,
+    )
+
+
 def build_simple_coarse_mesh(
     xy: np.ndarray,
     triangles: np.ndarray,
@@ -443,6 +535,8 @@ def build_simple_coarse_mesh(
     dz_min: float | None = None,
     slope_min: float | None = None,
     weights: np.ndarray | None = None,
+    min_coarse_edge_from_fine_factor: float | None = 1.0,
+    max_short_edge_merge_iter: int = 8,
 ) -> CoarseMesh:
     """
     Build a first-transfer coarse mesh support without GIS data.
@@ -453,6 +547,11 @@ def build_simple_coarse_mesh(
     The method protects:
     - Telemac boundary nodes,
     - strong topographic jumps as a bank/dike/levee proxy.
+
+    Additional control:
+    - if min_coarse_edge_from_fine_factor is not None, iteratively merge coarse
+      nodes involved in triangulation edges shorter than
+      min_coarse_edge_from_fine_factor * min_positive_edge_length(fine_mesh).
     """
     xy = np.asarray(xy, dtype=np.float64)
     triangles = np.asarray(triangles, dtype=np.int64)
@@ -502,34 +601,78 @@ def build_simple_coarse_mesh(
         boundary_type=boundary_type,
         preserve_node_mask=preserve_node_mask,
     )
-    base_P = build_restriction_matrix(base_cluster, weights=weights)
-    base_xy = np.asarray(base_P @ xy)
-    base_z = np.asarray(base_P @ z)
-    base_strickler = None if strickler is None else np.asarray(base_P @ strickler)
-    base_region = coarse_label_from_cluster(base_cluster, region_id)
-    base_edges = coarse_edges_from_fine_edges(fine_edges, base_cluster)
-    raw_base_triangles = delaunay_triangles(base_xy)
-    base_triangles = filter_triangles_inside_domain(
-        xy=base_xy,
-        triangles=raw_base_triangles,
-        domain_xy=xy,
-        domain_triangles=triangles,
-    )
-    domain_filtered_count = len(base_triangles)
-    base_triangles = filter_degenerate_triangles(base_xy, base_triangles)
-    coarse_boundary_type = coarse_label_from_cluster(base_cluster, boundary_type)
+    base_cluster = _compact_labels(base_cluster)
+
+    fine_min_edge = min_positive_edge_length(xy, fine_edges)
+    short_edge_threshold = None
+    if (
+        min_coarse_edge_from_fine_factor is not None
+        and fine_min_edge is not None
+        and min_coarse_edge_from_fine_factor > 0.0
+    ):
+        short_edge_threshold = float(min_coarse_edge_from_fine_factor) * fine_min_edge
+
+    short_edge_merge_iter = 0
+    removed_short_edge_nodes = 0
+
+    while True:
+        (
+            base_P,
+            base_xy,
+            base_z,
+            base_strickler,
+            base_region,
+            coarse_boundary_type,
+            base_edges,
+            base_triangles,
+        ) = _rebuild_coarse_support(
+            cluster=base_cluster,
+            xy=xy,
+            triangles=triangles,
+            z=z,
+            region_id=region_id,
+            boundary_type=boundary_type,
+            strickler=strickler,
+            weights=weights,
+            fine_edges=fine_edges,
+        )
+
+        if short_edge_threshold is None or short_edge_merge_iter >= max_short_edge_merge_iter:
+            break
+
+        tri_edges = unique_edges_from_triangles(base_triangles)
+        if len(tri_edges) == 0:
+            break
+
+        tri_edge_lengths = np.linalg.norm(base_xy[tri_edges[:, 1]] - base_xy[tri_edges[:, 0]], axis=1)
+        short_edge_mask = tri_edge_lengths + 1e-12 < short_edge_threshold
+        if not short_edge_mask.any():
+            break
+
+        merged_labels = merge_components_from_edges(len(base_xy), tri_edges[short_edge_mask])
+        new_n_coarse = int(merged_labels.max()) + 1
+        old_n_coarse = len(base_xy)
+        if new_n_coarse >= old_n_coarse:
+            break
+
+        removed_short_edge_nodes += old_n_coarse - new_n_coarse
+        short_edge_merge_iter += 1
+        base_cluster = merged_labels[base_cluster]
+        base_cluster = _compact_labels(base_cluster)
 
     print(
         "Simple Telemac-style coarsening:",
         f"fine_nodes={len(xy)}",
         f"coarse_nodes={len(base_xy)}",
         f"triangles={len(base_triangles)}",
-        f"removed_outside_domain={len(raw_base_triangles) - domain_filtered_count}",
-        f"removed_degenerate={domain_filtered_count - len(base_triangles)}",
         f"undirected_edges={len(base_edges)}",
         f"spacing={spacing}",
         f"dz_min={used_dz_min:.3g}",
         f"slope_min={used_slope_min:.3g}",
+        f"fine_min_edge={fine_min_edge if fine_min_edge is not None else 'none'}",
+        f"short_edge_threshold={short_edge_threshold if short_edge_threshold is not None else 'disabled'}",
+        f"short_edge_merge_iter={short_edge_merge_iter}",
+        f"removed_short_edge_nodes={removed_short_edge_nodes}",
     )
 
     return CoarseMesh(
