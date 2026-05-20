@@ -33,16 +33,15 @@ import dgl
 import torch
 
 
-FINE_MESH_SLF = ""
-FINE_CLI = ""
-FINE_RES_DIR = ""
+FINE_MESH_SLF = "/work/m24046/m24046mrcr/Aube/07_EA04_T3_V12_Q100_v1/T3_V12_v2_EA04.slf"
+FINE_CLI = "/work/m24046/m24046mrcr/Aube/07_EA04_T3_V12_Q100_v1/cas.conlim"
+FINE_RES_DIR = "/work/m24046/m24046mrcr/Aube/07_EA04_T3_V12_Q100_v1/"
 FINE_RES_FILES = [
-    # "/path/to/event_1.res",
-    # "/path/to/event_2.res",
+    "/work/m24046/m24046mrcr/Aube/07_EA04_T3_V12_Q100_v1/T3_V12_EA04_Q100_v1.res",
 ]
 
-REGULAR_MESH_SLF = ""
-OUTPUT_DIR = ""
+REGULAR_MESH_SLF = "/work/m24046/m24046mrcr/Aube/Aube_T1_regulier20m.slf"
+OUTPUT_DIR = "/work/m24046/m24046mrcr/Aube/Test_regular_Q100/"
 DATASET_NAME = "Aube_regular"
 CHUNK_SIZE = 80
 BOUNDARY_MATCH_TOL = 1.0
