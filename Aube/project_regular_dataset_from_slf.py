@@ -6,7 +6,6 @@ import pickle
 import sys
 
 import numpy as np
-from scipy.interpolate import LinearNDInterpolator
 from scipy.spatial import Delaunay, cKDTree
 from tqdm import tqdm
 
@@ -44,7 +43,7 @@ REGULAR_MESH_SLF = "/work/m24046/m24046mrcr/Aube/Aube_T1_regulier20m.slf"
 OUTPUT_DIR = "/work/m24046/m24046mrcr/Aube/Test_regular_Q100/"
 DATASET_NAME = "Aube_regular"
 CHUNK_SIZE = 80
-BOUNDARY_MATCH_TOL = 1.0
+BOUNDARY_MATCH_TOL = 20.0
 OVERWRITE = True
 
 
@@ -59,12 +58,52 @@ def read_first_available(telemac, names, timestep=0, default=None):
     raise KeyError(f"None of these variables were found: {names}")
 
 
-def interpolate_to_points(values, triangulation, target_points):
+def build_fast_interpolator(triangulation, target_points):
+    simplex = triangulation.find_simplex(target_points)
+    valid = simplex >= 0
+
+    barycentric = np.zeros((valid.sum(), 3), dtype="float32")
+    vertices = np.zeros((valid.sum(), 3), dtype=np.int64)
+
+    if valid.any():
+        transform = triangulation.transform[simplex[valid], :2]
+        offset = triangulation.transform[simplex[valid], 2]
+        delta = target_points[valid] - offset
+
+        barycentric[:, :2] = np.einsum("ijk,ik->ij", transform, delta)
+        barycentric[:, 2] = 1.0 - barycentric[:, 0] - barycentric[:, 1]
+        vertices = triangulation.simplices[simplex[valid]]
+
+    invalid_count = len(target_points) - int(valid.sum())
+    print("fast interpolate valid points:", int(valid.sum()), "/", len(target_points))
+    print("fast interpolate invalid points:", invalid_count)
+
+    return {
+        "valid": valid,
+        "vertices": vertices,
+        "barycentric": barycentric,
+        "n_target": len(target_points),
+    }
+
+
+def fast_interpolate(values, interp_data):
     values = np.ascontiguousarray(values)
-    interpolator = LinearNDInterpolator(triangulation, values)
-    out = interpolator(target_points)
-    out = np.nan_to_num(out, nan=0.0)
-    return out.astype("float32")
+    input_was_1d = values.ndim == 1
+    if input_was_1d:
+        values = values[:, None]
+
+    out = np.zeros((interp_data["n_target"], values.shape[1]), dtype="float32")
+
+    if interp_data["valid"].any():
+        gathered = values[interp_data["vertices"]]
+        out[interp_data["valid"]] = np.sum(
+            gathered * interp_data["barycentric"][:, :, None],
+            axis=1,
+        ).astype("float32")
+
+    if input_was_1d:
+        return out[:, 0]
+    return out
 
 
 def coarse_node_type_from_fine_boundary(fine_with_cli, fine_points, coarse_points, tolerance):
@@ -86,7 +125,7 @@ def coarse_node_type_from_fine_boundary(fine_with_cli, fine_points, coarse_point
     return coarse_node_type
 
 
-def write_base_graph(coarse_mesh, fine_mesh, fine_with_cli, triangulation, x_fine, x_coarse, output_path):
+def write_base_graph(coarse_mesh, fine_mesh, fine_with_cli, interp_data, x_fine, x_coarse, output_path):
     if os.path.exists(output_path) and not OVERWRITE:
         raise FileExistsError(f"Output already exists: {output_path}")
 
@@ -110,7 +149,7 @@ def write_base_graph(coarse_mesh, fine_mesh, fine_with_cli, triangulation, x_fin
             ["FOND", "BOTTOM"],
             timestep=0,
         ).astype("float32")
-        z = interpolate_to_points(z_fine, triangulation, x_coarse)
+        z = fast_interpolate(z_fine, interp_data)
         print("z projected from fine mesh")
 
     try:
@@ -127,7 +166,7 @@ def write_base_graph(coarse_mesh, fine_mesh, fine_with_cli, triangulation, x_fin
                 ["FROTTEMENT", "STRICKLER", "FRICTION"],
                 timestep=0,
             ).astype("float32")
-            strickler = interpolate_to_points(strickler_fine, triangulation, x_coarse)
+            strickler = fast_interpolate(strickler_fine, interp_data)
             print("strickler projected from fine mesh")
         except Exception:
             strickler = np.zeros(len(x_coarse), dtype="float32")
@@ -187,12 +226,14 @@ print("Building fine Delaunay...")
 triangulation = Delaunay(X_fine)
 print("Triangulation complete.")
 
+interp_data = build_fast_interpolator(triangulation, X_regular)
+
 base_graph_path = os.path.join(OUTPUT_DIR, f"{DATASET_NAME}_base.bin")
 write_base_graph(
     regular_mesh,
     fine_mesh,
     fine_with_cli,
-    triangulation,
+    interp_data,
     X_fine,
     X_regular,
     base_graph_path,
@@ -216,8 +257,10 @@ for traj_index, res_path in enumerate(res_files):
             y_fine = get_node_outputs(x_fine, x_future_fine)
             y_fine = put_boundary_infos_on_changes(y_fine, fine_static)
 
-            x_regular = interpolate_to_points(x_fine, triangulation, X_regular)
-            y_regular = interpolate_to_points(y_fine, triangulation, X_regular)
+            xy_fine = np.concatenate([x_fine, y_fine], axis=1)
+            xy_regular = fast_interpolate(xy_fine, interp_data)
+            x_regular = xy_regular[:, :3]
+            y_regular = xy_regular[:, 3:]
 
             dynamic_data.append((x_regular, y_regular, int(ts)))
 
