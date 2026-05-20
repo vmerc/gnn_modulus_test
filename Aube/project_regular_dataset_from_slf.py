@@ -32,18 +32,18 @@ import dgl
 import torch
 
 
-FINE_MESH_SLF = "/work/m24046/m24046mrcr/Aube/07_EA04_T3_V12_Q100_v1/T3_V12_v2_EA04.slf"
-FINE_CLI = "/work/m24046/m24046mrcr/Aube/07_EA04_T3_V12_Q100_v1/cas.conlim"
-FINE_RES_DIR = "/work/m24046/m24046mrcr/Aube/07_EA04_T3_V12_Q100_v1/"
+FINE_MESH_SLF = "/work/m24046/m24046mrcr/Aube/MODELE_AUBE_T1_T2_Q5_Q30_Q100/12_T1_V9_Topo3_KV5_Q100/T1_V9_Topo3_KV5.slf"
+FINE_CLI = "/work/m24046/m24046mrcr/Aube/MODELE_AUBE_T1_T2_Q5_Q30_Q100/12_T1_V9_Topo3_KV5_Q100/cas.conlim"
+FINE_RES_DIR = "/work/m24046/m24046mrcr/Aube/MODELE_AUBE_T1_T2_Q5_Q30_Q100/12_T1_V9_Topo3_KV5_Q100/"
 FINE_RES_FILES = [
-    "/work/m24046/m24046mrcr/Aube/07_EA04_T3_V12_Q100_v1/T3_V12_EA04_Q100_v1.res",
+ "/work/m24046/m24046mrcr/Aube/MODELE_AUBE_T1_T2_Q5_Q30_Q100/12_T1_V9_Topo3_KV5_Q100/12_T1_V9_Topo3_KV5_Q100.res",
 ]
 
 REGULAR_MESH_SLF = "/work/m24046/m24046mrcr/Aube/Aube_T1_regulier20m.slf"
-OUTPUT_DIR = "/work/m24046/m24046mrcr/Aube/Test_regular_Q100/"
+OUTPUT_DIR = "/work/m24046/m24046mrcr/Aube/Test_regular_T1/"
 DATASET_NAME = "Aube_regular"
 CHUNK_SIZE = 80
-BOUNDARY_MATCH_TOL = 20.0
+BOUNDARY_MATCH_TOL = 10.0
 OVERWRITE = True
 
 
