@@ -10,28 +10,12 @@
 #SBATCH --time=04:00:00
 
 
-FINE_MESH_DIR="/work/m24046/m24046mrcr/dataset_x8_avec_ts/short/"
-COARSE_MESH_DIR="/work/m24046/m24046mrcr/dataset_x8_avec_ts/shortx8/"
+FINE_MESH_DIR="/work/m24046/m24046mrcr/dataset_x8_avec_ts/full/"
+COARSE_MESH_DIR="/work/m24046/m24046mrcr/dataset_x8_avec_ts/fullx8/"
 RES_FILES=( 
-"Group_2_peak_2800_Group_2_peak_2800_0_35-64.pkl"  
-"Group_3_peak_2800_Group_3_peak_2800_0_35-64.pkl"  
-"Group_4_peak_2800_Group_4_peak_2800_0_35-64.pkl"
-"Group_1_peak_3000_Group_1_peak_3000_0_35-64.pkl"  
-"Group_2_peak_3000_Group_2_peak_3000_0_35-64.pkl"  
-"Group_3_peak_3000_Group_3_peak_3000_0_35-64.pkl"  
-"Group_4_peak_3000_Group_4_peak_3000_0_35-64.pkl"
-"Group_1_peak_3200_Group_1_peak_3200_0_35-64.pkl"  
-"Group_2_peak_3200_Group_2_peak_3200_0_35-64.pkl"  
-"Group_3_peak_3200_Group_3_peak_3200_0_35-64.pkl"  
-"Group_4_peak_3200_Group_4_peak_3200_0_35-64.pkl"
-"Group_1_peak_3400_Group_1_peak_3400_0_35-64.pkl"  
-"Group_2_peak_3400_Group_2_peak_3400_0_35-64.pkl"  
-"Group_3_peak_3400_Group_3_peak_3400_0_35-64.pkl"  
-"Group_4_peak_3400_Group_4_peak_3400_0_35-64.pkl"
-"Group_1_peak_3600_Group_1_peak_3600_0_35-64.pkl"  
-"Group_2_peak_3600_Group_2_peak_3600_0_35-64.pkl"  
-"Group_3_peak_3600_Group_3_peak_3600_0_35-64.pkl"  
-"Group_4_peak_3600_Group_4_peak_3600_0_35-64.pkl" 
+    "Group_3_peak_2800_Group_3_peak_2800_0_0-80.pkl"
+    "Group_4_peak_1200_Group_4_peak_1200_0_0-80.pkl"
+    "Group_4_peak_3000_Group_4_peak_3000_0_0-80.pkl"
 )
 
 INTERPOLATE_SCRIPT="/users/m24046/m24046mrcr/gnn_modulus_test/bin/create_interpolate_dataset_with_ts.py"

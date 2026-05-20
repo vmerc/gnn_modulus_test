@@ -141,6 +141,7 @@ def main(fine_mesh_dir, coarse_mesh_dir, pkl_files_list, output_format='pkl'):
     # Validate and collect the specified .pkl files
     all_pkl_files = os.listdir(fine_mesh_dir)
     available_pkl_files = [f for f in all_pkl_files if f.endswith('.pkl')]
+    print(available_pkl_files)
 
     # If pkl_files_list is empty, process all available .pkl files
     if not pkl_files_list:
