@@ -1,6 +1,6 @@
 # fine-tuning regular 50 m from Experience10
-# before launch: copy /work/m24046/m24046mrcr/paper/Experience10/Seed0/
-# into /work/m24046/m24046mrcr/Test_Tet_regular/checkpoints/config_transfer_Tet_regular/Seed0/
+# init_ckpt_path = checkpoint source
+# ckpt_path = output directory for fine-tuning
 
 # data configs
 data_dir: /work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m/regular_50_dataset_base.bin
@@ -93,7 +93,7 @@ hydro_dir: [
 
 # training configs
 batch_size: 1
-epochs: 950
+epochs: 1051
 mp_layers: 10
 lr: 0.0001
 lr_decay_rate: 0.999995
@@ -118,6 +118,8 @@ num_processor_checkpoint_segments: 0
 recompute_activation: False
 
 seed: 0
+init_ckpt_path: "/work/m24046/m24046mrcr/paper/Experience10/Seed0/"
+init_epoch: 900
 ckpt_path: "/work/m24046/m24046mrcr/Test_Tet_regular/checkpoints/config_transfer_Tet_regular/Seed0/"
 
 # front loss
