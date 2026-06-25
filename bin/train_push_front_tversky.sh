@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --output=%x-%j-gnn.out
 #SBATCH --error=%x-%j-gnn.err
-#SBATCH -N 6
+#SBATCH -N 2
 #SBATCH --gpus-per-node=2
 #SBATCH -p small
 #SBATCH --ntasks-per-node=2
