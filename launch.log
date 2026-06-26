@@ -1,0 +1,36 @@
+[15:22:39 - train - INFO] Seed: 0 (rank-adjusted: 0)
+[15:23:13 - train - INFO] Optimizer: FusedAdam
+[15:23:14 - train - INFO] Loaded fine-tuning weights from /work/m24046/m24046mrcr/paper/Experience10/Seed0 at epoch 900
+[15:23:14 - train - INFO] len(dataloader) = 140
+[15:23:14 - train - INFO] Training (pushforward fine-tuning) started...
+[15:24:02 - train - INFO] epoch: 900, p_tf=1.000, lr: 1.000e-04, loss:  7.179e-01, time/epoch: 48.40s
+[15:24:02 - train - INFO] Saved model on rank 0
+[15:24:47 - train - INFO] epoch: 901, p_tf=0.980, lr: 1.000e-04, loss:  6.087e-01, time/epoch: 45.37s
+[15:25:34 - train - INFO] epoch: 902, p_tf=0.960, lr: 1.000e-04, loss:  5.498e-01, time/epoch: 46.36s
+[15:26:20 - train - INFO] epoch: 903, p_tf=0.940, lr: 1.000e-04, loss:  5.135e-01, time/epoch: 45.85s
+[15:27:05 - train - INFO] epoch: 904, p_tf=0.920, lr: 1.000e-04, loss:  4.862e-01, time/epoch: 45.56s
+[15:27:50 - train - INFO] epoch: 905, p_tf=0.900, lr: 1.000e-04, loss:  4.683e-01, time/epoch: 45.11s
+[15:28:36 - train - INFO] epoch: 906, p_tf=0.880, lr: 1.000e-04, loss:  4.514e-01, time/epoch: 45.31s
+[15:29:21 - train - INFO] epoch: 907, p_tf=0.860, lr: 1.000e-04, loss:  4.463e-01, time/epoch: 45.08s
+[15:30:08 - train - INFO] epoch: 908, p_tf=0.840, lr: 1.000e-04, loss:  4.325e-01, time/epoch: 47.20s
+[15:30:53 - train - INFO] epoch: 909, p_tf=0.820, lr: 1.000e-04, loss:  4.314e-01, time/epoch: 45.16s
+[15:31:38 - train - INFO] epoch: 910, p_tf=0.800, lr: 9.999e-05, loss:  4.235e-01, time/epoch: 45.39s
+[15:31:38 - train - INFO] Saved model on rank 0
+[15:32:23 - train - INFO] epoch: 911, p_tf=0.780, lr: 9.999e-05, loss:  4.068e-01, time/epoch: 44.89s
+[15:33:09 - train - INFO] epoch: 912, p_tf=0.760, lr: 9.999e-05, loss:  4.081e-01, time/epoch: 46.20s
+[15:33:56 - train - INFO] epoch: 913, p_tf=0.740, lr: 9.999e-05, loss:  3.935e-01, time/epoch: 46.49s
+[15:34:42 - train - INFO] epoch: 914, p_tf=0.720, lr: 9.999e-05, loss:  3.995e-01, time/epoch: 46.02s
+[15:35:28 - train - INFO] epoch: 915, p_tf=0.700, lr: 9.999e-05, loss:  4.002e-01, time/epoch: 45.85s
+[15:36:14 - train - INFO] epoch: 916, p_tf=0.680, lr: 9.999e-05, loss:  3.919e-01, time/epoch: 46.01s
+[15:37:02 - train - INFO] epoch: 917, p_tf=0.660, lr: 9.999e-05, loss:  3.837e-01, time/epoch: 48.12s
+[15:37:48 - train - INFO] epoch: 918, p_tf=0.640, lr: 9.999e-05, loss:  3.871e-01, time/epoch: 45.64s
+[15:38:34 - train - INFO] epoch: 919, p_tf=0.620, lr: 9.999e-05, loss:  3.807e-01, time/epoch: 46.54s
+[15:39:19 - train - INFO] epoch: 920, p_tf=0.600, lr: 9.999e-05, loss:  3.813e-01, time/epoch: 45.17s
+[15:39:19 - train - INFO] Saved model on rank 0
+[15:40:05 - train - INFO] epoch: 921, p_tf=0.580, lr: 9.999e-05, loss:  3.858e-01, time/epoch: 45.69s
+[15:40:52 - train - INFO] epoch: 922, p_tf=0.560, lr: 9.999e-05, loss:  3.796e-01, time/epoch: 46.62s
+[15:41:36 - train - INFO] epoch: 923, p_tf=0.540, lr: 9.999e-05, loss:  3.719e-01, time/epoch: 44.55s
+[15:42:22 - train - INFO] epoch: 924, p_tf=0.520, lr: 9.999e-05, loss:  3.742e-01, time/epoch: 45.64s
+[15:43:07 - train - INFO] epoch: 925, p_tf=0.500, lr: 9.999e-05, loss:  3.685e-01, time/epoch: 45.33s
+[15:43:53 - train - INFO] epoch: 926, p_tf=0.480, lr: 9.999e-05, loss:  3.657e-01, time/epoch: 45.86s
+[15:44:40 - train - INFO] epoch: 927, p_tf=0.460, lr: 9.999e-05, loss:  3.618e-01, time/epoch: 46.54s
