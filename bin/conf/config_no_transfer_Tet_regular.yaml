@@ -1,0 +1,127 @@
+# fine-tuning regular 50 m from Experience10
+# init_ckpt_path = checkpoint source
+# ckpt_path = output directory for fine-tuning
+
+# data configs
+data_dir: /work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m/regular_50_dataset_base.bin
+
+dynamic_dir: [
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G3_P1400_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G2_P2800_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G4_P2600_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G1_P3200_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G2_P1400_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G2_P2200_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G4_P2800_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G4_P3400_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G3_P2400_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G2_P2000_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G1_P2800_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G3_P2000_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G3_P3600_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G4_P1400_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G3_P1200_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G4_P3600_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G1_P1600_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G2_P2400_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G4_P1800_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G1_P1800_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G3_P1000_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G1_P3000_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G4_P1000_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G2_P2600_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G3_P3000_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G2_P3000_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G1_P1000_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G2_P3200_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G4_P2200_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G2_P1800_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G3_P1600_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G3_P2600_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G2_P3400_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G1_P3400_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G3_P3200_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G3_P1800_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G4_P2400_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G1_P3600_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G4_P1600_0_35-64.pkl',
+  '/work/m24046/m24046mrcr/Test_Tet_regular/dataset_50m_short/regular_50_dataset_G4_P3200_0_35-64.pkl',
+]
+
+hydro_dir: [
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_3_peak_1400.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_2_peak_2800.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_4_peak_2600.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_1_peak_3200.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_2_peak_1400.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_2_peak_2200.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_4_peak_2800.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_4_peak_3400.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_3_peak_2400.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_2_peak_2000.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_1_peak_2800.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_3_peak_2000.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_3_peak_3600.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_4_peak_1400.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_3_peak_1200.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_4_peak_3600.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_1_peak_1600.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_2_peak_2400.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_4_peak_1800.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_1_peak_1800.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_3_peak_1000.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_1_peak_3000.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_4_peak_1000.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_2_peak_2600.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_3_peak_3000.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_2_peak_3000.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_1_peak_1000.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_2_peak_3200.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_4_peak_2200.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_2_peak_1800.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_3_peak_1600.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_3_peak_2600.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_2_peak_3400.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_1_peak_3400.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_3_peak_3200.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_3_peak_1800.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_4_peak_2400.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_1_peak_3600.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_4_peak_1600.liq',
+  '/work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes/generated_hydrographs_Group_4_peak_3200.liq',
+]
+
+# training configs
+batch_size: 1
+epochs: 200
+mp_layers: 10
+lr: 0.0001
+lr_decay_rate: 0.999995
+num_input_features: 10
+num_output_features: 3
+num_edge_features: 3
+use_q_feature: true
+dt_seconds: 1800.0
+
+# pushforward
+sequence_length: 3
+overlap: 3
+pf_warmup_epochs: 50
+
+# performance configs
+use_apex: True
+amp: True
+jit: False
+num_dataloader_workers: 1
+do_concat_trick: True
+num_processor_checkpoint_segments: 0
+recompute_activation: False
+
+seed: 0
+ckpt_path: "/work/m24046/m24046mrcr/Test_Tet_regular/checkpoints/config_no_transfer_Tet_regular/Seed0/"
+
+# front loss
+lambda_front: 0.0
+eps_front: 0.05
+tau_front: 0.03
+exclude_bc_in_front: true
