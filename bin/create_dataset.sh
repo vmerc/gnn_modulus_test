@@ -1,12 +1,12 @@
 #!/bin/sh
 
-#SBATCH --job-name=GPU-GNN-test
+#SBATCH --job-name=create_aube_dataset
 #SBATCH --output=ML-%j-gnn.out
 #SBATCH --error=ML-%j-gnn.err
 
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
-#SBATCH --partition=24CPUNodes
+#SBATCH --cpus-per-task=30
+#SBATCH --partition=shared
 #SBATCH --gres-flags=enforce-binding
 
 module purge

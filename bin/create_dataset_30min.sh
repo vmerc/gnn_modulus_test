@@ -1,7 +1,7 @@
 #!/bin/sh
 #SBATCH --job-name=test-turpan-shared
-#SBATCH --output=create_dataset_30.out
-#SBATCH --error=create_dataset_30.err
+#SBATCH --output=create_dataset_aube_30.out
+#SBATCH --error=create_dataset_aube_30.err
 #SBATCH -p shared
 #SBATCH --nodes 1
 #SBATCH --ntasks 1

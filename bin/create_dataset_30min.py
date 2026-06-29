@@ -6,10 +6,10 @@ project_path = os.path.abspath(os.path.join(os.getcwd(), '..', ''))
 sys.path.append(project_path)
 from python.create_dgl_dataset import TelemacDataset, create_dgl_dataset_chunked
 
-data_folder = '/work/m24046/m24046mrcr/results_data_30min/'
+data_folder = '/work/m24046/m24046mrcr/Test_Aube_regular/original_dataset'
 
-mesh_file = os.path.join(data_folder, 'maillage_3.slf')
-cli_file = os.path.join(data_folder, 'cli')
+mesh_file = os.path.join(data_folder, 'T2V6_KV4_BuseV2.geo')
+cli_file = os.path.join(data_folder, 'cas.conlim')
 dt_value = 1
 
 res_files = glob.glob(os.path.join(data_folder, '*.res'))
@@ -25,7 +25,7 @@ for res_file in res_files:
 
         print(f"Création du dataset pour {res_file} avec le nom {dataset_name}")
         create_dgl_dataset_chunked(
-            mesh_list, res_list, cli_list, dt_list, '/work/m24046/m24046mrcr/dataset_x8_avec_ts/full/', dataset_name, chunk_size=80
+            mesh_list, res_list, cli_list, dt_list, '/work/m24046/m24046mrcr/Test_Aube_regular/original_dataset', dataset_name, chunk_size=100
         )
     except Exception as e:
         print(f"Erreur lors de la création du dataset pour {res_file}: {e}")
