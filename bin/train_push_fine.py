@@ -187,6 +187,10 @@ class MGNTrainer:
         self.DYN_LEN = 4 if self.use_q_feature else 3
 
     def _load_finetune_weights(self, cfg: DictConfig, r0: RankZeroLoggingWrapper) -> int:
+        if bool(getattr(cfg, "train_from_scratch", False)):
+            r0.info("train_from_scratch=True, skipping checkpoint loading.")
+            return 0
+
         init_ckpt_path = to_absolute_path(getattr(cfg, "init_ckpt_path", cfg.ckpt_path))
         init_epoch = getattr(cfg, "init_epoch", None)
 
