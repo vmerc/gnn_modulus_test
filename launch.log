@@ -1,36 +1,395 @@
-[15:22:39 - train - INFO] Seed: 0 (rank-adjusted: 0)
-[15:23:13 - train - INFO] Optimizer: FusedAdam
-[15:23:14 - train - INFO] Loaded fine-tuning weights from /work/m24046/m24046mrcr/paper/Experience10/Seed0 at epoch 900
-[15:23:14 - train - INFO] len(dataloader) = 140
-[15:23:14 - train - INFO] Training (pushforward fine-tuning) started...
-[15:24:02 - train - INFO] epoch: 900, p_tf=1.000, lr: 1.000e-04, loss:  7.179e-01, time/epoch: 48.40s
-[15:24:02 - train - INFO] Saved model on rank 0
-[15:24:47 - train - INFO] epoch: 901, p_tf=0.980, lr: 1.000e-04, loss:  6.087e-01, time/epoch: 45.37s
-[15:25:34 - train - INFO] epoch: 902, p_tf=0.960, lr: 1.000e-04, loss:  5.498e-01, time/epoch: 46.36s
-[15:26:20 - train - INFO] epoch: 903, p_tf=0.940, lr: 1.000e-04, loss:  5.135e-01, time/epoch: 45.85s
-[15:27:05 - train - INFO] epoch: 904, p_tf=0.920, lr: 1.000e-04, loss:  4.862e-01, time/epoch: 45.56s
-[15:27:50 - train - INFO] epoch: 905, p_tf=0.900, lr: 1.000e-04, loss:  4.683e-01, time/epoch: 45.11s
-[15:28:36 - train - INFO] epoch: 906, p_tf=0.880, lr: 1.000e-04, loss:  4.514e-01, time/epoch: 45.31s
-[15:29:21 - train - INFO] epoch: 907, p_tf=0.860, lr: 1.000e-04, loss:  4.463e-01, time/epoch: 45.08s
-[15:30:08 - train - INFO] epoch: 908, p_tf=0.840, lr: 1.000e-04, loss:  4.325e-01, time/epoch: 47.20s
-[15:30:53 - train - INFO] epoch: 909, p_tf=0.820, lr: 1.000e-04, loss:  4.314e-01, time/epoch: 45.16s
-[15:31:38 - train - INFO] epoch: 910, p_tf=0.800, lr: 9.999e-05, loss:  4.235e-01, time/epoch: 45.39s
-[15:31:38 - train - INFO] Saved model on rank 0
-[15:32:23 - train - INFO] epoch: 911, p_tf=0.780, lr: 9.999e-05, loss:  4.068e-01, time/epoch: 44.89s
-[15:33:09 - train - INFO] epoch: 912, p_tf=0.760, lr: 9.999e-05, loss:  4.081e-01, time/epoch: 46.20s
-[15:33:56 - train - INFO] epoch: 913, p_tf=0.740, lr: 9.999e-05, loss:  3.935e-01, time/epoch: 46.49s
-[15:34:42 - train - INFO] epoch: 914, p_tf=0.720, lr: 9.999e-05, loss:  3.995e-01, time/epoch: 46.02s
-[15:35:28 - train - INFO] epoch: 915, p_tf=0.700, lr: 9.999e-05, loss:  4.002e-01, time/epoch: 45.85s
-[15:36:14 - train - INFO] epoch: 916, p_tf=0.680, lr: 9.999e-05, loss:  3.919e-01, time/epoch: 46.01s
-[15:37:02 - train - INFO] epoch: 917, p_tf=0.660, lr: 9.999e-05, loss:  3.837e-01, time/epoch: 48.12s
-[15:37:48 - train - INFO] epoch: 918, p_tf=0.640, lr: 9.999e-05, loss:  3.871e-01, time/epoch: 45.64s
-[15:38:34 - train - INFO] epoch: 919, p_tf=0.620, lr: 9.999e-05, loss:  3.807e-01, time/epoch: 46.54s
-[15:39:19 - train - INFO] epoch: 920, p_tf=0.600, lr: 9.999e-05, loss:  3.813e-01, time/epoch: 45.17s
-[15:39:19 - train - INFO] Saved model on rank 0
-[15:40:05 - train - INFO] epoch: 921, p_tf=0.580, lr: 9.999e-05, loss:  3.858e-01, time/epoch: 45.69s
-[15:40:52 - train - INFO] epoch: 922, p_tf=0.560, lr: 9.999e-05, loss:  3.796e-01, time/epoch: 46.62s
-[15:41:36 - train - INFO] epoch: 923, p_tf=0.540, lr: 9.999e-05, loss:  3.719e-01, time/epoch: 44.55s
-[15:42:22 - train - INFO] epoch: 924, p_tf=0.520, lr: 9.999e-05, loss:  3.742e-01, time/epoch: 45.64s
-[15:43:07 - train - INFO] epoch: 925, p_tf=0.500, lr: 9.999e-05, loss:  3.685e-01, time/epoch: 45.33s
-[15:43:53 - train - INFO] epoch: 926, p_tf=0.480, lr: 9.999e-05, loss:  3.657e-01, time/epoch: 45.86s
-[15:44:40 - train - INFO] epoch: 927, p_tf=0.460, lr: 9.999e-05, loss:  3.618e-01, time/epoch: 46.54s
+[17:22:04 - train - INFO] Seed: 0 (rank-adjusted: 0)
+[17:22:13 - train - INFO] Optimizer: FusedAdam
+[17:22:13 - train - INFO] train_from_scratch=True, skipping checkpoint loading.
+[17:22:13 - train - INFO] len(dataloader) = 84
+[17:22:13 - train - INFO] Training (pushforward fine-tuning) started...
+[17:22:36 - train - INFO] epoch: 0, p_tf=1.000, lr: 1.000e-04, loss:  9.438e-01, time/epoch: 22.45s
+[17:22:36 - train - INFO] Saved model on rank 0
+[17:22:54 - train - INFO] epoch: 1, p_tf=0.980, lr: 1.000e-04, loss:  9.284e-01, time/epoch: 18.62s
+[17:23:13 - train - INFO] epoch: 2, p_tf=0.960, lr: 1.000e-04, loss:  9.272e-01, time/epoch: 18.17s
+[17:23:30 - train - INFO] epoch: 3, p_tf=0.940, lr: 1.000e-04, loss:  9.269e-01, time/epoch: 17.74s
+[17:23:49 - train - INFO] epoch: 4, p_tf=0.920, lr: 1.000e-04, loss:  9.259e-01, time/epoch: 18.92s
+[17:24:08 - train - INFO] epoch: 5, p_tf=0.900, lr: 1.000e-04, loss:  9.242e-01, time/epoch: 19.17s
+[17:24:27 - train - INFO] epoch: 6, p_tf=0.880, lr: 1.000e-04, loss:  9.214e-01, time/epoch: 18.86s
+[17:24:45 - train - INFO] epoch: 7, p_tf=0.860, lr: 1.000e-04, loss:  9.226e-01, time/epoch: 17.69s
+[17:25:02 - train - INFO] epoch: 8, p_tf=0.840, lr: 1.000e-04, loss:  9.219e-01, time/epoch: 17.35s
+[17:25:20 - train - INFO] epoch: 9, p_tf=0.820, lr: 1.000e-04, loss:  9.259e-01, time/epoch: 18.10s
+[17:25:38 - train - INFO] epoch: 10, p_tf=0.800, lr: 9.999e-05, loss:  9.242e-01, time/epoch: 17.56s
+[17:25:38 - train - INFO] Saved model on rank 0
+[17:25:57 - train - INFO] epoch: 11, p_tf=0.780, lr: 9.999e-05, loss:  9.167e-01, time/epoch: 18.96s
+[17:26:16 - train - INFO] epoch: 12, p_tf=0.760, lr: 9.999e-05, loss:  9.094e-01, time/epoch: 18.68s
+[17:26:34 - train - INFO] epoch: 13, p_tf=0.740, lr: 9.999e-05, loss:  9.034e-01, time/epoch: 18.74s
+[17:26:53 - train - INFO] epoch: 14, p_tf=0.720, lr: 9.999e-05, loss:  8.898e-01, time/epoch: 18.32s
+[17:27:12 - train - INFO] epoch: 15, p_tf=0.700, lr: 9.999e-05, loss:  8.728e-01, time/epoch: 19.79s
+[17:27:29 - train - INFO] epoch: 16, p_tf=0.680, lr: 9.999e-05, loss:  8.608e-01, time/epoch: 16.60s
+[17:27:47 - train - INFO] epoch: 17, p_tf=0.660, lr: 9.999e-05, loss:  8.514e-01, time/epoch: 17.56s
+[17:28:05 - train - INFO] epoch: 18, p_tf=0.640, lr: 9.999e-05, loss:  8.378e-01, time/epoch: 17.96s
+[17:28:23 - train - INFO] epoch: 19, p_tf=0.620, lr: 9.999e-05, loss:  8.228e-01, time/epoch: 18.88s
+[17:28:42 - train - INFO] epoch: 20, p_tf=0.600, lr: 9.999e-05, loss:  8.130e-01, time/epoch: 18.82s
+[17:28:42 - train - INFO] Saved model on rank 0
+[17:29:01 - train - INFO] epoch: 21, p_tf=0.580, lr: 9.999e-05, loss:  8.064e-01, time/epoch: 18.22s
+[17:29:19 - train - INFO] epoch: 22, p_tf=0.560, lr: 9.999e-05, loss:  7.908e-01, time/epoch: 18.42s
+[17:29:38 - train - INFO] epoch: 23, p_tf=0.540, lr: 9.999e-05, loss:  7.876e-01, time/epoch: 18.56s
+[17:29:56 - train - INFO] epoch: 24, p_tf=0.520, lr: 9.999e-05, loss:  8.120e-01, time/epoch: 18.61s
+[17:30:15 - train - INFO] epoch: 25, p_tf=0.500, lr: 9.999e-05, loss:  7.789e-01, time/epoch: 18.60s
+[17:30:33 - train - INFO] epoch: 26, p_tf=0.480, lr: 9.999e-05, loss:  8.058e-01, time/epoch: 18.43s
+[17:30:52 - train - INFO] epoch: 27, p_tf=0.460, lr: 9.999e-05, loss:  7.659e-01, time/epoch: 18.95s
+[17:31:10 - train - INFO] epoch: 28, p_tf=0.440, lr: 9.999e-05, loss:  7.603e-01, time/epoch: 18.35s
+[17:31:30 - train - INFO] epoch: 29, p_tf=0.420, lr: 9.999e-05, loss:  7.691e-01, time/epoch: 19.54s
+[17:31:49 - train - INFO] epoch: 30, p_tf=0.400, lr: 9.998e-05, loss:  8.060e-01, time/epoch: 18.55s
+[17:31:49 - train - INFO] Saved model on rank 0
+[17:32:09 - train - INFO] epoch: 31, p_tf=0.380, lr: 9.998e-05, loss:  7.530e-01, time/epoch: 20.17s
+[17:32:26 - train - INFO] epoch: 32, p_tf=0.360, lr: 9.998e-05, loss:  7.593e-01, time/epoch: 17.60s
+[17:32:45 - train - INFO] epoch: 33, p_tf=0.340, lr: 9.998e-05, loss:  7.460e-01, time/epoch: 18.39s
+[17:33:03 - train - INFO] epoch: 34, p_tf=0.320, lr: 9.998e-05, loss:  7.705e-01, time/epoch: 17.94s
+[17:33:20 - train - INFO] epoch: 35, p_tf=0.300, lr: 9.998e-05, loss:  7.545e-01, time/epoch: 17.60s
+[17:33:38 - train - INFO] epoch: 36, p_tf=0.280, lr: 9.998e-05, loss:  7.664e-01, time/epoch: 17.96s
+[17:33:57 - train - INFO] epoch: 37, p_tf=0.260, lr: 9.998e-05, loss:  7.615e-01, time/epoch: 19.06s
+[17:34:15 - train - INFO] epoch: 38, p_tf=0.240, lr: 9.998e-05, loss:  7.233e-01, time/epoch: 18.23s
+[17:34:34 - train - INFO] epoch: 39, p_tf=0.220, lr: 9.998e-05, loss:  7.330e-01, time/epoch: 18.67s
+[17:34:52 - train - INFO] epoch: 40, p_tf=0.200, lr: 9.998e-05, loss:  7.266e-01, time/epoch: 17.97s
+[17:34:52 - train - INFO] Saved model on rank 0
+[17:35:10 - train - INFO] epoch: 41, p_tf=0.180, lr: 9.998e-05, loss:  7.341e-01, time/epoch: 18.00s
+[17:35:29 - train - INFO] epoch: 42, p_tf=0.160, lr: 9.998e-05, loss:  7.075e-01, time/epoch: 18.92s
+[17:35:48 - train - INFO] epoch: 43, p_tf=0.140, lr: 9.998e-05, loss:  7.386e-01, time/epoch: 19.00s
+[17:36:07 - train - INFO] epoch: 44, p_tf=0.120, lr: 9.998e-05, loss:  7.166e-01, time/epoch: 19.28s
+[17:36:26 - train - INFO] epoch: 45, p_tf=0.100, lr: 9.998e-05, loss:  7.428e-01, time/epoch: 18.37s
+[17:36:46 - train - INFO] epoch: 46, p_tf=0.080, lr: 9.998e-05, loss:  7.067e-01, time/epoch: 20.10s
+[17:37:04 - train - INFO] epoch: 47, p_tf=0.060, lr: 9.998e-05, loss:  7.102e-01, time/epoch: 18.27s
+[17:37:23 - train - INFO] epoch: 48, p_tf=0.040, lr: 9.998e-05, loss:  7.061e-01, time/epoch: 18.69s
+[17:37:41 - train - INFO] epoch: 49, p_tf=0.020, lr: 9.998e-05, loss:  7.250e-01, time/epoch: 18.38s
+[17:38:00 - train - INFO] epoch: 50, p_tf=0.000, lr: 9.997e-05, loss:  7.026e-01, time/epoch: 18.69s
+[17:38:00 - train - INFO] Saved model on rank 0
+[17:38:18 - train - INFO] epoch: 51, p_tf=0.000, lr: 9.997e-05, loss:  7.500e-01, time/epoch: 18.15s
+[17:38:35 - train - INFO] epoch: 52, p_tf=0.000, lr: 9.997e-05, loss:  6.807e-01, time/epoch: 17.50s
+[17:38:54 - train - INFO] epoch: 53, p_tf=0.000, lr: 9.997e-05, loss:  6.854e-01, time/epoch: 18.20s
+[17:39:12 - train - INFO] epoch: 54, p_tf=0.000, lr: 9.997e-05, loss:  6.968e-01, time/epoch: 18.65s
+[17:39:31 - train - INFO] epoch: 55, p_tf=0.000, lr: 9.997e-05, loss:  7.109e-01, time/epoch: 18.19s
+[17:39:48 - train - INFO] epoch: 56, p_tf=0.000, lr: 9.997e-05, loss:  6.790e-01, time/epoch: 17.92s
+[17:40:07 - train - INFO] epoch: 57, p_tf=0.000, lr: 9.997e-05, loss:  6.651e-01, time/epoch: 18.21s
+[17:40:25 - train - INFO] epoch: 58, p_tf=0.000, lr: 9.997e-05, loss:  6.612e-01, time/epoch: 18.37s
+[17:40:42 - train - INFO] epoch: 59, p_tf=0.000, lr: 9.997e-05, loss:  6.556e-01, time/epoch: 17.13s
+[17:41:00 - train - INFO] epoch: 60, p_tf=0.000, lr: 9.997e-05, loss:  6.537e-01, time/epoch: 18.27s
+[17:41:01 - train - INFO] Saved model on rank 0
+[17:41:18 - train - INFO] epoch: 61, p_tf=0.000, lr: 9.997e-05, loss:  6.512e-01, time/epoch: 17.89s
+[17:41:39 - train - INFO] epoch: 62, p_tf=0.000, lr: 9.997e-05, loss:  6.596e-01, time/epoch: 20.56s
+[17:41:58 - train - INFO] epoch: 63, p_tf=0.000, lr: 9.997e-05, loss:  6.510e-01, time/epoch: 19.17s
+[17:42:17 - train - INFO] epoch: 64, p_tf=0.000, lr: 9.997e-05, loss:  6.696e-01, time/epoch: 18.82s
+[17:42:35 - train - INFO] epoch: 65, p_tf=0.000, lr: 9.997e-05, loss:  6.456e-01, time/epoch: 18.21s
+[17:42:53 - train - INFO] epoch: 66, p_tf=0.000, lr: 9.997e-05, loss:  6.484e-01, time/epoch: 18.01s
+[17:43:12 - train - INFO] epoch: 67, p_tf=0.000, lr: 9.997e-05, loss:  6.400e-01, time/epoch: 19.15s
+[17:43:31 - train - INFO] epoch: 68, p_tf=0.000, lr: 9.997e-05, loss:  6.477e-01, time/epoch: 18.34s
+[17:43:49 - train - INFO] epoch: 69, p_tf=0.000, lr: 9.997e-05, loss:  6.394e-01, time/epoch: 18.05s
+[17:44:07 - train - INFO] epoch: 70, p_tf=0.000, lr: 9.996e-05, loss:  6.405e-01, time/epoch: 18.32s
+[17:44:07 - train - INFO] Saved model on rank 0
+[17:44:25 - train - INFO] epoch: 71, p_tf=0.000, lr: 9.996e-05, loss:  6.481e-01, time/epoch: 18.18s
+[17:44:43 - train - INFO] epoch: 72, p_tf=0.000, lr: 9.996e-05, loss:  6.762e-01, time/epoch: 18.34s
+[17:45:02 - train - INFO] epoch: 73, p_tf=0.000, lr: 9.996e-05, loss:  6.316e-01, time/epoch: 18.12s
+[17:45:20 - train - INFO] epoch: 74, p_tf=0.000, lr: 9.996e-05, loss:  6.267e-01, time/epoch: 18.85s
+[17:45:38 - train - INFO] epoch: 75, p_tf=0.000, lr: 9.996e-05, loss:  6.256e-01, time/epoch: 17.93s
+[17:45:56 - train - INFO] epoch: 76, p_tf=0.000, lr: 9.996e-05, loss:  6.316e-01, time/epoch: 17.95s
+[17:46:14 - train - INFO] epoch: 77, p_tf=0.000, lr: 9.996e-05, loss:  6.548e-01, time/epoch: 18.05s
+[17:46:33 - train - INFO] epoch: 78, p_tf=0.000, lr: 9.996e-05, loss:  6.288e-01, time/epoch: 18.61s
+[17:46:51 - train - INFO] epoch: 79, p_tf=0.000, lr: 9.996e-05, loss:  6.198e-01, time/epoch: 18.23s
+[17:47:10 - train - INFO] epoch: 80, p_tf=0.000, lr: 9.996e-05, loss:  6.209e-01, time/epoch: 18.49s
+[17:47:10 - train - INFO] Saved model on rank 0
+[17:47:29 - train - INFO] epoch: 81, p_tf=0.000, lr: 9.996e-05, loss:  6.216e-01, time/epoch: 18.83s
+[17:47:47 - train - INFO] epoch: 82, p_tf=0.000, lr: 9.996e-05, loss:  6.209e-01, time/epoch: 18.00s
+[17:48:04 - train - INFO] epoch: 83, p_tf=0.000, lr: 9.996e-05, loss:  6.215e-01, time/epoch: 17.71s
+[17:48:22 - train - INFO] epoch: 84, p_tf=0.000, lr: 9.996e-05, loss:  6.142e-01, time/epoch: 17.93s
+[17:48:40 - train - INFO] epoch: 85, p_tf=0.000, lr: 9.996e-05, loss:  6.117e-01, time/epoch: 17.98s
+[17:48:59 - train - INFO] epoch: 86, p_tf=0.000, lr: 9.996e-05, loss:  6.075e-01, time/epoch: 18.83s
+[17:49:16 - train - INFO] epoch: 87, p_tf=0.000, lr: 9.996e-05, loss:  6.078e-01, time/epoch: 17.33s
+[17:49:34 - train - INFO] epoch: 88, p_tf=0.000, lr: 9.996e-05, loss:  6.105e-01, time/epoch: 18.04s
+[17:49:52 - train - INFO] epoch: 89, p_tf=0.000, lr: 9.996e-05, loss:  6.041e-01, time/epoch: 17.20s
+[17:50:09 - train - INFO] epoch: 90, p_tf=0.000, lr: 9.995e-05, loss:  6.030e-01, time/epoch: 17.84s
+[17:50:10 - train - INFO] Saved model on rank 0
+[17:50:27 - train - INFO] epoch: 91, p_tf=0.000, lr: 9.995e-05, loss:  5.996e-01, time/epoch: 17.96s
+[17:50:45 - train - INFO] epoch: 92, p_tf=0.000, lr: 9.995e-05, loss:  5.977e-01, time/epoch: 17.31s
+[17:51:04 - train - INFO] epoch: 93, p_tf=0.000, lr: 9.995e-05, loss:  6.033e-01, time/epoch: 19.05s
+[17:51:22 - train - INFO] epoch: 94, p_tf=0.000, lr: 9.995e-05, loss:  5.976e-01, time/epoch: 18.69s
+[17:51:40 - train - INFO] epoch: 95, p_tf=0.000, lr: 9.995e-05, loss:  5.994e-01, time/epoch: 17.73s
+[17:51:58 - train - INFO] epoch: 96, p_tf=0.000, lr: 9.995e-05, loss:  6.091e-01, time/epoch: 18.05s
+[17:52:17 - train - INFO] epoch: 97, p_tf=0.000, lr: 9.995e-05, loss:  6.843e-01, time/epoch: 18.88s
+[17:52:35 - train - INFO] epoch: 98, p_tf=0.000, lr: 9.995e-05, loss:  6.104e-01, time/epoch: 17.63s
+[17:52:53 - train - INFO] epoch: 99, p_tf=0.000, lr: 9.995e-05, loss:  6.006e-01, time/epoch: 18.54s
+[17:53:12 - train - INFO] epoch: 100, p_tf=0.000, lr: 9.995e-05, loss:  5.951e-01, time/epoch: 18.91s
+[17:53:12 - train - INFO] Saved model on rank 0
+[17:53:31 - train - INFO] epoch: 101, p_tf=0.000, lr: 9.995e-05, loss:  5.981e-01, time/epoch: 19.14s
+[17:53:50 - train - INFO] epoch: 102, p_tf=0.000, lr: 9.995e-05, loss:  5.973e-01, time/epoch: 18.80s
+[17:54:08 - train - INFO] epoch: 103, p_tf=0.000, lr: 9.995e-05, loss:  6.118e-01, time/epoch: 18.24s
+[17:54:27 - train - INFO] epoch: 104, p_tf=0.000, lr: 9.995e-05, loss:  5.992e-01, time/epoch: 19.16s
+[17:54:45 - train - INFO] epoch: 105, p_tf=0.000, lr: 9.995e-05, loss:  5.923e-01, time/epoch: 17.74s
+[17:55:03 - train - INFO] epoch: 106, p_tf=0.000, lr: 9.995e-05, loss:  5.882e-01, time/epoch: 17.89s
+[17:55:21 - train - INFO] epoch: 107, p_tf=0.000, lr: 9.995e-05, loss:  5.852e-01, time/epoch: 17.50s
+[17:55:38 - train - INFO] epoch: 108, p_tf=0.000, lr: 9.995e-05, loss:  5.931e-01, time/epoch: 17.86s
+[17:55:57 - train - INFO] epoch: 109, p_tf=0.000, lr: 9.995e-05, loss:  5.965e-01, time/epoch: 18.92s
+[17:56:16 - train - INFO] epoch: 110, p_tf=0.000, lr: 9.994e-05, loss:  6.188e-01, time/epoch: 18.36s
+[17:56:16 - train - INFO] Saved model on rank 0
+[17:56:33 - train - INFO] epoch: 111, p_tf=0.000, lr: 9.994e-05, loss:  5.945e-01, time/epoch: 17.63s
+[17:56:52 - train - INFO] epoch: 112, p_tf=0.000, lr: 9.994e-05, loss:  5.913e-01, time/epoch: 18.41s
+[17:57:09 - train - INFO] epoch: 113, p_tf=0.000, lr: 9.994e-05, loss:  5.755e-01, time/epoch: 16.79s
+[17:57:27 - train - INFO] epoch: 114, p_tf=0.000, lr: 9.994e-05, loss:  5.817e-01, time/epoch: 18.42s
+[17:57:44 - train - INFO] epoch: 115, p_tf=0.000, lr: 9.994e-05, loss:  6.090e-01, time/epoch: 16.93s
+[17:58:01 - train - INFO] epoch: 116, p_tf=0.000, lr: 9.994e-05, loss:  5.909e-01, time/epoch: 17.39s
+[17:58:20 - train - INFO] epoch: 117, p_tf=0.000, lr: 9.994e-05, loss:  7.059e-01, time/epoch: 18.22s
+[17:58:38 - train - INFO] epoch: 118, p_tf=0.000, lr: 9.994e-05, loss:  6.409e-01, time/epoch: 18.31s
+[17:58:56 - train - INFO] epoch: 119, p_tf=0.000, lr: 9.994e-05, loss:  5.830e-01, time/epoch: 17.90s
+[17:59:15 - train - INFO] epoch: 120, p_tf=0.000, lr: 9.994e-05, loss:  5.813e-01, time/epoch: 19.57s
+[17:59:15 - train - INFO] Saved model on rank 0
+[17:59:33 - train - INFO] epoch: 121, p_tf=0.000, lr: 9.994e-05, loss:  5.826e-01, time/epoch: 17.73s
+[17:59:51 - train - INFO] epoch: 122, p_tf=0.000, lr: 9.994e-05, loss:  5.751e-01, time/epoch: 18.33s
+[18:00:09 - train - INFO] epoch: 123, p_tf=0.000, lr: 9.994e-05, loss:  5.738e-01, time/epoch: 18.05s
+[18:00:29 - train - INFO] epoch: 124, p_tf=0.000, lr: 9.994e-05, loss:  5.785e-01, time/epoch: 19.42s
+[18:00:48 - train - INFO] epoch: 125, p_tf=0.000, lr: 9.994e-05, loss:  5.698e-01, time/epoch: 19.13s
+[18:01:06 - train - INFO] epoch: 126, p_tf=0.000, lr: 9.994e-05, loss:  6.046e-01, time/epoch: 18.24s
+[18:01:25 - train - INFO] epoch: 127, p_tf=0.000, lr: 9.994e-05, loss:  5.992e-01, time/epoch: 18.52s
+[18:01:43 - train - INFO] epoch: 128, p_tf=0.000, lr: 9.994e-05, loss:  5.840e-01, time/epoch: 17.96s
+[18:02:02 - train - INFO] epoch: 129, p_tf=0.000, lr: 9.994e-05, loss:  5.850e-01, time/epoch: 19.09s
+[18:02:20 - train - INFO] epoch: 130, p_tf=0.000, lr: 9.993e-05, loss:  5.891e-01, time/epoch: 17.78s
+[18:02:20 - train - INFO] Saved model on rank 0
+[18:02:37 - train - INFO] epoch: 131, p_tf=0.000, lr: 9.993e-05, loss:  5.882e-01, time/epoch: 17.26s
+[18:02:55 - train - INFO] epoch: 132, p_tf=0.000, lr: 9.993e-05, loss:  5.857e-01, time/epoch: 18.55s
+[18:03:15 - train - INFO] epoch: 133, p_tf=0.000, lr: 9.993e-05, loss:  5.865e-01, time/epoch: 19.13s
+[18:03:33 - train - INFO] epoch: 134, p_tf=0.000, lr: 9.993e-05, loss:  5.868e-01, time/epoch: 18.49s
+[18:03:51 - train - INFO] epoch: 135, p_tf=0.000, lr: 9.993e-05, loss:  5.813e-01, time/epoch: 17.99s
+[18:04:09 - train - INFO] epoch: 136, p_tf=0.000, lr: 9.993e-05, loss:  5.815e-01, time/epoch: 17.88s
+[18:04:27 - train - INFO] epoch: 137, p_tf=0.000, lr: 9.993e-05, loss:  5.810e-01, time/epoch: 17.62s
+[18:04:44 - train - INFO] epoch: 138, p_tf=0.000, lr: 9.993e-05, loss:  5.838e-01, time/epoch: 17.95s
+[18:05:03 - train - INFO] epoch: 139, p_tf=0.000, lr: 9.993e-05, loss:  5.788e-01, time/epoch: 18.95s
+[18:05:23 - train - INFO] epoch: 140, p_tf=0.000, lr: 9.993e-05, loss:  5.795e-01, time/epoch: 19.24s
+[18:05:23 - train - INFO] Saved model on rank 0
+[18:05:41 - train - INFO] epoch: 141, p_tf=0.000, lr: 9.993e-05, loss:  5.761e-01, time/epoch: 18.48s
+[18:05:59 - train - INFO] epoch: 142, p_tf=0.000, lr: 9.993e-05, loss:  5.741e-01, time/epoch: 18.12s
+[18:06:18 - train - INFO] epoch: 143, p_tf=0.000, lr: 9.993e-05, loss:  5.724e-01, time/epoch: 18.81s
+[18:06:36 - train - INFO] epoch: 144, p_tf=0.000, lr: 9.993e-05, loss:  5.784e-01, time/epoch: 18.28s
+[18:06:55 - train - INFO] epoch: 145, p_tf=0.000, lr: 9.993e-05, loss:  5.840e-01, time/epoch: 18.81s
+[18:07:14 - train - INFO] epoch: 146, p_tf=0.000, lr: 9.993e-05, loss:  5.768e-01, time/epoch: 18.84s
+[18:07:31 - train - INFO] epoch: 147, p_tf=0.000, lr: 9.993e-05, loss:  5.746e-01, time/epoch: 17.33s
+[18:07:50 - train - INFO] epoch: 148, p_tf=0.000, lr: 9.993e-05, loss:  5.765e-01, time/epoch: 18.71s
+[18:08:08 - train - INFO] epoch: 149, p_tf=0.000, lr: 9.993e-05, loss:  5.852e-01, time/epoch: 17.49s
+[18:08:26 - train - INFO] epoch: 150, p_tf=0.000, lr: 9.992e-05, loss:  5.846e-01, time/epoch: 18.04s
+[18:08:26 - train - INFO] Saved model on rank 0
+[18:08:44 - train - INFO] epoch: 151, p_tf=0.000, lr: 9.992e-05, loss:  5.868e-01, time/epoch: 18.15s
+[18:09:02 - train - INFO] epoch: 152, p_tf=0.000, lr: 9.992e-05, loss:  5.738e-01, time/epoch: 18.03s
+[18:09:20 - train - INFO] epoch: 153, p_tf=0.000, lr: 9.992e-05, loss:  5.783e-01, time/epoch: 18.09s
+[18:09:37 - train - INFO] epoch: 154, p_tf=0.000, lr: 9.992e-05, loss:  5.715e-01, time/epoch: 17.54s
+[18:09:56 - train - INFO] epoch: 155, p_tf=0.000, lr: 9.992e-05, loss:  5.715e-01, time/epoch: 18.35s
+[18:10:15 - train - INFO] epoch: 156, p_tf=0.000, lr: 9.992e-05, loss:  5.673e-01, time/epoch: 19.10s
+[18:10:32 - train - INFO] epoch: 157, p_tf=0.000, lr: 9.992e-05, loss:  5.689e-01, time/epoch: 17.20s
+[18:10:51 - train - INFO] epoch: 158, p_tf=0.000, lr: 9.992e-05, loss:  5.658e-01, time/epoch: 18.98s
+[18:11:09 - train - INFO] epoch: 159, p_tf=0.000, lr: 9.992e-05, loss:  5.659e-01, time/epoch: 18.07s
+[18:11:27 - train - INFO] epoch: 160, p_tf=0.000, lr: 9.992e-05, loss:  5.715e-01, time/epoch: 18.30s
+[18:11:27 - train - INFO] Saved model on rank 0
+[18:11:45 - train - INFO] epoch: 161, p_tf=0.000, lr: 9.992e-05, loss:  5.752e-01, time/epoch: 17.89s
+[18:12:04 - train - INFO] epoch: 162, p_tf=0.000, lr: 9.992e-05, loss:  5.671e-01, time/epoch: 18.78s
+[18:12:22 - train - INFO] epoch: 163, p_tf=0.000, lr: 9.992e-05, loss:  5.631e-01, time/epoch: 17.66s
+[18:12:40 - train - INFO] epoch: 164, p_tf=0.000, lr: 9.992e-05, loss:  5.655e-01, time/epoch: 18.70s
+[18:12:59 - train - INFO] epoch: 165, p_tf=0.000, lr: 9.992e-05, loss:  5.609e-01, time/epoch: 18.69s
+[18:13:18 - train - INFO] epoch: 166, p_tf=0.000, lr: 9.992e-05, loss:  5.647e-01, time/epoch: 18.71s
+[18:13:36 - train - INFO] epoch: 167, p_tf=0.000, lr: 9.992e-05, loss:  5.575e-01, time/epoch: 18.23s
+[18:13:54 - train - INFO] epoch: 168, p_tf=0.000, lr: 9.992e-05, loss:  5.543e-01, time/epoch: 17.81s
+[18:14:12 - train - INFO] epoch: 169, p_tf=0.000, lr: 9.992e-05, loss:  5.620e-01, time/epoch: 17.93s
+[18:14:31 - train - INFO] epoch: 170, p_tf=0.000, lr: 9.991e-05, loss:  5.608e-01, time/epoch: 19.17s
+[18:14:31 - train - INFO] Saved model on rank 0
+[18:14:50 - train - INFO] epoch: 171, p_tf=0.000, lr: 9.991e-05, loss:  5.554e-01, time/epoch: 19.16s
+[18:15:08 - train - INFO] epoch: 172, p_tf=0.000, lr: 9.991e-05, loss:  5.562e-01, time/epoch: 18.05s
+[18:15:26 - train - INFO] epoch: 173, p_tf=0.000, lr: 9.991e-05, loss:  5.595e-01, time/epoch: 17.45s
+[18:15:43 - train - INFO] epoch: 174, p_tf=0.000, lr: 9.991e-05, loss:  5.666e-01, time/epoch: 17.42s
+[18:16:01 - train - INFO] epoch: 175, p_tf=0.000, lr: 9.991e-05, loss:  5.627e-01, time/epoch: 18.10s
+[18:16:19 - train - INFO] epoch: 176, p_tf=0.000, lr: 9.991e-05, loss:  5.677e-01, time/epoch: 18.12s
+[18:16:37 - train - INFO] epoch: 177, p_tf=0.000, lr: 9.991e-05, loss:  6.137e-01, time/epoch: 18.22s
+[18:16:56 - train - INFO] epoch: 178, p_tf=0.000, lr: 9.991e-05, loss:  5.591e-01, time/epoch: 18.29s
+[18:17:14 - train - INFO] epoch: 179, p_tf=0.000, lr: 9.991e-05, loss:  5.665e-01, time/epoch: 18.01s
+[18:17:33 - train - INFO] epoch: 180, p_tf=0.000, lr: 9.991e-05, loss:  5.585e-01, time/epoch: 18.92s
+[18:17:33 - train - INFO] Saved model on rank 0
+[18:17:51 - train - INFO] epoch: 181, p_tf=0.000, lr: 9.991e-05, loss:  5.561e-01, time/epoch: 18.20s
+[18:18:10 - train - INFO] epoch: 182, p_tf=0.000, lr: 9.991e-05, loss:  5.739e-01, time/epoch: 19.36s
+[18:18:28 - train - INFO] epoch: 183, p_tf=0.000, lr: 9.991e-05, loss:  5.972e-01, time/epoch: 18.23s
+[18:18:47 - train - INFO] epoch: 184, p_tf=0.000, lr: 9.991e-05, loss:  5.636e-01, time/epoch: 18.65s
+[18:19:06 - train - INFO] epoch: 185, p_tf=0.000, lr: 9.991e-05, loss:  5.635e-01, time/epoch: 18.71s
+[18:19:24 - train - INFO] epoch: 186, p_tf=0.000, lr: 9.991e-05, loss:  5.583e-01, time/epoch: 18.36s
+[18:19:42 - train - INFO] epoch: 187, p_tf=0.000, lr: 9.991e-05, loss:  5.569e-01, time/epoch: 18.20s
+[18:20:01 - train - INFO] epoch: 188, p_tf=0.000, lr: 9.991e-05, loss:  5.561e-01, time/epoch: 18.41s
+[18:20:19 - train - INFO] epoch: 189, p_tf=0.000, lr: 9.991e-05, loss:  5.495e-01, time/epoch: 18.41s
+[18:20:38 - train - INFO] epoch: 190, p_tf=0.000, lr: 9.990e-05, loss:  5.521e-01, time/epoch: 19.01s
+[18:20:38 - train - INFO] Saved model on rank 0
+[18:20:57 - train - INFO] epoch: 191, p_tf=0.000, lr: 9.990e-05, loss:  5.613e-01, time/epoch: 18.41s
+[18:21:14 - train - INFO] epoch: 192, p_tf=0.000, lr: 9.990e-05, loss:  5.727e-01, time/epoch: 17.78s
+[18:21:31 - train - INFO] epoch: 193, p_tf=0.000, lr: 9.990e-05, loss:  5.669e-01, time/epoch: 16.66s
+[18:21:49 - train - INFO] epoch: 194, p_tf=0.000, lr: 9.990e-05, loss:  5.730e-01, time/epoch: 17.82s
+[18:22:08 - train - INFO] epoch: 195, p_tf=0.000, lr: 9.990e-05, loss:  5.686e-01, time/epoch: 19.22s
+[18:22:26 - train - INFO] epoch: 196, p_tf=0.000, lr: 9.990e-05, loss:  5.660e-01, time/epoch: 18.12s
+[18:22:45 - train - INFO] epoch: 197, p_tf=0.000, lr: 9.990e-05, loss:  5.570e-01, time/epoch: 18.92s
+[18:23:04 - train - INFO] epoch: 198, p_tf=0.000, lr: 9.990e-05, loss:  5.652e-01, time/epoch: 18.48s
+[18:23:21 - train - INFO] epoch: 199, p_tf=0.000, lr: 9.990e-05, loss:  5.631e-01, time/epoch: 17.77s
+[18:23:39 - train - INFO] epoch: 200, p_tf=0.000, lr: 9.990e-05, loss:  5.641e-01, time/epoch: 17.86s
+[18:23:39 - train - INFO] Saved model on rank 0
+[18:23:58 - train - INFO] epoch: 201, p_tf=0.000, lr: 9.990e-05, loss:  5.600e-01, time/epoch: 18.79s
+[18:24:16 - train - INFO] epoch: 202, p_tf=0.000, lr: 9.990e-05, loss:  5.623e-01, time/epoch: 18.04s
+[18:24:35 - train - INFO] epoch: 203, p_tf=0.000, lr: 9.990e-05, loss:  5.567e-01, time/epoch: 18.65s
+[18:24:53 - train - INFO] epoch: 204, p_tf=0.000, lr: 9.990e-05, loss:  5.505e-01, time/epoch: 18.55s
+[18:25:11 - train - INFO] epoch: 205, p_tf=0.000, lr: 9.990e-05, loss:  5.485e-01, time/epoch: 17.78s
+[18:25:29 - train - INFO] epoch: 206, p_tf=0.000, lr: 9.990e-05, loss:  5.601e-01, time/epoch: 18.06s
+[18:25:48 - train - INFO] epoch: 207, p_tf=0.000, lr: 9.990e-05, loss:  5.611e-01, time/epoch: 18.48s
+[18:26:06 - train - INFO] epoch: 208, p_tf=0.000, lr: 9.990e-05, loss:  5.514e-01, time/epoch: 18.39s
+[18:26:24 - train - INFO] epoch: 209, p_tf=0.000, lr: 9.990e-05, loss:  5.497e-01, time/epoch: 17.82s
+[18:26:42 - train - INFO] epoch: 210, p_tf=0.000, lr: 9.989e-05, loss:  5.482e-01, time/epoch: 18.61s
+[18:26:43 - train - INFO] Saved model on rank 0
+[18:27:00 - train - INFO] epoch: 211, p_tf=0.000, lr: 9.989e-05, loss:  5.495e-01, time/epoch: 17.99s
+[18:27:17 - train - INFO] epoch: 212, p_tf=0.000, lr: 9.989e-05, loss:  5.459e-01, time/epoch: 16.75s
+[18:27:35 - train - INFO] epoch: 213, p_tf=0.000, lr: 9.989e-05, loss:  5.492e-01, time/epoch: 18.20s
+[18:27:54 - train - INFO] epoch: 214, p_tf=0.000, lr: 9.989e-05, loss:  5.492e-01, time/epoch: 18.70s
+[18:28:12 - train - INFO] epoch: 215, p_tf=0.000, lr: 9.989e-05, loss:  5.502e-01, time/epoch: 18.06s
+[18:28:29 - train - INFO] epoch: 216, p_tf=0.000, lr: 9.989e-05, loss:  5.793e-01, time/epoch: 17.36s
+[18:28:49 - train - INFO] epoch: 217, p_tf=0.000, lr: 9.989e-05, loss:  5.612e-01, time/epoch: 19.43s
+[18:29:09 - train - INFO] epoch: 218, p_tf=0.000, lr: 9.989e-05, loss:  5.583e-01, time/epoch: 19.97s
+[18:29:28 - train - INFO] epoch: 219, p_tf=0.000, lr: 9.989e-05, loss:  5.548e-01, time/epoch: 19.04s
+[18:29:45 - train - INFO] epoch: 220, p_tf=0.000, lr: 9.989e-05, loss:  5.569e-01, time/epoch: 17.01s
+[18:29:45 - train - INFO] Saved model on rank 0
+[18:30:04 - train - INFO] epoch: 221, p_tf=0.000, lr: 9.989e-05, loss:  5.542e-01, time/epoch: 18.71s
+[18:30:22 - train - INFO] epoch: 222, p_tf=0.000, lr: 9.989e-05, loss:  5.515e-01, time/epoch: 18.12s
+[18:30:40 - train - INFO] epoch: 223, p_tf=0.000, lr: 9.989e-05, loss:  5.475e-01, time/epoch: 18.56s
+[18:30:59 - train - INFO] epoch: 224, p_tf=0.000, lr: 9.989e-05, loss:  5.490e-01, time/epoch: 18.22s
+[18:31:17 - train - INFO] epoch: 225, p_tf=0.000, lr: 9.989e-05, loss:  5.713e-01, time/epoch: 18.54s
+[18:31:36 - train - INFO] epoch: 226, p_tf=0.000, lr: 9.989e-05, loss:  5.682e-01, time/epoch: 18.43s
+[18:31:54 - train - INFO] epoch: 227, p_tf=0.000, lr: 9.989e-05, loss:  5.598e-01, time/epoch: 18.47s
+[18:32:11 - train - INFO] epoch: 228, p_tf=0.000, lr: 9.989e-05, loss:  5.665e-01, time/epoch: 17.21s
+[18:32:29 - train - INFO] epoch: 229, p_tf=0.000, lr: 9.989e-05, loss:  5.726e-01, time/epoch: 17.72s
+[18:32:47 - train - INFO] epoch: 230, p_tf=0.000, lr: 9.988e-05, loss:  5.669e-01, time/epoch: 18.06s
+[18:32:47 - train - INFO] Saved model on rank 0
+[18:33:05 - train - INFO] epoch: 231, p_tf=0.000, lr: 9.988e-05, loss:  5.574e-01, time/epoch: 18.27s
+[18:33:24 - train - INFO] epoch: 232, p_tf=0.000, lr: 9.988e-05, loss:  5.539e-01, time/epoch: 18.46s
+[18:33:44 - train - INFO] epoch: 233, p_tf=0.000, lr: 9.988e-05, loss:  5.531e-01, time/epoch: 20.64s
+[18:34:04 - train - INFO] epoch: 234, p_tf=0.000, lr: 9.988e-05, loss:  5.452e-01, time/epoch: 19.25s
+[18:34:22 - train - INFO] epoch: 235, p_tf=0.000, lr: 9.988e-05, loss:  5.427e-01, time/epoch: 18.62s
+[18:34:41 - train - INFO] epoch: 236, p_tf=0.000, lr: 9.988e-05, loss:  5.410e-01, time/epoch: 18.52s
+[18:35:00 - train - INFO] epoch: 237, p_tf=0.000, lr: 9.988e-05, loss:  5.405e-01, time/epoch: 19.27s
+[18:35:18 - train - INFO] epoch: 238, p_tf=0.000, lr: 9.988e-05, loss:  5.392e-01, time/epoch: 18.27s
+[18:35:37 - train - INFO] epoch: 239, p_tf=0.000, lr: 9.988e-05, loss:  5.418e-01, time/epoch: 18.32s
+[18:35:55 - train - INFO] epoch: 240, p_tf=0.000, lr: 9.988e-05, loss:  5.406e-01, time/epoch: 18.56s
+[18:35:55 - train - INFO] Saved model on rank 0
+[18:36:15 - train - INFO] epoch: 241, p_tf=0.000, lr: 9.988e-05, loss:  5.502e-01, time/epoch: 19.52s
+[18:36:33 - train - INFO] epoch: 242, p_tf=0.000, lr: 9.988e-05, loss:  5.537e-01, time/epoch: 18.38s
+[18:36:52 - train - INFO] epoch: 243, p_tf=0.000, lr: 9.988e-05, loss:  5.490e-01, time/epoch: 19.14s
+[18:37:10 - train - INFO] epoch: 244, p_tf=0.000, lr: 9.988e-05, loss:  5.531e-01, time/epoch: 17.71s
+[18:37:27 - train - INFO] epoch: 245, p_tf=0.000, lr: 9.988e-05, loss:  5.542e-01, time/epoch: 16.77s
+[18:37:46 - train - INFO] epoch: 246, p_tf=0.000, lr: 9.988e-05, loss:  5.507e-01, time/epoch: 19.06s
+[18:38:05 - train - INFO] epoch: 247, p_tf=0.000, lr: 9.988e-05, loss:  5.531e-01, time/epoch: 19.45s
+[18:38:23 - train - INFO] epoch: 248, p_tf=0.000, lr: 9.988e-05, loss:  5.532e-01, time/epoch: 17.88s
+[18:38:42 - train - INFO] epoch: 249, p_tf=0.000, lr: 9.988e-05, loss:  5.529e-01, time/epoch: 19.33s
+[18:39:02 - train - INFO] epoch: 250, p_tf=0.000, lr: 9.987e-05, loss:  5.528e-01, time/epoch: 19.67s
+[18:39:02 - train - INFO] Saved model on rank 0
+[18:39:20 - train - INFO] epoch: 251, p_tf=0.000, lr: 9.987e-05, loss:  5.670e-01, time/epoch: 17.78s
+[18:39:38 - train - INFO] epoch: 252, p_tf=0.000, lr: 9.987e-05, loss:  5.540e-01, time/epoch: 18.27s
+[18:39:57 - train - INFO] epoch: 253, p_tf=0.000, lr: 9.987e-05, loss:  5.575e-01, time/epoch: 18.76s
+[18:40:15 - train - INFO] epoch: 254, p_tf=0.000, lr: 9.987e-05, loss:  5.507e-01, time/epoch: 17.75s
+[18:40:33 - train - INFO] epoch: 255, p_tf=0.000, lr: 9.987e-05, loss:  5.471e-01, time/epoch: 18.81s
+[18:40:52 - train - INFO] epoch: 256, p_tf=0.000, lr: 9.987e-05, loss:  5.466e-01, time/epoch: 18.60s
+[18:41:10 - train - INFO] epoch: 257, p_tf=0.000, lr: 9.987e-05, loss:  5.421e-01, time/epoch: 18.22s
+[18:41:27 - train - INFO] epoch: 258, p_tf=0.000, lr: 9.987e-05, loss:  5.398e-01, time/epoch: 17.09s
+[18:41:46 - train - INFO] epoch: 259, p_tf=0.000, lr: 9.987e-05, loss:  5.481e-01, time/epoch: 18.40s
+[18:42:03 - train - INFO] epoch: 260, p_tf=0.000, lr: 9.987e-05, loss:  5.427e-01, time/epoch: 17.52s
+[18:42:03 - train - INFO] Saved model on rank 0
+[18:42:22 - train - INFO] epoch: 261, p_tf=0.000, lr: 9.987e-05, loss:  5.469e-01, time/epoch: 19.07s
+[18:42:40 - train - INFO] epoch: 262, p_tf=0.000, lr: 9.987e-05, loss:  5.410e-01, time/epoch: 18.00s
+[18:42:59 - train - INFO] epoch: 263, p_tf=0.000, lr: 9.987e-05, loss:  5.433e-01, time/epoch: 18.73s
+[18:43:18 - train - INFO] epoch: 264, p_tf=0.000, lr: 9.987e-05, loss:  5.381e-01, time/epoch: 18.88s
+[18:43:38 - train - INFO] epoch: 265, p_tf=0.000, lr: 9.987e-05, loss:  5.400e-01, time/epoch: 19.56s
+[18:43:56 - train - INFO] epoch: 266, p_tf=0.000, lr: 9.987e-05, loss:  5.440e-01, time/epoch: 18.42s
+[18:44:15 - train - INFO] epoch: 267, p_tf=0.000, lr: 9.987e-05, loss:  5.538e-01, time/epoch: 18.71s
+[18:44:32 - train - INFO] epoch: 268, p_tf=0.000, lr: 9.987e-05, loss:  5.585e-01, time/epoch: 16.95s
+[18:44:49 - train - INFO] epoch: 269, p_tf=0.000, lr: 9.987e-05, loss:  5.473e-01, time/epoch: 17.65s
+[18:45:07 - train - INFO] epoch: 270, p_tf=0.000, lr: 9.986e-05, loss:  5.470e-01, time/epoch: 17.45s
+[18:45:07 - train - INFO] Saved model on rank 0
+[18:45:24 - train - INFO] epoch: 271, p_tf=0.000, lr: 9.986e-05, loss:  5.403e-01, time/epoch: 17.39s
+[18:45:42 - train - INFO] epoch: 272, p_tf=0.000, lr: 9.986e-05, loss:  5.387e-01, time/epoch: 17.74s
+[18:46:00 - train - INFO] epoch: 273, p_tf=0.000, lr: 9.986e-05, loss:  5.381e-01, time/epoch: 17.97s
+[18:46:19 - train - INFO] epoch: 274, p_tf=0.000, lr: 9.986e-05, loss:  5.379e-01, time/epoch: 19.39s
+[18:46:38 - train - INFO] epoch: 275, p_tf=0.000, lr: 9.986e-05, loss:  5.412e-01, time/epoch: 18.68s
+[18:46:55 - train - INFO] epoch: 276, p_tf=0.000, lr: 9.986e-05, loss:  5.545e-01, time/epoch: 17.55s
+[18:47:13 - train - INFO] epoch: 277, p_tf=0.000, lr: 9.986e-05, loss:  5.547e-01, time/epoch: 17.27s
+[18:47:31 - train - INFO] epoch: 278, p_tf=0.000, lr: 9.986e-05, loss:  5.421e-01, time/epoch: 18.03s
+[18:47:50 - train - INFO] epoch: 279, p_tf=0.000, lr: 9.986e-05, loss:  5.414e-01, time/epoch: 19.16s
+[18:48:09 - train - INFO] epoch: 280, p_tf=0.000, lr: 9.986e-05, loss:  5.447e-01, time/epoch: 19.17s
+[18:48:09 - train - INFO] Saved model on rank 0
+[18:48:27 - train - INFO] epoch: 281, p_tf=0.000, lr: 9.986e-05, loss:  5.547e-01, time/epoch: 18.31s
+[18:48:46 - train - INFO] epoch: 282, p_tf=0.000, lr: 9.986e-05, loss:  5.486e-01, time/epoch: 18.31s
+[18:49:02 - train - INFO] epoch: 283, p_tf=0.000, lr: 9.986e-05, loss:  5.482e-01, time/epoch: 16.83s
+[18:49:20 - train - INFO] epoch: 284, p_tf=0.000, lr: 9.986e-05, loss:  5.542e-01, time/epoch: 17.23s
+[18:49:38 - train - INFO] epoch: 285, p_tf=0.000, lr: 9.986e-05, loss:  5.559e-01, time/epoch: 18.50s
+[18:49:55 - train - INFO] epoch: 286, p_tf=0.000, lr: 9.986e-05, loss:  5.497e-01, time/epoch: 16.89s
+[18:50:13 - train - INFO] epoch: 287, p_tf=0.000, lr: 9.986e-05, loss:  5.431e-01, time/epoch: 18.27s
+[18:50:32 - train - INFO] epoch: 288, p_tf=0.000, lr: 9.986e-05, loss:  5.404e-01, time/epoch: 18.20s
+[18:50:51 - train - INFO] epoch: 289, p_tf=0.000, lr: 9.986e-05, loss:  6.177e-01, time/epoch: 19.46s
+[18:51:08 - train - INFO] epoch: 290, p_tf=0.000, lr: 9.985e-05, loss:  5.576e-01, time/epoch: 17.39s
+[18:51:09 - train - INFO] Saved model on rank 0
+[18:51:27 - train - INFO] epoch: 291, p_tf=0.000, lr: 9.985e-05, loss:  5.531e-01, time/epoch: 18.49s
+[18:51:46 - train - INFO] epoch: 292, p_tf=0.000, lr: 9.985e-05, loss:  5.535e-01, time/epoch: 19.14s
+[18:52:04 - train - INFO] epoch: 293, p_tf=0.000, lr: 9.985e-05, loss:  5.501e-01, time/epoch: 18.12s
+[18:52:22 - train - INFO] epoch: 294, p_tf=0.000, lr: 9.985e-05, loss:  5.466e-01, time/epoch: 18.23s
+[18:52:41 - train - INFO] epoch: 295, p_tf=0.000, lr: 9.985e-05, loss:  5.451e-01, time/epoch: 18.88s
+[18:53:00 - train - INFO] epoch: 296, p_tf=0.000, lr: 9.985e-05, loss:  5.436e-01, time/epoch: 18.31s
+[18:53:18 - train - INFO] epoch: 297, p_tf=0.000, lr: 9.985e-05, loss:  5.414e-01, time/epoch: 18.83s
+[18:53:38 - train - INFO] epoch: 298, p_tf=0.000, lr: 9.985e-05, loss:  5.465e-01, time/epoch: 19.71s
+[18:53:57 - train - INFO] epoch: 299, p_tf=0.000, lr: 9.985e-05, loss:  5.385e-01, time/epoch: 18.78s
+[18:54:16 - train - INFO] epoch: 300, p_tf=0.000, lr: 9.985e-05, loss:  5.349e-01, time/epoch: 18.70s
+[18:54:16 - train - INFO] Saved model on rank 0
+[18:54:34 - train - INFO] epoch: 301, p_tf=0.000, lr: 9.985e-05, loss:  5.475e-01, time/epoch: 18.77s
+[18:54:54 - train - INFO] epoch: 302, p_tf=0.000, lr: 9.985e-05, loss:  5.646e-01, time/epoch: 19.19s
+[18:55:13 - train - INFO] epoch: 303, p_tf=0.000, lr: 9.985e-05, loss:  5.469e-01, time/epoch: 19.37s
+[18:55:32 - train - INFO] epoch: 304, p_tf=0.000, lr: 9.985e-05, loss:  5.452e-01, time/epoch: 18.85s
+[18:55:50 - train - INFO] epoch: 305, p_tf=0.000, lr: 9.985e-05, loss:  5.465e-01, time/epoch: 18.53s
+[18:56:08 - train - INFO] epoch: 306, p_tf=0.000, lr: 9.985e-05, loss:  5.492e-01, time/epoch: 18.13s
+[18:56:27 - train - INFO] epoch: 307, p_tf=0.000, lr: 9.985e-05, loss:  5.501e-01, time/epoch: 18.40s
+[18:56:44 - train - INFO] epoch: 308, p_tf=0.000, lr: 9.985e-05, loss:  5.494e-01, time/epoch: 17.45s
+[18:57:03 - train - INFO] epoch: 309, p_tf=0.000, lr: 9.985e-05, loss:  5.504e-01, time/epoch: 18.58s
+[18:57:20 - train - INFO] epoch: 310, p_tf=0.000, lr: 9.984e-05, loss:  5.441e-01, time/epoch: 17.51s
+[18:57:21 - train - INFO] Saved model on rank 0
+[18:57:39 - train - INFO] epoch: 311, p_tf=0.000, lr: 9.984e-05, loss:  5.468e-01, time/epoch: 18.63s
+[18:57:58 - train - INFO] epoch: 312, p_tf=0.000, lr: 9.984e-05, loss:  5.458e-01, time/epoch: 18.83s
+[18:58:16 - train - INFO] epoch: 313, p_tf=0.000, lr: 9.984e-05, loss:  5.407e-01, time/epoch: 17.81s
+[18:58:34 - train - INFO] epoch: 314, p_tf=0.000, lr: 9.984e-05, loss:  5.430e-01, time/epoch: 18.64s
+[18:58:53 - train - INFO] epoch: 315, p_tf=0.000, lr: 9.984e-05, loss:  5.422e-01, time/epoch: 18.91s
+[18:59:11 - train - INFO] epoch: 316, p_tf=0.000, lr: 9.984e-05, loss:  5.497e-01, time/epoch: 17.35s
+[18:59:30 - train - INFO] epoch: 317, p_tf=0.000, lr: 9.984e-05, loss:  5.560e-01, time/epoch: 18.96s
+[18:59:48 - train - INFO] epoch: 318, p_tf=0.000, lr: 9.984e-05, loss:  5.550e-01, time/epoch: 18.13s
+[19:00:06 - train - INFO] epoch: 319, p_tf=0.000, lr: 9.984e-05, loss:  5.458e-01, time/epoch: 18.76s
+[19:00:24 - train - INFO] epoch: 320, p_tf=0.000, lr: 9.984e-05, loss:  5.438e-01, time/epoch: 17.60s
+[19:00:24 - train - INFO] Saved model on rank 0
+[19:00:42 - train - INFO] epoch: 321, p_tf=0.000, lr: 9.984e-05, loss:  5.561e-01, time/epoch: 18.04s
+[19:01:01 - train - INFO] epoch: 322, p_tf=0.000, lr: 9.984e-05, loss:  5.546e-01, time/epoch: 18.88s
+[19:01:18 - train - INFO] epoch: 323, p_tf=0.000, lr: 9.984e-05, loss:  5.668e-01, time/epoch: 17.53s
+[19:01:37 - train - INFO] epoch: 324, p_tf=0.000, lr: 9.984e-05, loss:  5.537e-01, time/epoch: 18.63s
+[19:01:55 - train - INFO] epoch: 325, p_tf=0.000, lr: 9.984e-05, loss:  5.543e-01, time/epoch: 18.03s
+[19:02:13 - train - INFO] epoch: 326, p_tf=0.000, lr: 9.984e-05, loss:  5.443e-01, time/epoch: 17.95s
+[19:02:32 - train - INFO] epoch: 327, p_tf=0.000, lr: 9.984e-05, loss:  5.488e-01, time/epoch: 18.63s
+[19:02:50 - train - INFO] epoch: 328, p_tf=0.000, lr: 9.984e-05, loss:  5.395e-01, time/epoch: 18.54s
+[19:03:09 - train - INFO] epoch: 329, p_tf=0.000, lr: 9.984e-05, loss:  5.425e-01, time/epoch: 18.53s
+[19:03:28 - train - INFO] epoch: 330, p_tf=0.000, lr: 9.983e-05, loss:  5.399e-01, time/epoch: 19.10s
+[19:03:28 - train - INFO] Saved model on rank 0
+[19:03:46 - train - INFO] epoch: 331, p_tf=0.000, lr: 9.983e-05, loss:  5.411e-01, time/epoch: 18.57s
+[19:04:05 - train - INFO] epoch: 332, p_tf=0.000, lr: 9.983e-05, loss:  5.420e-01, time/epoch: 18.27s
+[19:04:23 - train - INFO] epoch: 333, p_tf=0.000, lr: 9.983e-05, loss:  5.359e-01, time/epoch: 18.31s
+[19:04:41 - train - INFO] epoch: 334, p_tf=0.000, lr: 9.983e-05, loss:  5.538e-01, time/epoch: 18.13s
+[19:04:59 - train - INFO] epoch: 335, p_tf=0.000, lr: 9.983e-05, loss:  5.597e-01, time/epoch: 17.88s
+[19:05:16 - train - INFO] epoch: 336, p_tf=0.000, lr: 9.983e-05, loss:  5.492e-01, time/epoch: 16.67s
+[19:05:34 - train - INFO] epoch: 337, p_tf=0.000, lr: 9.983e-05, loss:  5.393e-01, time/epoch: 18.24s
+[19:05:53 - train - INFO] epoch: 338, p_tf=0.000, lr: 9.983e-05, loss:  5.484e-01, time/epoch: 18.71s
+[19:06:11 - train - INFO] epoch: 339, p_tf=0.000, lr: 9.983e-05, loss:  5.440e-01, time/epoch: 18.71s
+[19:06:30 - train - INFO] epoch: 340, p_tf=0.000, lr: 9.983e-05, loss:  5.525e-01, time/epoch: 18.54s
+[19:06:30 - train - INFO] Saved model on rank 0
+[19:06:48 - train - INFO] epoch: 341, p_tf=0.000, lr: 9.983e-05, loss:  5.461e-01, time/epoch: 18.37s
+[19:07:07 - train - INFO] epoch: 342, p_tf=0.000, lr: 9.983e-05, loss:  5.417e-01, time/epoch: 18.62s
+[19:07:25 - train - INFO] epoch: 343, p_tf=0.000, lr: 9.983e-05, loss:  5.501e-01, time/epoch: 17.94s
+[19:07:44 - train - INFO] epoch: 344, p_tf=0.000, lr: 9.983e-05, loss:  5.478e-01, time/epoch: 19.25s
+[19:08:02 - train - INFO] epoch: 345, p_tf=0.000, lr: 9.983e-05, loss:  5.420e-01, time/epoch: 17.85s
+[19:08:21 - train - INFO] epoch: 346, p_tf=0.000, lr: 9.983e-05, loss:  5.386e-01, time/epoch: 19.26s
+[19:08:40 - train - INFO] epoch: 347, p_tf=0.000, lr: 9.983e-05, loss:  5.448e-01, time/epoch: 19.06s
+[19:08:59 - train - INFO] epoch: 348, p_tf=0.000, lr: 9.983e-05, loss:  5.328e-01, time/epoch: 18.77s
+[19:09:18 - train - INFO] epoch: 349, p_tf=0.000, lr: 9.983e-05, loss:  5.355e-01, time/epoch: 18.86s
+[19:09:37 - train - INFO] epoch: 350, p_tf=0.000, lr: 9.982e-05, loss:  6.058e-01, time/epoch: 18.90s
+[19:09:37 - train - INFO] Saved model on rank 0
+[19:09:55 - train - INFO] epoch: 351, p_tf=0.000, lr: 9.982e-05, loss:  5.381e-01, time/epoch: 18.42s
+[19:10:14 - train - INFO] epoch: 352, p_tf=0.000, lr: 9.982e-05, loss:  5.300e-01, time/epoch: 18.57s
+[19:10:31 - train - INFO] epoch: 353, p_tf=0.000, lr: 9.982e-05, loss:  5.260e-01, time/epoch: 17.61s
