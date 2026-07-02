@@ -27,9 +27,9 @@ hydro_dir: [
 ]
 
 # training configs
-train_from_scratch: true
+train_from_scratch: false
 batch_size: 1
-epochs: 501
+epochs: 1001
 mp_layers: 10
 lr: 0.0001
 lr_decay_rate: 0.999995

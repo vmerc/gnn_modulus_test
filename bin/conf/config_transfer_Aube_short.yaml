@@ -5,14 +5,14 @@
 data_dir: /work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m/regular_50_dataset_base.bin
 
 dynamic_dir: [
-  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m/regular_50_dataset_T2V6_Q5_0_0-92.pkl',
-  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m/regular_50_dataset_T2V6_Q10_0_0-92.pkl',
-  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m/regular_50_dataset_T2V6_Q50_0_0-92.pkl',
-  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m/regular_50_dataset_T2V6_Q100_0_0-92.pkl',
-  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m/regular_50_dataset_T2V6_Q2_0_0-92.pkl',
-  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m/regular_50_dataset_T2V6_Janv2018V3_0_0-94.pkl',
-  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m/regular_50_dataset_T2V6_1983V1_0_0-91.pkl',
-  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m/regular_50_dataset_T2V6_1910V2_0_0-47.pkl',
+  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m_short/regular_50_dataset_T2V6_Q5_0_0-92.pkl',
+  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m_short/regular_50_dataset_T2V6_Q10_0_0-92.pkl',
+  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m_short/regular_50_dataset_T2V6_Q50_0_0-92.pkl',
+  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m_short/regular_50_dataset_T2V6_Q100_0_0-92.pkl',
+  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m_short/regular_50_dataset_T2V6_Q2_0_0-92.pkl',
+  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m_short/regular_50_dataset_T2V6_Janv2018V3_0_0-94.pkl',
+  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m_short/regular_50_dataset_T2V6_1983V1_0_0-91.pkl',
+  '/work/m24046/m24046mrcr/Test_Aube_regular/dataset_50m_short/regular_50_dataset_T2V6_1910V2_0_0-47.pkl',
 ]
 
 hydro_dir: [
@@ -36,7 +36,7 @@ num_input_features: 10
 num_output_features: 3
 num_edge_features: 3
 use_q_feature: true
-dt_seconds: 1800.0
+dt_seconds: 14400.0
 
 # pushforward
 sequence_length: 3
@@ -57,7 +57,7 @@ seed: 0
 # init_ckpt_path: "/work/m24046/m24046mrcr/paper/Experience10/Seed0/"
 # init_epoch: 900
 
-ckpt_path: "/work/m24046/m24046mrcr/Test_Aube_regular/checkpoints/config_transfer_Aube_regular/Seed0/"
+ckpt_path: "/work/m24046/m24046mrcr/Test_Aube_regular/checkpoints/config_transfer_Aube_regular_short/Seed0/"
 
 
 # front loss
