@@ -37,7 +37,7 @@ num_input_features: 10
 num_output_features: 3
 num_edge_features: 3
 use_q_feature: true
-dt_seconds: 1800.0
+dt_seconds: 14400.0
 
 # pushforward
 sequence_length: 3
