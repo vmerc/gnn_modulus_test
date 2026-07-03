@@ -8,6 +8,11 @@ import pickle
 from dgl.data import DGLDataset
 os.chdir('../')
 from python.python_code.data_manip.extraction.telemac_file import TelemacFile
+from python.ghost_nodes import (
+    add_ghost_source_nodes,
+    extract_inlet_node_lists_from_conlim,
+    normalize_inlet_node_lists,
+)
 from scipy.spatial import KDTree
 from pathlib import Path, PurePath
 
@@ -516,6 +521,28 @@ def unpack_dynamic_sample(sample):
     raise ValueError("Unsupported dynamic sample format. Expected (x,y), (x,y,ts) or dict.")
 
 
+def collate_source_sequences(batch):
+    seq_len = len(batch[0])
+    output_sequence = []
+
+    for t in range(seq_len):
+        graphs = [item[t]["graph"] for item in batch]
+        x_phys = torch.cat([item[t]["x_phys"] for item in batch], dim=0)
+        x_src = torch.cat([item[t]["x_src"] for item in batch], dim=0)
+        y_phys = torch.cat([item[t]["y_phys"] for item in batch], dim=0)
+
+        output_sequence.append(
+            {
+                "graph": dgl.batch(graphs),
+                "x_phys": x_phys,
+                "x_src": x_src,
+                "y_phys": y_phys,
+            }
+        )
+
+    return output_sequence
+
+
 class TelemacDataset(DGLDataset):
     """In-memory MeshGraphNet Dataset for stationary mesh
     Notes:
@@ -772,36 +799,75 @@ class TelemacDataset(DGLDataset):
         return stats
 
 
+def _is_float_token(token):
+    try:
+        float(token)
+        return True
+    except ValueError:
+        return False
+
+
+def load_liq_table(liq_path):
+    header = None
+    rows = []
+
+    with open(liq_path, "r", encoding="utf-8", errors="ignore") as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            parts = line.split()
+            if not all(_is_float_token(token) for token in parts):
+                if header is None:
+                    header = parts
+                continue
+
+            rows.append([float(token) for token in parts])
+
+    if not rows:
+        raise ValueError(f"No numeric hydrograph data found in {liq_path}")
+
+    data = np.asarray(rows, dtype=np.float32)
+    if data.ndim != 2 or data.shape[1] < 2:
+        raise ValueError(f"Hydrograph {liq_path} must contain at least time and one value column.")
+
+    if header is None or len(header) != data.shape[1]:
+        header = ["T"] + [f"COL_{idx}" for idx in range(1, data.shape[1])]
+
+    order = np.argsort(data[:, 0])
+    return data[order], header
+
+
+def load_liq_q_series(liq_path):
+    data, header = load_liq_table(liq_path)
+    time_seconds = data[:, 0]
+
+    q_indices = [
+        idx
+        for idx, name in enumerate(header[1:], start=1)
+        if name.upper().startswith("Q")
+    ]
+    if not q_indices:
+        q_indices = [data.shape[1] - 1]
+
+    q_values = data[:, q_indices].astype(np.float32)
+    q_labels = [header[idx] for idx in q_indices]
+
+    if q_values.ndim == 1:
+        q_values = q_values[:, None]
+
+    return time_seconds, q_values, q_labels
+
+
 def load_liq_hydrograph(liq_path):
     """
     Load TELEMAC .liq hydrograph file and return (time_seconds, discharge_q).
-    Expected numeric columns include at least time in first column and Q in last column.
+    If several Q columns are present, the returned discharge is their sum.
     """
-    t_vals = []
-    q_vals = []
-    with open(liq_path, "r", encoding="utf-8", errors="ignore") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            parts = line.split()
-            if len(parts) < 2:
-                continue
-            try:
-                t = float(parts[0])
-                q = float(parts[-1])
-            except ValueError:
-                continue
-            t_vals.append(t)
-            q_vals.append(q)
-
-    if len(t_vals) == 0:
-        raise ValueError(f"No numeric hydrograph data found in {liq_path}")
-
-    t = np.asarray(t_vals, dtype=np.float32)
-    q = np.asarray(q_vals, dtype=np.float32)
-    order = np.argsort(t)
-    return t[order], q[order]
+    time_seconds, q_values, _ = load_liq_q_series(liq_path)
+    total_q = q_values.sum(axis=1, dtype=np.float32)
+    return time_seconds, total_q
 
 
 class TelemacDatasetWithQ(TelemacDataset):
@@ -959,3 +1025,219 @@ class TelemacDatasetWithQ(TelemacDataset):
             del meansqr_stats[f"{var_name}_meansqr"]
 
         return stats
+
+
+class TelemacDatasetWithSourceNodes(TelemacDataset):
+    """
+    Dataset variant that augments the physical mesh with ghost/source inlet nodes.
+    Physical and source features stay separated:
+      - x_phys: [N_phys, d_phys]
+      - x_src:  [N_src, d_src]
+      - y_phys: [N_phys, 3]
+    """
+
+    def __init__(
+        self,
+        name="dataset_source_nodes",
+        data_dir=None,
+        dynamic_data_files=None,
+        hydro_data_files=None,
+        cli_file=None,
+        inlet_node_lists=None,
+        split="train",
+        ckpt_path='.',
+        force_reload=False,
+        verbose=False,
+        normalize=True,
+        sequence_length=1,
+        overlap=0,
+        dt_seconds=1800.0,
+    ):
+        if hydro_data_files is None:
+            raise ValueError("hydro_data_files is required for TelemacDatasetWithSourceNodes.")
+        if dynamic_data_files is None:
+            raise ValueError("dynamic_data_files is required for TelemacDatasetWithSourceNodes.")
+        if len(dynamic_data_files) != len(hydro_data_files):
+            raise ValueError("dynamic_data_files and hydro_data_files must have same length.")
+        if inlet_node_lists is None and cli_file is None:
+            raise ValueError("Provide either cli_file or inlet_node_lists.")
+
+        self.hydro_data_files = [str(p) for p in hydro_data_files]
+        self.dt_seconds = float(dt_seconds)
+        self.cli_file = cli_file
+        self.sequence_meta = []
+        self.hydrographs = {}
+        self.source_stats = None
+        self.source_feature_names = ["q"]
+
+        super().__init__(
+            name=name,
+            data_dir=data_dir,
+            dynamic_data_files=dynamic_data_files,
+            split=split,
+            ckpt_path=ckpt_path,
+            force_reload=force_reload,
+            verbose=verbose,
+            normalize=normalize,
+            sequence_length=sequence_length,
+            overlap=overlap,
+        )
+
+        self._build_sequence_meta(dynamic_data_files)
+        if inlet_node_lists is None:
+            inlet_node_lists = extract_inlet_node_lists_from_conlim(cli_file)
+        self.inlet_node_lists = normalize_inlet_node_lists(inlet_node_lists)
+
+        self.num_physical_nodes = self.base_graph.num_nodes()
+        self._validate_inlet_node_lists()
+
+        self.num_source_nodes = len(self.inlet_node_lists)
+        self.physical_static = self.base_graph.ndata["static"].clone()
+        self.base_graph_with_sources = add_ghost_source_nodes(
+            self.base_graph,
+            self.inlet_node_lists,
+            edge_feature_dim=self.base_graph.edata["x"].shape[1],
+        )
+
+        self._load_source_hydrographs()
+
+        if normalize:
+            if split == "train":
+                self.source_stats = self._get_source_stats()
+                save_json(self.source_stats, ckpt_path, "source_stats.json")
+            else:
+                self.source_stats = load_json(
+                    f"{ckpt_path}/source_stats.json",
+                    dtype=torch.float32,
+                )
+
+    def _build_sequence_meta(self, dynamic_data_files):
+        step = max(1, self.sequence_length - self.overlap)
+        for file_path, hydro_path in zip(dynamic_data_files, self.hydro_data_files):
+            with open(file_path, 'rb') as f:
+                dynamic_data = pickle.load(f)
+            for _ in range(0, len(dynamic_data) - self.sequence_length + 1, step):
+                self.sequence_meta.append({"hydro_path": hydro_path})
+
+        if len(self.sequence_meta) != len(self.sequences):
+            raise ValueError(
+                f"Sequence metadata mismatch: {len(self.sequence_meta)} meta vs {len(self.sequences)} sequences."
+            )
+
+    def _validate_inlet_node_lists(self):
+        for source_id, inlet_nodes in enumerate(self.inlet_node_lists):
+            for node_id in inlet_nodes:
+                if node_id < 0 or node_id >= self.num_physical_nodes:
+                    raise ValueError(
+                        f"Inlet node {node_id} from source {source_id} is outside the physical graph."
+                    )
+
+    def _load_source_hydrographs(self):
+        for hydro_path in set(self.hydro_data_files):
+            t_arr, q_values, q_labels = load_liq_q_series(hydro_path)
+            if q_values.shape[1] != self.num_source_nodes:
+                raise ValueError(
+                    f"{hydro_path} provides {q_values.shape[1]} Q series but "
+                    f"{self.num_source_nodes} source nodes are defined."
+                )
+            self.hydrographs[hydro_path] = {
+                "time_seconds": t_arr,
+                "q_values": q_values,
+                "q_labels": q_labels,
+            }
+
+    def _source_q_at_ts(self, hydro_path, ts):
+        if ts is None:
+            raise ValueError(
+                "Sample is missing ts. TelemacDatasetWithSourceNodes requires (x, y, ts)."
+            )
+
+        hydro = self.hydrographs[hydro_path]
+        t_sec = float(ts) * self.dt_seconds
+        t_arr = hydro["time_seconds"]
+        q_values = hydro["q_values"]
+
+        return np.asarray(
+            [
+                np.interp(
+                    t_sec,
+                    t_arr,
+                    q_values[:, source_id],
+                    left=q_values[0, source_id],
+                    right=q_values[-1, source_id],
+                )
+                for source_id in range(self.num_source_nodes)
+            ],
+            dtype=np.float32,
+        )
+
+    def _build_source_features_raw(self, hydro_path, ts):
+        q_values = self._source_q_at_ts(hydro_path, ts)
+        return q_values[:, None].astype(np.float32)
+
+    def _normalize_source_features(self, source_features):
+        if self.source_stats is None:
+            return source_features
+
+        source_features = source_features.clone()
+        for feature_idx, feature_name in enumerate(self.source_feature_names):
+            mean = self.source_stats[feature_name].item()
+            std = self.source_stats[f"{feature_name}_std"].item()
+            if std != 0.0:
+                source_features[:, feature_idx:feature_idx+1] = (
+                    source_features[:, feature_idx:feature_idx+1] - mean
+                ) / std
+        return source_features
+
+    def _get_source_stats(self):
+        sums = torch.zeros(len(self.source_feature_names), dtype=torch.float32)
+        sumsqr = torch.zeros(len(self.source_feature_names), dtype=torch.float32)
+        total = 0
+
+        for seq_idx, sequence in enumerate(self.sequences):
+            hydro_path = self.sequence_meta[seq_idx]["hydro_path"]
+            for sample in sequence:
+                _, _, ts = unpack_dynamic_sample(sample)
+                source_features = torch.tensor(
+                    self._build_source_features_raw(hydro_path, ts),
+                    dtype=torch.float32,
+                )
+                sums += source_features.sum(dim=0)
+                sumsqr += (source_features * source_features).sum(dim=0)
+                total += source_features.shape[0]
+
+        denom = max(total, 1)
+        stats = {}
+        for feature_idx, feature_name in enumerate(self.source_feature_names):
+            mean = sums[feature_idx] / denom
+            meansqr = sumsqr[feature_idx] / denom
+            std = torch.sqrt(torch.clamp(meansqr - mean * mean, min=0.0))
+            stats[feature_name] = mean.unsqueeze(0)
+            stats[f"{feature_name}_std"] = std.unsqueeze(0)
+
+        return stats
+
+    def __getitem__(self, idx):
+        sequence = self.sequences[idx]
+        hydro_path = self.sequence_meta[idx]["hydro_path"]
+        output_sequence = []
+
+        for sample in sequence:
+            x, y, ts = unpack_dynamic_sample(sample)
+            dynamic_features = torch.tensor(x, dtype=torch.float32)
+            x_phys = torch.cat((self.physical_static, dynamic_features), dim=1)
+
+            raw_source_features = self._build_source_features_raw(hydro_path, ts)
+            x_src = torch.tensor(raw_source_features, dtype=torch.float32)
+            x_src = self._normalize_source_features(x_src)
+
+            output_sequence.append(
+                {
+                    "graph": self.base_graph_with_sources.clone(),
+                    "x_phys": x_phys,
+                    "x_src": x_src,
+                    "y_phys": torch.tensor(y, dtype=torch.float32),
+                }
+            )
+
+        return output_sequence

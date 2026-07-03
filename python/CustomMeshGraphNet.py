@@ -198,6 +198,125 @@ class MeshGraphNet(Module):
         return x
 
 
+class MeshGraphNetWithSourceNodes(Module):
+    """MeshGraphNet variant with separate encoders for physical and source nodes."""
+
+    def __init__(
+        self,
+        input_dim_nodes_phys: int,
+        input_dim_nodes_src: int,
+        input_dim_edges: int,
+        output_dim: int,
+        processor_size: int = 15,
+        mlp_activation_fn: Union[str, List[str]] = "selu",
+        num_layers_node_processor: int = 2,
+        num_layers_edge_processor: int = 2,
+        hidden_dim_processor: int = 128,
+        hidden_dim_node_encoder: int = 128,
+        num_layers_node_encoder: Union[int, None] = 2,
+        hidden_dim_edge_encoder: int = 128,
+        num_layers_edge_encoder: Union[int, None] = 2,
+        hidden_dim_node_decoder: int = 128,
+        num_layers_node_decoder: Union[int, None] = 2,
+        aggregation: str = "sum",
+        do_concat_trick: bool = False,
+        num_processor_checkpoint_segments: int = 0,
+    ):
+        super().__init__(meta=MetaData())
+
+        activation_fn = get_activation(mlp_activation_fn)
+        self.hidden_dim_processor = hidden_dim_processor
+
+        self.edge_encoder = MeshGraphMLP(
+            input_dim_edges,
+            output_dim=hidden_dim_processor,
+            hidden_dim=hidden_dim_edge_encoder,
+            hidden_layers=num_layers_edge_encoder,
+            activation_fn=activation_fn,
+            norm_type="LayerNorm",
+            recompute_activation=False,
+        )
+
+        self.physical_node_encoder = MeshGraphMLP(
+            input_dim_nodes_phys,
+            output_dim=hidden_dim_processor,
+            hidden_dim=hidden_dim_node_encoder,
+            hidden_layers=num_layers_node_encoder,
+            activation_fn=activation_fn,
+            norm_type="LayerNorm",
+            recompute_activation=False,
+        )
+
+        self.source_node_encoder = MeshGraphMLP(
+            input_dim_nodes_src,
+            output_dim=hidden_dim_processor,
+            hidden_dim=hidden_dim_node_encoder,
+            hidden_layers=num_layers_node_encoder,
+            activation_fn=activation_fn,
+            norm_type="LayerNorm",
+            recompute_activation=False,
+        )
+
+        self.node_decoder = MeshGraphMLP(
+            hidden_dim_processor,
+            output_dim=output_dim,
+            hidden_dim=hidden_dim_node_decoder,
+            hidden_layers=num_layers_node_decoder,
+            activation_fn=activation_fn,
+            norm_type=None,
+            recompute_activation=False,
+        )
+
+        self.processor = MeshGraphNetProcessor(
+            processor_size=processor_size,
+            input_dim_node=hidden_dim_processor,
+            input_dim_edge=hidden_dim_processor,
+            num_layers_node=num_layers_node_processor,
+            num_layers_edge=num_layers_edge_processor,
+            aggregation=aggregation,
+            norm_type="LayerNorm",
+            activation_fn=activation_fn,
+            do_concat_trick=do_concat_trick,
+            num_processor_checkpoint_segments=num_processor_checkpoint_segments,
+        )
+
+    def forward(
+        self,
+        graph: Union[DGLGraph, List[DGLGraph], CuGraphCSC],
+        x_phys: Tensor,
+        x_src: Tensor,
+        edge_features: Tensor,
+    ) -> Tensor:
+        is_physical = graph.ndata["is_physical"].squeeze(-1).bool()
+        is_source = graph.ndata["is_source"].squeeze(-1).bool()
+
+        if int(is_physical.sum().item()) != x_phys.shape[0]:
+            raise ValueError(
+                f"Physical node mismatch: graph has {int(is_physical.sum().item())} "
+                f"physical nodes but x_phys has {x_phys.shape[0]} rows."
+            )
+        if int(is_source.sum().item()) != x_src.shape[0]:
+            raise ValueError(
+                f"Source node mismatch: graph has {int(is_source.sum().item())} "
+                f"source nodes but x_src has {x_src.shape[0]} rows."
+            )
+
+        edge_latent = self.edge_encoder(edge_features)
+        h_phys = self.physical_node_encoder(x_phys)
+        h_src = self.source_node_encoder(x_src)
+
+        node_latent = torch.zeros(
+            (graph.num_nodes(), self.hidden_dim_processor),
+            device=x_phys.device,
+            dtype=h_phys.dtype,
+        )
+        node_latent[is_physical] = h_phys
+        node_latent[is_source] = h_src
+
+        node_latent = self.processor(node_latent, edge_latent, graph)
+        return self.node_decoder(node_latent[is_physical])
+
+
 class MeshGraphNetProcessor(nn.Module):
     """MeshGraphNet processor block"""
 
