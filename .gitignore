@@ -16,3 +16,5 @@
 /uts_Tet_full/
 /outputs/
 /temp/
+
+*.log
