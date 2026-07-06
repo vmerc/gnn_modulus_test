@@ -13,8 +13,7 @@ from pathlib import Path
 import dgl
 import numpy as np
 import torch
-from scipy.interpolate import LinearNDInterpolator
-from scipy.spatial import KDTree
+from scipy.spatial import Delaunay, KDTree
 
 
 SOURCE_CASE_DIR = Path("/work/m24046/m24046mrcr/results_data_30min")
@@ -166,10 +165,55 @@ def save_pickle(path: Path, data) -> None:
         pickle.dump(data, handle)
 
 
-def interpolate_field(fine_xy: np.ndarray, fine_values: np.ndarray, coarse_xy: np.ndarray) -> np.ndarray:
-    interpolator = LinearNDInterpolator(fine_xy, np.ascontiguousarray(fine_values))
-    coarse_values = interpolator(coarse_xy)
-    return np.nan_to_num(coarse_values, nan=0.0).astype(np.float32)
+def build_interpolation_plan(fine_xy: np.ndarray, coarse_xy: np.ndarray) -> dict[str, np.ndarray]:
+    triangulation = Delaunay(fine_xy)
+    simplex_ids = triangulation.find_simplex(coarse_xy)
+    valid_mask = simplex_ids >= 0
+
+    num_points = coarse_xy.shape[0]
+    num_vertices = fine_xy.shape[1] + 1
+    vertices = np.full((num_points, num_vertices), -1, dtype=np.int64)
+    weights = np.zeros((num_points, num_vertices), dtype=np.float32)
+
+    if np.any(valid_mask):
+        valid_simplex_ids = simplex_ids[valid_mask]
+        vertices[valid_mask] = triangulation.simplices[valid_simplex_ids]
+
+        transform = triangulation.transform[valid_simplex_ids]
+        delta = coarse_xy[valid_mask] - transform[:, -1, :]
+        bary = np.einsum("nij,nj->ni", transform[:, :-1, :], delta)
+
+        weights[valid_mask, :-1] = bary
+        weights[valid_mask, -1] = 1.0 - bary.sum(axis=1)
+
+    return {
+        "vertices": vertices,
+        "weights": weights,
+        "valid_mask": valid_mask,
+    }
+
+
+def interpolate_field(fine_values: np.ndarray, interpolation_plan: dict[str, np.ndarray]) -> np.ndarray:
+    values = np.asarray(fine_values, dtype=np.float32)
+    squeeze_output = values.ndim == 1
+    if squeeze_output:
+        values = values[:, None]
+
+    output = np.zeros(
+        (interpolation_plan["weights"].shape[0], values.shape[1]),
+        dtype=np.float32,
+    )
+
+    valid_mask = interpolation_plan["valid_mask"]
+    if np.any(valid_mask):
+        vertices = interpolation_plan["vertices"][valid_mask]
+        weights = interpolation_plan["weights"][valid_mask]
+        gathered_values = values[vertices]
+        output[valid_mask] = np.einsum("ij,ijk->ik", weights, gathered_values)
+
+    if squeeze_output:
+        return output[:, 0]
+    return output
 
 
 def read_scalar_field(mesh: TelemacFile, field_name: str) -> np.ndarray:
@@ -245,7 +289,9 @@ def build_x8_base_dataset(
     fine_mesh = TelemacFile(str(fine_mesh_path))
     x8_mesh = TelemacFile(str(x8_mesh_path))
 
+    fine_xy, _ = add_mesh_info(fine_mesh)
     x8_xy, x8_triangles = add_mesh_info(x8_mesh)
+    interpolation_plan = build_interpolation_plan(fine_xy, x8_xy)
     x8_boundary_nodes = boundary_node_indices(x8_triangles)
     x8_node_types = project_boundary_node_types(fine_res, x8_xy, x8_boundary_nodes)
     inlet_node_lists = project_inlet_node_lists(fine_res, cli_path, x8_xy, x8_boundary_nodes)
@@ -253,14 +299,18 @@ def build_x8_base_dataset(
     try:
         friction = read_scalar_field(x8_mesh, "FROTTEMENT")
     except Exception:
-        fine_xy, _ = add_mesh_info(fine_mesh)
-        friction = interpolate_field(fine_xy, read_scalar_field(fine_mesh, "FROTTEMENT"), x8_xy)
+        friction = interpolate_field(
+            read_scalar_field(fine_mesh, "FROTTEMENT"),
+            interpolation_plan,
+        )
 
     try:
         bottom = read_scalar_field(x8_mesh, "FOND")
     except Exception:
-        fine_xy, _ = add_mesh_info(fine_mesh)
-        bottom = interpolate_field(fine_xy, read_scalar_field(fine_mesh, "FOND"), x8_xy)
+        bottom = interpolate_field(
+            read_scalar_field(fine_mesh, "FOND"),
+            interpolation_plan,
+        )
 
     graph, edge_features = get_dgl_graph(x8_mesh.tri)
     graph.edata["x"] = torch.tensor(edge_features, dtype=torch.float32)
@@ -279,16 +329,15 @@ def build_x8_base_dataset(
 def interpolate_pkl_file(
     input_path: Path,
     output_path: Path,
-    fine_xy: np.ndarray,
-    x8_xy: np.ndarray,
+    interpolation_plan: dict[str, np.ndarray],
 ) -> None:
     samples = load_pickle(input_path)
     interpolated_samples = []
 
     for sample in samples:
         x, y, ts = unpack_sample(sample)
-        x_interp = interpolate_field(fine_xy, x, x8_xy)
-        y_interp = interpolate_field(fine_xy, y, x8_xy)
+        x_interp = interpolate_field(x, interpolation_plan)
+        y_interp = interpolate_field(y, interpolation_plan)
         if ts is None:
             interpolated_samples.append((x_interp, y_interp))
         else:
@@ -307,6 +356,7 @@ def interpolate_fine_dataset(
     x8_mesh = TelemacFile(str(x8_mesh_path))
     fine_xy, _ = add_mesh_info(fine_mesh)
     x8_xy, _ = add_mesh_info(x8_mesh)
+    interpolation_plan = build_interpolation_plan(fine_xy, x8_xy)
 
     input_files = sorted(fine_dataset_dir.glob("*.pkl"))
     if not input_files:
@@ -314,7 +364,7 @@ def interpolate_fine_dataset(
 
     for input_path in input_files:
         output_path = x8_full_dir / f"{input_path.stem}_interpolated.pkl"
-        interpolate_pkl_file(input_path, output_path, fine_xy, x8_xy)
+        interpolate_pkl_file(input_path, output_path, interpolation_plan)
 
 
 def parse_chunk_path(path: Path) -> tuple[str, int, int, int]:
@@ -406,8 +456,9 @@ def main() -> None:
     fine_dataset_dir = ensure_dir(output_root / "fine_dataset")
     x8_full_dir = ensure_dir(output_root / "x8_full")
     x8_short_dir = ensure_dir(output_root / "x8_short")
-
-    res_files = create_fine_dataset(source_case_dir, fine_mesh_path, cli_path, fine_dataset_dir)
+    #On a déjà les fulls
+    res_files = list_res_files(source_case_dir)
+    #res_files = create_fine_dataset(source_case_dir, fine_mesh_path, cli_path, fine_dataset_dir)
     build_x8_base_dataset(fine_mesh_path, res_files[0], cli_path, x8_mesh_path, x8_full_dir)
     interpolate_fine_dataset(fine_mesh_path, x8_mesh_path, fine_dataset_dir, x8_full_dir)
     short_files = build_short_dataset(x8_full_dir, x8_short_dir, SHORT_START, SHORT_STOP)
