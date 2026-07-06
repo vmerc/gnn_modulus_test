@@ -396,7 +396,11 @@ def main() -> None:
     output_root = prepare_output_root(OUTPUT_ROOT)
 
     fine_mesh_path = find_single_file(source_case_dir, ["*.slf", "*.geo"], "fine mesh")
-    cli_path = find_single_file(source_case_dir, ["*.cli", "*.conlim"], "boundary file")
+    cli_path = find_single_file(
+        source_case_dir,
+        ["*.cli", "*.conlim", "cli", "conlim"],
+        "boundary file",
+    )
     x8_mesh_path = find_single_file(x8_case_dir, ["*.slf", "*.geo"], "x8 mesh")
 
     fine_dataset_dir = ensure_dir(output_root / "fine_dataset")
