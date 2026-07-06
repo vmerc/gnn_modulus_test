@@ -227,10 +227,8 @@ class SourceNodeTrainer:
     def _renorm(x, mean, std):
         return (x - mean) / (std + 1e-12)
 
-    def _apply_bc_inplace(self, x_pred, x_gt, onehot):
-        q_mask = (onehot == torch.tensor([0, 0, 1, 0], device=onehot.device)).all(dim=1)
+    def _apply_h_boundary_inplace(self, x_pred, x_gt, onehot):
         h_mask = (onehot == torch.tensor([0, 1, 0, 0], device=onehot.device)).all(dim=1)
-        x_pred[q_mask] = x_gt[q_mask]
         x_pred[h_mask, 0] = x_gt[h_mask, 0]
         return x_pred
 
@@ -271,7 +269,7 @@ class SourceNodeTrainer:
             xn_t1_gt = next_step["x_phys"][:, self.static_dim:self.static_dim + 3].to(self.dist.device)
             x_t1_gt = self._denorm(xn_t1_gt, self.mx.to(xn_t.device), self.sx.to(xn_t.device))
 
-            x_t1_pred = self._apply_bc_inplace(x_t1_pred, x_t1_gt, onehot)
+            x_t1_pred = self._apply_h_boundary_inplace(x_t1_pred, x_t1_gt, onehot)
             total_loss = total_loss + loss_t
 
             use_tf = torch.rand(1, device=self.dist.device).item() < self.p_tf(epoch)

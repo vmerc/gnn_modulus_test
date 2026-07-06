@@ -231,7 +231,13 @@ def get_node_outputs(x, x_future):
 #    #print((x[:,:4] == [0,1,0,0]).all(axis=1).sum())
 #    return x
 
-def put_boundary_infos(x, x_future, static_features):
+def put_boundary_infos(
+    x,
+    x_future,
+    static_features,
+    enforce_q_boundary=True,
+    enforce_h_boundary=True,
+):
     """
     Args:
         x (np.array): current timestep node features
@@ -254,12 +260,19 @@ def put_boundary_infos(x, x_future, static_features):
     q_mask = (static_features[:, node_type_idx:node_type_idx+node_type_length] == [0, 0, 1, 0]).all(axis=1)
     h_mask = (static_features[:, node_type_idx:node_type_idx+node_type_length] == [0, 1, 0, 0]).all(axis=1)
     
-    x[q_mask, h_idx:v_idx+1] = x_future[q_mask, h_idx:v_idx+1]
-    x[h_mask, h_idx:h_idx+1] = x_future[h_mask, h_idx:h_idx+1]
+    if enforce_q_boundary:
+        x[q_mask, h_idx:v_idx+1] = x_future[q_mask, h_idx:v_idx+1]
+    if enforce_h_boundary:
+        x[h_mask, h_idx:h_idx+1] = x_future[h_mask, h_idx:h_idx+1]
     
     return x
 
-def put_boundary_infos_on_changes(y, static_features):
+def put_boundary_infos_on_changes(
+    y,
+    static_features,
+    zero_q_boundary_changes=True,
+    zero_h_boundary_changes=True,
+):
     """
     Args:
         x (np.array): current timestep node features
@@ -282,8 +295,10 @@ def put_boundary_infos_on_changes(y, static_features):
     q_mask = (static_features[:, node_type_idx:node_type_idx+node_type_length] == [0, 0, 1, 0]).all(axis=1)
     h_mask = (static_features[:, node_type_idx:node_type_idx+node_type_length] == [0, 1, 0, 0]).all(axis=1)
     
-    y[q_mask, h_idx:v_idx+1] = 0.0
-    y[h_mask, h_idx:h_idx+1] = 0.0
+    if zero_q_boundary_changes:
+        y[q_mask, h_idx:v_idx+1] = 0.0
+    if zero_h_boundary_changes:
+        y[h_mask, h_idx:h_idx+1] = 0.0
     
     return y
 
@@ -311,7 +326,17 @@ def get_dgl_graph(tri):
 #    g.ndata['x'] = torch.tensor(node_features, dtype=torch.float32)  # Add node features
 #    g.edata['x'] = torch.tensor(edge_features, dtype=torch.float32)  # Add edge features
 
-def create_dgl_dataset_chunked(mesh_list, res_list, cli_list, dt_list, data_folder, dataset_name, chunk_size=20):
+def create_dgl_dataset_chunked(
+    mesh_list,
+    res_list,
+    cli_list,
+    dt_list,
+    data_folder,
+    dataset_name,
+    chunk_size=20,
+    enforce_q_boundary=True,
+    enforce_h_boundary=True,
+):
     """
     mesh_list : list(string) : liste des fichiers .slf qui contiennent les maillages associées aux .res
     
@@ -363,8 +388,13 @@ def create_dgl_dataset_chunked(mesh_list, res_list, cli_list, dt_list, data_fold
                 # Get dynamic node features for current and next timesteps
                 dynamic_node_features = get_dynamic_node_features(res, ts)
                 dynamic_node_features_future = get_dynamic_node_features(res, ts + 1)
-                dynamic_node_features = put_boundary_infos(dynamic_node_features, dynamic_node_features_future, static_node_features)
-                #put no modification on boundaries 
+                dynamic_node_features = put_boundary_infos(
+                    dynamic_node_features,
+                    dynamic_node_features_future,
+                    static_node_features,
+                    enforce_q_boundary=enforce_q_boundary,
+                    enforce_h_boundary=enforce_h_boundary,
+                )
                 
                 # Get outputs for training
                 y = get_node_outputs(dynamic_node_features, dynamic_node_features_future)
@@ -375,7 +405,12 @@ def create_dgl_dataset_chunked(mesh_list, res_list, cli_list, dt_list, data_fold
    
                 #print(np.allclose(dynamic_node_features + y, dynamic_node_features_future,rtol=1e-4, atol=1e-7))
                 
-                y = put_boundary_infos_on_changes(y,static_node_features) #put 0 on changes  
+                y = put_boundary_infos_on_changes(
+                    y,
+                    static_node_features,
+                    zero_q_boundary_changes=enforce_q_boundary,
+                    zero_h_boundary_changes=enforce_h_boundary,
+                )
 
                 dynamic_data_list.append((dynamic_node_features, y, int(ts)))
 
