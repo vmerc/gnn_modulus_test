@@ -17,9 +17,9 @@ from scipy.interpolate import LinearNDInterpolator
 from scipy.spatial import KDTree
 
 
-SOURCE_CASE_DIR = Path("/path/to/source_case_dir")
-X8_CASE_DIR = Path("/path/to/x8_case_dir")
-OUTPUT_ROOT = Path("/path/to/output_root")
+SOURCE_CASE_DIR = Path("/work/m24046/m24046mrcr/results_data_30min")
+X8_CASE_DIR = Path("/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8")
+OUTPUT_ROOT = Path("/work/m24046/m24046mrcr/dataset_Tet_short_ghost")
 
 CHUNK_SIZE = 100
 SHORT_START = 35
