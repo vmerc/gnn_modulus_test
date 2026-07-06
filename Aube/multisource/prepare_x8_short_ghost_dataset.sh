@@ -8,7 +8,6 @@
 #SBATCH --cpus-per-task 4
 #SBATCH --gres=gpu:0
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 apptainer exec --bind /tmpdir,/work --nv /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif \
-  python "$SCRIPT_DIR/prepare_x8_short_ghost_dataset.py"
+  python "prepare_x8_short_ghost_dataset.py"
