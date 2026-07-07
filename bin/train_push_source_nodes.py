@@ -4,13 +4,12 @@ import time
 import random
 from pathlib import Path
 
-import hydra
 import numpy as np
 import torch
 
 from dgl.dataloading import GraphDataLoader
 from hydra.utils import to_absolute_path
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from torch.cuda.amp import GradScaler, autocast
 from torch.nn.parallel import DistributedDataParallel
 
@@ -293,7 +292,6 @@ class SourceNodeTrainer:
         return total_loss.detach()
 
 
-@hydra.main(version_base="1.3", config_path="conf", config_name=None)
 def main(cfg: DictConfig):
     DistributedManager.initialize()
     dist = DistributedManager()
@@ -350,10 +348,12 @@ if __name__ == "__main__":
         sys.exit(1)
 
     config_name = sys.argv.pop(1)
-    if config_name.endswith((".yaml", ".yml")):
-        config_name = os.path.splitext(config_name)[0]
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    conf_dir = os.path.join(script_dir, "conf")
-    with hydra.initialize_config_dir(version_base=None, config_dir=conf_dir):
-        cfg = hydra.compose(config_name=config_name)
-        main(cfg)
+    script_dir = Path(__file__).resolve().parent
+    conf_path = script_dir / "conf" / config_name
+    if conf_path.suffix not in {".yaml", ".yml"}:
+        conf_path = conf_path.with_suffix(".yaml")
+    if not conf_path.exists():
+        raise FileNotFoundError(f"Config file not found: {conf_path}")
+
+    cfg = OmegaConf.load(conf_path)
+    main(cfg)
