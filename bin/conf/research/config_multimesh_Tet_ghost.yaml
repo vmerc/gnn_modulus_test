@@ -93,7 +93,7 @@ hydro_dir: [
 ]
 
 # projected x8 inlet support
-inlet_node_lists: [[97]]
+inlet_node_lists: [[12770]]
 
 # training configs
 batch_size: 1
