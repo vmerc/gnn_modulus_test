@@ -1276,3 +1276,23 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
             )
 
         return output_sequence
+
+    def _get_edge_stats(self, var_info):
+        # Keep independent from __getitem__ so super().__init__ remains safe.
+        stats = {key: torch.zeros(1, dtype=torch.float32) for key in var_info.keys()}
+        meansqr_stats = {f"{key}_meansqr": torch.zeros(1, dtype=torch.float32) for key in var_info.keys()}
+
+        for var_name, info in var_info.items():
+            value = self.base_graph.edata[info["source"]][:, info["index"]:info["index"]+1].to(torch.float32)
+            m = value.mean()
+            stats[var_name] = stats[var_name] + m
+            meansqr_stats[f"{var_name}_meansqr"] = meansqr_stats[f"{var_name}_meansqr"] + (value * value).mean()
+
+        for var_name in var_info.keys():
+            mean = stats[var_name]
+            ms = meansqr_stats[f"{var_name}_meansqr"]
+            var = torch.clamp(ms - mean * mean, min=0.0)
+            stats[f"{var_name}_std"] = torch.sqrt(var)
+            del meansqr_stats[f"{var_name}_meansqr"]
+
+        return stats
