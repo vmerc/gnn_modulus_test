@@ -122,5 +122,5 @@ num_processor_checkpoint_segments: 0
 recompute_activation: False
 
 seed: 0
-train_from_scratch: true
+train_from_scratch: false
 ckpt_path: "/work/m24046/m24046mrcr/Test_Tet_ghost/checkpoints/config_multimesh_Tet_ghost/Seed0/"
