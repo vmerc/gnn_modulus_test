@@ -110,7 +110,7 @@ dt_seconds: 1800.0
 # pushforward curriculum
 sequence_length: 3
 overlap: 3
-pf_warmup_epochs: 200
+pf_warmup_epochs: 0
 
 # performance configs
 use_apex: True
