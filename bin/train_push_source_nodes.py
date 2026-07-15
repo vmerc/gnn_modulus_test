@@ -42,6 +42,7 @@ class SourceNodeTrainer:
         self.sequence_length = int(cfg.sequence_length)
         if self.sequence_length < 2:
             raise ValueError("sequence_length doit etre >= 2 pour le pushforward.")
+        self.use_q_feature = bool(getattr(cfg, "use_q_feature", False))
 
         hydro_files = getattr(cfg, "hydro_dir", None)
         cli_file = getattr(cfg, "cli_file", None)
@@ -58,6 +59,7 @@ class SourceNodeTrainer:
             hydro_data_files=[to_absolute_path(p) for p in hydro_files],
             cli_file=to_absolute_path(cli_file) if cli_file else None,
             inlet_node_lists=inlet_node_lists,
+            use_q_feature=self.use_q_feature,
             split="train",
             ckpt_path=to_absolute_path(cfg.ckpt_path),
             normalize=True,
@@ -66,7 +68,10 @@ class SourceNodeTrainer:
             dt_seconds=float(getattr(cfg, "dt_seconds", 1800.0)),
         )
 
-        expected_phys_features = self.dataset.base_graph.ndata["static"].shape[1] + 3
+        expected_phys_features = (
+            self.dataset.base_graph.ndata["static"].shape[1]
+            + self.dataset.physical_dynamic_dim
+        )
         if int(cfg.num_input_features) != int(expected_phys_features):
             raise ValueError(
                 f"num_input_features={cfg.num_input_features} incompatible with source-node dataset "
@@ -93,7 +98,7 @@ class SourceNodeTrainer:
         )
 
         self.model = MeshGraphNetWithSourceNodes(
-            input_dim_nodes_phys=cfg.num_input_features,
+            input_dim_nodes_phys=expected_phys_features,
             input_dim_nodes_src=expected_source_features,
             input_dim_edges=cfg.num_edge_features,
             output_dim=cfg.num_output_features,
@@ -181,6 +186,7 @@ class SourceNodeTrainer:
         )
 
         self.static_dim = self.dataset.base_graph.ndata["static"].shape[1]
+        self.physical_dynamic_dim = self.dataset.physical_dynamic_dim
 
     def _load_init_weights(self, cfg: DictConfig, r0: RankZeroLoggingWrapper) -> int:
         if bool(getattr(cfg, "train_from_scratch", False)):
@@ -276,7 +282,14 @@ class SourceNodeTrainer:
             xn_t1_next = self._renorm(x_t1_next, self.mx.to(xn_t.device), self.sx.to(xn_t.device))
 
             static_features = current_x_phys[:, :self.static_dim]
-            current_x_phys = torch.cat((static_features, xn_t1_next), dim=1).detach()
+            forcing_t1 = next_step["x_phys"][
+                :,
+                self.static_dim + 3:self.static_dim + self.physical_dynamic_dim,
+            ].to(self.dist.device)
+            current_x_phys = torch.cat(
+                (static_features, xn_t1_next, forcing_t1),
+                dim=1,
+            ).detach()
             current_x_src = next_step["x_src"].to(self.dist.device)
 
         total_loss = total_loss / max(1, k_steps)

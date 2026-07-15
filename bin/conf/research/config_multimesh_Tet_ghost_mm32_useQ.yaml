@@ -1,6 +1,6 @@
 # multimesh x8 with ghost/source nodes on the Têt
-# same ghost/source setup as config_multimesh_Tet_ghost
-# but using the multimesh base graph instead of Mesh8_base.bin
+# same dataset as config_multimesh_Tet_ghost_mm32
+# but with global Q features repeated on physical nodes
 
 # data configs
 data_dir: /work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Multimesh_8_32.bin
@@ -100,9 +100,9 @@ epochs: 1901
 mp_layers: 10
 lr: 0.0005
 lr_decay_rate: 0.999995
-num_input_features: 9
+num_input_features: 10
 num_input_features_source: 1
-use_q_feature: false
+use_q_feature: true
 num_output_features: 3
 num_edge_features: 3
 dt_seconds: 1800.0
@@ -112,6 +112,7 @@ sequence_length: 3
 overlap: 3
 pf_warmup_epochs: 0
 #à la base 200
+
 # performance configs
 use_apex: True
 amp: True
@@ -122,5 +123,5 @@ num_processor_checkpoint_segments: 0
 recompute_activation: False
 
 seed: 0
-train_from_scratch: false
-ckpt_path: "/work/m24046/m24046mrcr/Test_Tet_ghost/checkpoints/config_multimesh_Tet_ghost_mm32/Seed0/"
+train_from_scratch: true
+ckpt_path: "/work/m24046/m24046mrcr/Test_Tet_ghost/checkpoints/config_multimesh_Tet_ghost_mm32_useQ/Seed0/"

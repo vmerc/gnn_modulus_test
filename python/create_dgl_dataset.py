@@ -1079,6 +1079,7 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
         hydro_data_files=None,
         cli_file=None,
         inlet_node_lists=None,
+        use_q_feature=False,
         split="train",
         ckpt_path='.',
         force_reload=False,
@@ -1100,6 +1101,7 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
         self.hydro_data_files = [str(p) for p in hydro_data_files]
         self.dt_seconds = float(dt_seconds)
         self.cli_file = cli_file
+        self.use_q_feature = bool(use_q_feature)
         self.sequence_meta = []
         self.hydrographs = {}
         self.source_stats = None
@@ -1127,6 +1129,13 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
         self._validate_inlet_node_lists()
 
         self.num_source_nodes = len(self.inlet_node_lists)
+        self.global_q_feature_names = [
+            f"q_{source_id}"
+            for source_id in range(self.num_source_nodes)
+        ]
+        self.physical_dynamic_dim = 3 + (
+            self.num_source_nodes if self.use_q_feature else 0
+        )
         self.physical_static = self.base_graph.ndata["static"].clone()
         self.base_graph_with_sources = add_ghost_source_nodes(
             self.base_graph,
@@ -1140,11 +1149,16 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
             if split == "train":
                 self.source_stats = self._get_source_stats()
                 save_json(self.source_stats, ckpt_path, "source_stats.json")
+                if self.use_q_feature:
+                    self.node_stats.update(self._get_global_q_stats())
+                    save_json(self.node_stats, ckpt_path, "node_stats.json")
             else:
                 self.source_stats = load_json(
                     f"{ckpt_path}/source_stats.json",
                     dtype=torch.float32,
                 )
+                if self.use_q_feature:
+                    self._validate_global_q_stats()
 
     def _build_sequence_meta(self, dynamic_data_files):
         step = max(1, self.sequence_length - self.overlap)
@@ -1210,6 +1224,9 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
         q_values = self._source_q_at_ts(hydro_path, ts)
         return q_values[:, None].astype(np.float32)
 
+    def _build_global_q_features_raw(self, hydro_path, ts):
+        return self._source_q_at_ts(hydro_path, ts)
+
     def _normalize_source_features(self, source_features):
         if self.source_stats is None:
             return source_features
@@ -1223,6 +1240,35 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
                     source_features[:, feature_idx:feature_idx+1] - mean
                 ) / std
         return source_features
+
+    def _normalize_global_q_features(self, global_q_features):
+        if (not self.use_q_feature) or self.node_stats is None:
+            return global_q_features
+
+        global_q_features = global_q_features.clone()
+        for source_id, feature_name in enumerate(self.global_q_feature_names):
+            mean = self.node_stats[feature_name].item()
+            std = self.node_stats[f"{feature_name}_std"].item()
+            if std != 0.0:
+                global_q_features[:, source_id:source_id+1] = (
+                    global_q_features[:, source_id:source_id+1] - mean
+                ) / std
+        return global_q_features
+
+    def _validate_global_q_stats(self):
+        missing_keys = []
+        for feature_name in self.global_q_feature_names:
+            if feature_name not in self.node_stats:
+                missing_keys.append(feature_name)
+            std_key = f"{feature_name}_std"
+            if std_key not in self.node_stats:
+                missing_keys.append(std_key)
+
+        if missing_keys:
+            raise ValueError(
+                "Missing global Q statistics in node_stats.json for "
+                f"TelemacDatasetWithSourceNodes(use_q_feature=True): {missing_keys}"
+            )
 
     def _get_source_stats(self):
         sums = torch.zeros(len(self.source_feature_names), dtype=torch.float32)
@@ -1252,6 +1298,34 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
 
         return stats
 
+    def _get_global_q_stats(self):
+        sums = torch.zeros(self.num_source_nodes, dtype=torch.float32)
+        sumsqr = torch.zeros(self.num_source_nodes, dtype=torch.float32)
+        total = 0
+
+        for seq_idx, sequence in enumerate(self.sequences):
+            hydro_path = self.sequence_meta[seq_idx]["hydro_path"]
+            for sample in sequence:
+                _, _, ts = unpack_dynamic_sample(sample)
+                q_values = torch.tensor(
+                    self._build_global_q_features_raw(hydro_path, ts),
+                    dtype=torch.float32,
+                )
+                sums += q_values
+                sumsqr += q_values * q_values
+                total += 1
+
+        denom = max(total, 1)
+        stats = {}
+        for source_id, feature_name in enumerate(self.global_q_feature_names):
+            mean = sums[source_id] / denom
+            meansqr = sumsqr[source_id] / denom
+            std = torch.sqrt(torch.clamp(meansqr - mean * mean, min=0.0))
+            stats[feature_name] = mean.unsqueeze(0)
+            stats[f"{feature_name}_std"] = std.unsqueeze(0)
+
+        return stats
+
     def __getitem__(self, idx):
         sequence = self.sequences[idx]
         hydro_path = self.sequence_meta[idx]["hydro_path"]
@@ -1260,6 +1334,17 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
         for sample in sequence:
             x, y, ts = unpack_dynamic_sample(sample)
             dynamic_features = torch.tensor(x, dtype=torch.float32)
+            if self.use_q_feature:
+                raw_global_q = self._build_global_q_features_raw(hydro_path, ts)
+                global_q_features = torch.tensor(
+                    raw_global_q,
+                    dtype=torch.float32,
+                ).unsqueeze(0).repeat(dynamic_features.shape[0], 1)
+                global_q_features = self._normalize_global_q_features(global_q_features)
+                dynamic_features = torch.cat(
+                    (dynamic_features, global_q_features),
+                    dim=1,
+                )
             x_phys = torch.cat((self.physical_static, dynamic_features), dim=1)
 
             raw_source_features = self._build_source_features_raw(hydro_path, ts)
