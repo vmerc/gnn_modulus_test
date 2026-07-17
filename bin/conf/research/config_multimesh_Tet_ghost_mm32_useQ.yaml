@@ -110,8 +110,7 @@ dt_seconds: 1800.0
 # pushforward curriculum
 sequence_length: 3
 overlap: 3
-pf_warmup_epochs: 0
-#à la base 200
+pf_warmup_epochs: 0 #ancien : 200
 
 # performance configs
 use_apex: True
@@ -123,5 +122,5 @@ num_processor_checkpoint_segments: 0
 recompute_activation: False
 
 seed: 0
-train_from_scratch: true
+train_from_scratch: False
 ckpt_path: "/work/m24046/m24046mrcr/Test_Tet_ghost/checkpoints/config_multimesh_Tet_ghost_mm32_useQ/Seed0/"
