@@ -1,0 +1,49 @@
+# Overfit Aube T1 on one Q5 trajectory projected onto the regular 20 m mesh.
+# Three ghost nodes carry Q1, Q2 and Q3; the same three values are also global features.
+
+# data
+data_dir: /work/m24046/m24046mrcr/Test_Aube_T1_regular/dataset_20m_ghost/regular_short/Aube_T1_regular_20m_base.bin
+
+dynamic_dir: [
+  '/work/m24046/m24046mrcr/Test_Aube_T1_regular/dataset_20m_ghost/regular_short/08_T1_V9_Topo3_KV5_Q5_0_47-76_interpolated.pkl',
+]
+
+hydro_dir: [
+  '/work/m24046/m24046mrcr/Test_Aube_T1_regular/original_dataset/T1_Q5_V1.liq',
+]
+
+inlet_node_lists:
+  - [89, 90, 141, 142, 143, 144]
+  - [3279, 3338, 3399, 3400, 3464]
+  - [43959, 43960, 44127, 44128, 44129, 44130]
+
+# training
+batch_size: 1
+epochs: 501
+mp_layers: 10
+lr: 0.0005
+lr_decay_rate: 0.999995
+num_input_features: 12
+num_input_features_source: 1
+use_q_feature: true
+num_output_features: 3
+num_edge_features: 3
+dt_seconds: 7200.0
+
+# one-step overfit
+sequence_length: 2
+overlap: 2
+pf_warmup_epochs: 0
+
+# performance
+use_apex: true
+amp: true
+jit: false
+num_dataloader_workers: 1
+do_concat_trick: true
+num_processor_checkpoint_segments: 0
+recompute_activation: false
+
+seed: 0
+train_from_scratch: true
+ckpt_path: /work/m24046/m24046mrcr/Test_Aube_T1_regular/checkpoints/config_overfit_Aube_T1_ghost_useQ/Seed0/
