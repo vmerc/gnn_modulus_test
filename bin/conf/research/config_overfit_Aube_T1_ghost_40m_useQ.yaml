@@ -2,10 +2,10 @@
 # Three ghost nodes carry Q1, Q2 and Q3; the same three values are also global features.
 
 # data
-data_dir: /work/m24046/m24046mrcr/Test_Aube_T1_regular/dataset_20m_ghost/regular_short/Aube_T1_regular_20m_base.bin
+data_dir: /work/m24046/m24046mrcr/Test_Aube_T1_regular/dataset_40m_ghost/regular_short/Aube_T1_regular_40m_base.bin
 
 dynamic_dir: [
-  '/work/m24046/m24046mrcr/Test_Aube_T1_regular/dataset_20m_ghost/regular_short/08_T1_V9_Topo3_KV5_Q5_0_47-76_interpolated.pkl',
+  '/work/m24046/m24046mrcr/Test_Aube_T1_regular/dataset_40m_ghost/regular_short/08_T1_V9_Topo3_KV5_Q5_0_47-76_interpolated.pkl',
 ]
 
 hydro_dir: [
@@ -13,15 +13,15 @@ hydro_dir: [
 ]
 
 inlet_node_lists:
-  - [89, 90, 141, 142, 143, 144]
-  - [3279, 3338, 3399, 3400, 3464]
-  - [43959, 43960, 44127, 44128, 44129, 44130]
+  - [37, 38, 39, 40]
+  - [817, 848, 881]
+  - [11006, 11007, 11092, 11093]
 
 # training
 batch_size: 1
-epochs: 501
+epochs: 2001
 mp_layers: 10
-lr: 0.0005
+lr: 0.0001
 lr_decay_rate: 0.999995
 num_input_features: 12
 num_input_features_source: 1
@@ -46,4 +46,4 @@ recompute_activation: false
 
 seed: 0
 train_from_scratch: false
-ckpt_path: /work/m24046/m24046mrcr/Test_Aube_T1_regular/checkpoints/config_overfit_Aube_T1_ghost_useQ/Seed0/
+ckpt_path: /work/m24046/m24046mrcr/Test_Aube_T1_regular/checkpoints/config_overfit_Aube_T1_ghost_40m_useQ/Seed0/

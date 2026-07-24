@@ -17,7 +17,7 @@ from scipy.spatial import Delaunay, KDTree
 
 
 CASE_ROOT = Path("/work/m24046/m24046mrcr/Test_Aube_T1_regular")
-REGULAR_MESH_SIZE_M = 20
+REGULAR_MESH_SIZE_M = 40
 
 SOURCE_CASE_DIR = CASE_ROOT / "original_dataset"
 REGULAR_CASE_DIR = CASE_ROOT / f"dataset_{REGULAR_MESH_SIZE_M}m"
