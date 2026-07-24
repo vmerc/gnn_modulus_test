@@ -150,22 +150,27 @@ def get_static_node_features(res, res_mesh):
 
 
 def get_edge_index(tri):
-    """ 
-    Return the connectivity of the graph in COO format
+    """Return unique directed edges from a triangular mesh."""
+    return get_edge_index_from_triangles(tri.triangles)
 
-    Returns:
-        np.array : [2 x num_edges]
-    """
-    edges = set()
-    for triangle in tri.triangles:
-        for i in range(3):
-            edge_1 = tuple(sorted([triangle[i], triangle[(i + 1) % 3]]))
-            edge_2 = tuple(sorted([triangle[i], triangle[(i + 1) % 3]],reverse=True))
-            edges.add(edge_1)
-            edges.add(edge_2)
 
-    coo = np.array(list(edges)).T
-    return coo.astype('int64')
+def get_edge_index_from_triangles(triangles):
+    """Return both directions of every non-degenerate triangle edge."""
+    triangles = np.asarray(triangles, dtype=np.int64)
+    if triangles.ndim != 2 or triangles.shape[1] != 3:
+        raise ValueError("triangles must have shape (n, 3)")
+
+    edges = np.concatenate(
+        [
+            triangles[:, [0, 1]],
+            triangles[:, [1, 2]],
+            triangles[:, [2, 0]],
+        ]
+    )
+    edges = edges[edges[:, 0] != edges[:, 1]]
+    edges = np.concatenate([edges, edges[:, ::-1]])
+    edges = np.unique(edges, axis=0)
+    return edges.T
 
 def get_edges_features(tri,coo,res):
     """_summary_
@@ -173,17 +178,17 @@ def get_edges_features(tri,coo,res):
     Returns:
         _type_: _description_
     """    
-    first_endpoint_indices = coo[0]
-    second_endpoint_indices = coo[1]
-    
-    x,y = tri.x,tri.y
-    
-    first_endpoint_coordinates = np.column_stack((x[first_endpoint_indices], y[first_endpoint_indices]))
-    second_endpoint_coordinates = np.column_stack((x[second_endpoint_indices], y[second_endpoint_indices]))
-    
-    u_ij = first_endpoint_coordinates-second_endpoint_coordinates
+    node_positions = np.column_stack((tri.x, tri.y))
+    return get_edge_features_from_positions(node_positions, coo)
+
+
+def get_edge_features_from_positions(node_positions, coo):
+    """Return relative displacement and distance for directed edges."""
+    node_positions = np.asarray(node_positions)
+    first_endpoint_coordinates = node_positions[coo[0]]
+    second_endpoint_coordinates = node_positions[coo[1]]
+    u_ij = first_endpoint_coordinates - second_endpoint_coordinates
     norm = np.expand_dims(np.linalg.norm(u_ij,axis=1),axis=1)
-    
     return np.concatenate([u_ij,norm],axis=1).astype('float32')
 
 
@@ -315,7 +320,7 @@ def get_dgl_graph(tri):
     Create a DGL graph from the triangulation information + edges features
     """
     coo_edges = get_edge_index(tri)
-    g = dgl.graph((coo_edges[0], coo_edges[1]))
+    g = dgl.graph((coo_edges[0], coo_edges[1]), num_nodes=len(tri.x))
     edge_features = get_edges_features(tri, coo_edges, None)  # Precompute edge features
     return g, edge_features
 
@@ -422,62 +427,86 @@ def create_dgl_dataset_chunked(
     dgl.save_graphs(os.path.join(data_folder, f"{dataset_name}_base.bin"), base_graph_list)
     return True
 
-def replace_triangle_indices(tri, indices):
-    """
-    Remplace les indices des triangles par les indices du KD-tree.
+def create_multimesh(base_graph_path, fine_mesh_path, coarse_mesh_paths, output_path):
+    """Add projected coarse-mesh edges to an existing physical base graph."""
+    if not coarse_mesh_paths:
+        raise ValueError("At least one coarse mesh is required.")
 
-    Parameters:
-    tri (np.ndarray): Tableau de triangles (n x 3).
-    indices (np.ndarray): Tableau d'indices du KD-tree (m,).
+    base_graph_path = Path(base_graph_path)
+    output_path = Path(output_path)
+    if base_graph_path.resolve() == output_path.resolve():
+        raise ValueError("The output path must differ from the base graph path.")
 
-    Returns:
-    np.ndarray: Nouveau tableau de triangles avec indices remplacés.
-    """
-    # Assurez-vous que les triangles et les indices sont des tableaux numpy
-    tri = np.asarray(tri)
-    indices = np.asarray(indices)
-    
-    # Remplacer les indices des triangles par les indices du KD-tree
-    new_tri = indices[tri]
-    
-    return new_tri
+    base_graphs, graph_labels = dgl.load_graphs(str(base_graph_path))
+    if len(base_graphs) != 1:
+        raise ValueError("The base .bin must contain exactly one graph.")
+    base_graph = base_graphs[0]
 
-def create_multimesh(fine_mesh,coarse_mesh_list,res_list,cli_list,data_folder,dataset_name):
-    mesh_path = fine_mesh
-    res_path = res_list[0]
-    cli_path = cli_list[0]
-    res = TelemacFile(res_path, bnd_file=cli_path)
-    res_mesh = TelemacFile(mesh_path)
-    
-    X,triangles = add_mesh_info(res_mesh)
-    fine_kd_tree = KDTree(X)
-    print(triangles.shape)
-    for coarse_mesh_path in coarse_mesh_list : 
-        coarse_mesh = TelemacFile(coarse_mesh_path)
-        X_coarse,triangles_coarse = add_mesh_info(coarse_mesh)
-        distances, indices = fine_kd_tree.query(X_coarse)
-        new_tri = replace_triangle_indices(triangles_coarse, indices)
-        triangles = np.concatenate([triangles,new_tri])
-    
-    # Extract x and y coordinates
-    x = X[:, 0]
-    y = X[:, 1]
-    # Create the triangulation object
-    triangulation = tri.Triangulation(x, y, triangles)
-    
-    # Create DGL graph and precompute edge features
-    g, edge_features = get_dgl_graph(res.tri)
+    fine_mesh = TelemacFile(str(fine_mesh_path))
+    fine_xy, _ = add_mesh_info(fine_mesh)
+    fine_mesh.close()
+    if base_graph.num_nodes() != len(fine_xy):
+        raise ValueError(
+            "The base graph and fine mesh have different node counts: "
+            f"{base_graph.num_nodes()} != {len(fine_xy)}"
+        )
 
-    # Add edge features to the graph
-    g.edata['x'] = torch.tensor(edge_features, dtype=torch.float32)
+    src, dst = base_graph.edges()
+    edge_blocks = [
+        np.column_stack(
+            [
+                src.cpu().numpy().astype(np.int64),
+                dst.cpu().numpy().astype(np.int64),
+            ]
+        )
+    ]
 
-    # Add static node features to the graph
-    static_node_features = get_static_node_features(res, res_mesh)
-    g.ndata['static'] = torch.tensor(static_node_features, dtype=torch.float32)
-    
-    dgl.save_graphs(os.path.join(data_folder, f"{dataset_name}_multimesh_base.bin"), [g])
-    
-    return True
+    fine_tree = KDTree(fine_xy)
+    for coarse_mesh_path in coarse_mesh_paths:
+        coarse_mesh = TelemacFile(str(coarse_mesh_path))
+        coarse_xy, coarse_triangles = add_mesh_info(coarse_mesh)
+        coarse_mesh.close()
+        distances, fine_indices = fine_tree.query(coarse_xy)
+        mapped_triangles = fine_indices[np.asarray(coarse_triangles, dtype=np.int64)]
+        collapsed_triangles = np.any(
+            np.diff(np.sort(mapped_triangles, axis=1), axis=1) == 0,
+            axis=1,
+        )
+        coarse_edges = get_edge_index_from_triangles(mapped_triangles).T
+        edge_blocks.append(coarse_edges)
+        print(
+            f"{coarse_mesh_path}: nodes={len(coarse_xy)}, "
+            f"edges={len(coarse_edges)}, "
+            f"collapsed_triangles={int(collapsed_triangles.sum())}, "
+            f"max_mapping_distance={float(np.max(distances)):.3f}"
+        )
+
+    edges = np.unique(np.concatenate(edge_blocks), axis=0)
+    edges = edges[edges[:, 0] != edges[:, 1]]
+    edge_features = get_edge_features_from_positions(fine_xy, edges.T)
+    if np.any(edge_features[:, 2] == 0.0):
+        raise ValueError("The multimesh contains zero-length edges.")
+
+    multimesh = dgl.graph(
+        (edges[:, 0], edges[:, 1]),
+        num_nodes=base_graph.num_nodes(),
+    )
+    multimesh.edata["x"] = torch.tensor(edge_features, dtype=torch.float32)
+    for name, values in base_graph.ndata.items():
+        multimesh.ndata[name] = values.clone()
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    dgl.save_graphs(str(output_path), [multimesh], graph_labels)
+
+    base_edges = np.unique(edge_blocks[0], axis=0)
+    base_edges = base_edges[base_edges[:, 0] != base_edges[:, 1]]
+    print(
+        f"base edges={len(base_edges)}, "
+        f"multimesh edges={multimesh.num_edges()}, "
+        f"added edges={multimesh.num_edges() - len(base_edges)}, "
+        "self_loops=0"
+    )
+    return output_path
     
 #################################
 def somme_par_groupe(liste_tuples, k):

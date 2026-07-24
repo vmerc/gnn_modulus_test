@@ -1,25 +1,41 @@
-import numpy as np 
-import os 
+import argparse
+import os
 import sys
-project_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', ''))
+from pathlib import Path
+
+start_directory = Path.cwd()
+project_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(project_path)
 
-from python.create_dgl_dataset import TelemacDataset,create_multimesh
-from python.python_code.data_manip.extraction.telemac_file import TelemacFile
+from python.create_dgl_dataset import create_multimesh
 
-import torch
-from tqdm import trange
-import copy
-import pandas as pd
-import random
-import dgl
 
-res_list = ['/projets/aniti-daml/vmercier/simu_valentin/TetQ2500_intermediaire_bdd.res']
-mesh_list = ['/projets/aniti-daml/vmercier/simu_valentin/maillage_3.slf']
-cli_list = ['/work/m24046/m24046mrcr/results_data_30min/cli']
-coarse_mesh_list = ['./data/maillage_grossier.slf']
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Add projected coarse-mesh edges to a DGL base graph."
+    )
+    parser.add_argument("--base-graph", required=True)
+    parser.add_argument("--fine-mesh", required=True)
+    parser.add_argument("--coarse-mesh", nargs="+", required=True)
+    parser.add_argument("--output", required=True)
+    return parser.parse_args()
 
-data_folder = './data/TetQ2500inter_1min_chunk/'
-dataset_name = 'TetQ2500inter_1min'
 
-create_multimesh(mesh_list[0],coarse_mesh_list,res_list,cli_list,data_folder,dataset_name)
+def main():
+    args = parse_args()
+
+    def absolute_path(path):
+        path = Path(path).expanduser()
+        return path if path.is_absolute() else start_directory / path
+
+    output_path = create_multimesh(
+        base_graph_path=absolute_path(args.base_graph),
+        fine_mesh_path=absolute_path(args.fine_mesh),
+        coarse_mesh_paths=[absolute_path(path) for path in args.coarse_mesh],
+        output_path=absolute_path(args.output),
+    )
+    print("written:", output_path)
+
+
+if __name__ == "__main__":
+    main()

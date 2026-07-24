@@ -1,15 +1,20 @@
 #!/bin/sh
+#SBATCH --job-name=create-multimesh
+#SBATCH --output=create_multimesh-%j.out
+#SBATCH --error=create_multimesh-%j.err
+#SBATCH -p shared
+#SBATCH --nodes 1
+#SBATCH --ntasks 1
+#SBATCH --cpus-per-task 4
+#SBATCH --gres=gpu:0
 
-#SBATCH --job-name=GPU-GNN-test
-#SBATCH --output=ML-%j-gnn.out
-#SBATCH --error=ML-%j-gnn.err
+if [ "$#" -eq 0 ]; then
+  echo "Usage: sbatch create_multimesh.sh --base-graph BASE.bin --fine-mesh FINE.slf --coarse-mesh COARSE.slf [COARSE.slf ...] --output MULTIMESH.bin"
+  exit 1
+fi
 
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
-#SBATCH --partition=24CPUNodes
-#SBATCH --gres-flags=enforce-binding
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
-module purge
-module load singularity/3.0.3
-
-srun singularity exec /logiciels/containerCollections/CUDA12/pytorch2-NGC-23-05-py3.sif $HOME/env_dgl/bin/python "create_multimesh.py"
+srun apptainer exec --bind /tmpdir,/work,/users --nv \
+  /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif \
+  python "$SCRIPT_DIR/create_multimesh.py" "$@"
