@@ -13,8 +13,7 @@ if [ "$#" -eq 0 ]; then
   exit 1
 fi
 
-SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 srun apptainer exec --bind /tmpdir,/work,/users --nv \
   /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif \
-  python "$SCRIPT_DIR/create_multimesh.py" "$@"
+  python "create_multimesh.py" "$@"
