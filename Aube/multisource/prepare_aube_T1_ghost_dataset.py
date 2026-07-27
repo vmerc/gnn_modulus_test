@@ -24,8 +24,12 @@ REGULAR_CASE_DIR = CASE_ROOT / f"dataset_{REGULAR_MESH_SIZE_M}m"
 OUTPUT_ROOT = CASE_ROOT / f"dataset_{REGULAR_MESH_SIZE_M}m_ghost"
 
 CHUNK_SIZE = 100
-SHORT_START = 47
-SHORT_STOP = 77
+WINDOW_SIZE = 40
+
+# Add one explicit .res/.liq pair per trajectory.
+CASES = {
+    "08_T1_V9_Topo3_KV5_Q5.res": "T1_Q5_V1.liq",
+}
 
 ENFORCE_Q_BOUNDARY = False
 ENFORCE_H_BOUNDARY = True
@@ -34,6 +38,7 @@ REGULAR_BASE_BIN_NAME = f"Aube_T1_regular_{REGULAR_MESH_SIZE_M}m_base.bin"
 INLET_JSON_NAME = "regular_inlet_node_lists.json"
 INLET_YAML_NAME = "regular_inlet_node_lists.yaml"
 DYNAMIC_YAML_NAME = "dynamic_dir.yaml"
+HYDRO_YAML_NAME = "hydro_dir.yaml"
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -48,6 +53,7 @@ from python.create_dgl_dataset import (  # noqa: E402
     create_dgl_dataset_chunked,
     extract_node_type,
     get_dgl_graph,
+    load_liq_q_series,
 )
 from python.ghost_nodes import (  # noqa: E402
     extract_inlet_node_lists_from_conlim,
@@ -103,11 +109,17 @@ def find_single_file(directory: Path, patterns: list[str], label: str) -> Path:
     return unique_matches[0]
 
 
-def list_res_files(directory: Path) -> list[Path]:
-    res_files = sorted(directory.glob("*.res"))
-    if not res_files:
-        raise FileNotFoundError(f"No .res files found in {directory}")
-    return res_files
+def resolve_cases(directory: Path) -> list[tuple[Path, Path]]:
+    cases = []
+    for res_name, liq_name in CASES.items():
+        res_path = directory / res_name
+        liq_path = directory / liq_name
+        if not res_path.is_file():
+            raise FileNotFoundError(f"Missing .res file: {res_path}")
+        if not liq_path.is_file():
+            raise FileNotFoundError(f"Missing .liq file: {liq_path}")
+        cases.append((res_path, liq_path))
+    return cases
 
 
 def ensure_dir(path: Path) -> Path:
@@ -329,12 +341,10 @@ def build_regular_base_dataset(
     shutil.copy2(regular_mesh_path, output_dir / regular_mesh_path.name)
 
 
-def interpolate_pkl_file(
-    input_path: Path,
-    output_path: Path,
+def interpolate_samples(
+    samples,
     interpolation_plan: dict[str, np.ndarray],
-) -> None:
-    samples = load_pickle(input_path)
+) -> list:
     interpolated_samples = []
 
     for sample in samples:
@@ -346,28 +356,7 @@ def interpolate_pkl_file(
         else:
             interpolated_samples.append((x_interp, y_interp, int(ts)))
 
-    save_pickle(output_path, interpolated_samples)
-
-
-def interpolate_fine_dataset(
-    fine_mesh_path: Path,
-    regular_mesh_path: Path,
-    fine_dataset_dir: Path,
-    regular_full_dir: Path,
-) -> None:
-    fine_mesh = TelemacFile(str(fine_mesh_path))
-    regular_mesh = TelemacFile(str(regular_mesh_path))
-    fine_xy, _ = add_mesh_info(fine_mesh)
-    regular_xy, _ = add_mesh_info(regular_mesh)
-    interpolation_plan = build_interpolation_plan(fine_xy, regular_xy)
-
-    input_files = sorted(fine_dataset_dir.glob("*.pkl"))
-    if not input_files:
-        raise FileNotFoundError(f"No .pkl files found in {fine_dataset_dir}")
-
-    for input_path in input_files:
-        output_path = regular_full_dir / f"{input_path.stem}_interpolated.pkl"
-        interpolate_pkl_file(input_path, output_path, interpolation_plan)
+    return interpolated_samples
 
 
 def parse_chunk_path(path: Path) -> tuple[str, int, int, int]:
@@ -381,52 +370,88 @@ def parse_chunk_path(path: Path) -> tuple[str, int, int, int]:
     return event, traj, start, end
 
 
-def build_short_dataset(
-    regular_full_dir: Path,
-    regular_short_dir: Path,
-    short_start: int,
-    short_stop: int,
-) -> list[Path]:
-    grouped_files: dict[tuple[str, int], list[tuple[int, Path]]] = defaultdict(list)
-    for path in sorted(regular_full_dir.glob("*_interpolated.pkl")):
-        event, traj, start, _ = parse_chunk_path(path)
-        grouped_files[(event, traj)].append((start, path))
+def load_event_samples(fine_dataset_dir: Path, event: str) -> list:
+    chunks = []
+    for path in fine_dataset_dir.glob(f"{event}_*.pkl"):
+        parsed_event, traj, start, _ = parse_chunk_path(path)
+        if parsed_event == event and traj == 0:
+            chunks.append((start, path))
 
-    if not grouped_files:
-        raise FileNotFoundError(f"No interpolated .pkl files found in {regular_full_dir}")
+    samples = []
+    for _, path in sorted(chunks):
+        samples.extend(load_pickle(path))
+    return samples
+
+
+def find_peak_window(res_path: Path, liq_path: Path) -> tuple[int, int, float, list[str]]:
+    res = TelemacFile(str(res_path))
+    liq_times, q_values, q_names = load_liq_q_series(liq_path)
+
+    total_inflow = np.clip(q_values, 0.0, None).sum(axis=1)
+    peak_time = float(liq_times[np.argmax(total_inflow)])
+    sample_times = np.asarray(res.times[:-1], dtype=np.float64)
+
+    if sample_times.size < WINDOW_SIZE:
+        raise ValueError(
+            f"{res_path.name}: {sample_times.size} samples, need at least {WINDOW_SIZE}"
+        )
+
+    peak_index = int(np.argmin(np.abs(sample_times - peak_time)))
+    start = max(0, min(peak_index - WINDOW_SIZE // 2, sample_times.size - WINDOW_SIZE))
+    return start, start + WINDOW_SIZE, peak_time, q_names
+
+
+def build_peak_centered_dataset(
+    fine_mesh_path: Path,
+    regular_mesh_path: Path,
+    fine_dataset_dir: Path,
+    regular_base_dir: Path,
+    regular_short_dir: Path,
+    cases: list[tuple[Path, Path]],
+) -> list[Path]:
+    fine_mesh = TelemacFile(str(fine_mesh_path))
+    regular_mesh = TelemacFile(str(regular_mesh_path))
+    fine_xy, _ = add_mesh_info(fine_mesh)
+    regular_xy, _ = add_mesh_info(regular_mesh)
+    interpolation_plan = build_interpolation_plan(fine_xy, regular_xy)
 
     output_files: list[Path] = []
-    for (event, traj), items in sorted(grouped_files.items()):
-        combined_samples = []
-        for _, path in sorted(items):
-            combined_samples.extend(load_pickle(path))
-
-        if len(combined_samples) < short_stop:
+    hydro_files: list[Path] = []
+    for res_path, liq_path in cases:
+        event = res_path.stem
+        samples = load_event_samples(fine_dataset_dir, event)
+        start, stop, peak_time, q_names = find_peak_window(res_path, liq_path)
+        if len(samples) < stop:
             raise ValueError(
-                f"{event}: {len(combined_samples)} samples, need at least {short_stop}"
+                f"{event}: {len(samples)} extracted samples, need at least {stop}"
             )
 
-        reduced_samples = combined_samples[short_start:short_stop]
-        output_path = regular_short_dir / f"{event}_{traj}_{short_start}-{short_stop - 1}_interpolated.pkl"
-        save_pickle(output_path, reduced_samples)
+        regular_samples = interpolate_samples(samples[start:stop], interpolation_plan)
+        output_path = regular_short_dir / f"{event}_0_{start}-{stop - 1}_interpolated.pkl"
+        save_pickle(output_path, regular_samples)
         output_files.append(output_path)
+        hydro_files.append(liq_path)
+        print(
+            f"{event}: Q={q_names}, peak={peak_time / 3600.0:.1f} h, "
+            f"window={start}-{stop - 1}"
+        )
 
-    shutil.copy2(regular_full_dir / REGULAR_BASE_BIN_NAME, regular_short_dir / REGULAR_BASE_BIN_NAME)
-    shutil.copy2(regular_full_dir / INLET_JSON_NAME, regular_short_dir / INLET_JSON_NAME)
-    shutil.copy2(regular_full_dir / INLET_YAML_NAME, regular_short_dir / INLET_YAML_NAME)
+    shutil.copy2(regular_base_dir / REGULAR_BASE_BIN_NAME, regular_short_dir / REGULAR_BASE_BIN_NAME)
+    shutil.copy2(regular_base_dir / INLET_JSON_NAME, regular_short_dir / INLET_JSON_NAME)
+    shutil.copy2(regular_base_dir / INLET_YAML_NAME, regular_short_dir / INLET_YAML_NAME)
     write_yaml_list(regular_short_dir / DYNAMIC_YAML_NAME, "dynamic_dir", output_files)
+    write_yaml_list(regular_short_dir / HYDRO_YAML_NAME, "hydro_dir", hydro_files)
     return output_files
 
 
 def create_fine_dataset(
-    source_case_dir: Path,
     fine_mesh_path: Path,
     cli_path: Path,
     fine_dataset_dir: Path,
+    cases: list[tuple[Path, Path]],
 ) -> list[Path]:
-    res_files = list_res_files(source_case_dir)
-
-    for res_path in res_files:
+    res_files = []
+    for res_path, _ in cases:
         dataset_name = res_path.stem
         create_dgl_dataset_chunked(
             mesh_list=[str(fine_mesh_path)],
@@ -439,6 +464,7 @@ def create_fine_dataset(
             enforce_q_boundary=ENFORCE_Q_BOUNDARY,
             enforce_h_boundary=ENFORCE_H_BOUNDARY,
         )
+        res_files.append(res_path)
 
     return res_files
 
@@ -447,6 +473,7 @@ def main() -> None:
     source_case_dir = require_directory(SOURCE_CASE_DIR, "SOURCE_CASE_DIR")
     regular_case_dir = require_directory(REGULAR_CASE_DIR, "REGULAR_CASE_DIR")
     output_root = prepare_output_root(OUTPUT_ROOT)
+    cases = resolve_cases(source_case_dir)
 
     fine_mesh_path = find_single_file(source_case_dir, ["*.slf", "*.geo"], "fine mesh")
     cli_path = find_single_file(
@@ -460,20 +487,27 @@ def main() -> None:
     regular_full_dir = ensure_dir(output_root / "regular_full")
     regular_short_dir = ensure_dir(output_root / "regular_short")
     res_files = create_fine_dataset(
-        source_case_dir,
         fine_mesh_path,
         cli_path,
         fine_dataset_dir,
+        cases,
     )
     build_regular_base_dataset(fine_mesh_path, res_files[0], cli_path, regular_mesh_path, regular_full_dir)
-    interpolate_fine_dataset(fine_mesh_path, regular_mesh_path, fine_dataset_dir, regular_full_dir)
-    short_files = build_short_dataset(regular_full_dir, regular_short_dir, SHORT_START, SHORT_STOP)
+    short_files = build_peak_centered_dataset(
+        fine_mesh_path,
+        regular_mesh_path,
+        fine_dataset_dir,
+        regular_full_dir,
+        regular_short_dir,
+        cases,
+    )
 
     print("fine_dataset:", fine_dataset_dir)
     print("regular_full:", regular_full_dir)
     print("regular_short:", regular_short_dir)
     print("regular_base_bin:", regular_short_dir / REGULAR_BASE_BIN_NAME)
     print("inlet_node_lists:", regular_short_dir / INLET_YAML_NAME)
+    print("hydro_dir:", regular_short_dir / HYDRO_YAML_NAME)
     print("short_files:")
     for path in short_files:
         print(" -", path)
