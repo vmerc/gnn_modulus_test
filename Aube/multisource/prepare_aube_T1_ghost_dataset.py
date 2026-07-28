@@ -26,9 +26,14 @@ OUTPUT_ROOT = CASE_ROOT / f"dataset_{REGULAR_MESH_SIZE_M}m_ghost"
 CHUNK_SIZE = 100
 WINDOW_SIZE = 40
 
-# Add one explicit .res/.liq pair per trajectory.
 CASES = {
+    "06_T1_V9_Topo3_KV5_1910V1.res": "Q_1910_V1.liq",
+    "07_T1_V9_Topo3_KV5_Q2.res": "T1_Q2_V1.liq",
     "08_T1_V9_Topo3_KV5_Q5.res": "T1_Q5_V1.liq",
+    "09_T1_V9_Topo3_KV5_Q10.res": "T1_Q10_V1.liq",
+    "10_T1_V9_Topo3_KV5_Q30.res": "T1_Q30_V1.liq",
+    "11_T1_V9_Topo3_KV5_Q50.res": "T1_Q50_V1.liq",
+    "12_T1_V9_Topo3_KV5_Q100.res": "T1_Q100_V1.liq",
 }
 
 ENFORCE_Q_BOUNDARY = False

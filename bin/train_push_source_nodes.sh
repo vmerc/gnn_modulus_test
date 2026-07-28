@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --output=%x-%j-gnn.out
 #SBATCH --error=%x-%j-gnn.err
-#SBATCH -N 1
-#SBATCH --gpus-per-node=1
+#SBATCH -N 2
+#SBATCH --gpus-per-node=2
 #SBATCH -p small
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=2
 
 if [ -z "$1" ]; then
   echo "No config name provided. Usage: ./train_push_source_nodes.sh <config_name>"
