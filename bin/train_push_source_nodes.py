@@ -140,10 +140,28 @@ class SourceNodeTrainer:
         if self.optimizer is None:
             self.optimizer = torch.optim.Adam(self.model.parameters(), lr=cfg.lr)
 
-        self.scheduler = torch.optim.lr_scheduler.LambdaLR(
-            self.optimizer,
-            lr_lambda=lambda epoch: cfg.lr_decay_rate**epoch,
-        )
+        if str(getattr(cfg, "lr_scheduler", "exponential")) == "warmup_cosine":
+            warmup_epochs = int(cfg.lr_warmup_epochs)
+            warmup = torch.optim.lr_scheduler.LinearLR(
+                self.optimizer,
+                start_factor=float(cfg.lr_warmup_start) / float(cfg.lr),
+                total_iters=warmup_epochs,
+            )
+            cosine = torch.optim.lr_scheduler.CosineAnnealingLR(
+                self.optimizer,
+                T_max=int(cfg.epochs) - warmup_epochs,
+                eta_min=float(cfg.lr_min),
+            )
+            self.scheduler = torch.optim.lr_scheduler.SequentialLR(
+                self.optimizer,
+                schedulers=[warmup, cosine],
+                milestones=[warmup_epochs],
+            )
+        else:
+            self.scheduler = torch.optim.lr_scheduler.LambdaLR(
+                self.optimizer,
+                lr_lambda=lambda epoch: cfg.lr_decay_rate**epoch,
+            )
         self.scaler = GradScaler(enabled=self.amp)
 
         if self.dist.world_size > 1:
@@ -195,34 +213,47 @@ class SourceNodeTrainer:
 
         init_ckpt_path = to_absolute_path(getattr(cfg, "init_ckpt_path", cfg.ckpt_path))
         init_epoch = getattr(cfg, "init_epoch", None)
+        resume_training = bool(getattr(cfg, "resume_training", True))
         if not Path(init_ckpt_path).exists():
             raise FileNotFoundError(f"Checkpoint introuvable: {init_ckpt_path}")
 
+        load_kwargs = {
+            "models": self.model,
+            "device": self.dist.device,
+        }
+        if init_epoch is not None:
+            load_kwargs["epoch"] = int(init_epoch)
+        if resume_training:
+            load_kwargs.update(
+                optimizer=self.optimizer,
+                scheduler=self.scheduler,
+                scaler=self.scaler,
+            )
+
         try:
-            if init_epoch is None:
-                loaded_epoch = load_checkpoint(
-                    init_ckpt_path,
-                    models=self.model,
-                    device=self.dist.device,
-                )
-            else:
-                loaded_epoch = load_checkpoint(
-                    init_ckpt_path,
-                    models=self.model,
-                    device=self.dist.device,
-                    epoch=int(init_epoch),
-                )
+            loaded_epoch = load_checkpoint(init_ckpt_path, **load_kwargs)
         except Exception as exc:
             raise RuntimeError(
                 "Could not load this checkpoint into MeshGraphNetWithSourceNodes. "
                 "If the checkpoint comes from the old MeshGraphNet architecture, "
-                "start with train_from_scratch=true or provide a checkpoint produced "
-                "by train_push_source_nodes.py."
+                "start with train_from_scratch=true. Use resume_training=false to "
+                "load model weights without optimizer state."
             ) from exc
 
-        start_epoch = int(init_epoch if init_epoch is not None else loaded_epoch or 0)
-        r0.info(f"Loaded source-node weights from {init_ckpt_path} at epoch {start_epoch}")
-        return start_epoch
+        checkpoint_epoch = int(init_epoch if init_epoch is not None else loaded_epoch or 0)
+        if resume_training:
+            start_epoch = checkpoint_epoch + 1
+            r0.info(
+                f"Resumed source-node training from {init_ckpt_path} "
+                f"after epoch {checkpoint_epoch}"
+            )
+            return start_epoch
+
+        r0.info(
+            f"Initialized source-node weights from {init_ckpt_path} "
+            f"at epoch {checkpoint_epoch}"
+        )
+        return 0
 
     @staticmethod
     def _denorm(xn, mean, std):
@@ -324,6 +355,7 @@ def main(cfg: DictConfig):
     r0.info("Training (pushforward source nodes) started...")
 
     for epoch in range(trainer.epoch_init, cfg.epochs):
+        epoch_lr = trainer.optimizer.param_groups[0]["lr"]
         epoch_loss = 0.0
         for sequence in trainer.dataloader:
             loss = trainer.train_pushforward(sequence, epoch)
@@ -334,7 +366,7 @@ def main(cfg: DictConfig):
 
         r0.info(
             f"epoch: {epoch}, p_tf={trainer.p_tf(epoch):.3f}, "
-            f"lr: {trainer.optimizer.param_groups[0]['lr']:.3e}, "
+            f"lr: {epoch_lr:.3e}, "
             f"loss: {epoch_loss:10.3e}, time/epoch: {(time.time() - start):.2f}s"
         )
         start = time.time()
