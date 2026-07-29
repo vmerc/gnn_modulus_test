@@ -29,7 +29,7 @@ inlet_node_lists:
 
 # training
 batch_size: 1
-epochs: 501
+epochs: 1001
 mp_layers: 10
 hidden_dim: 128
 lr: 0.0005
@@ -57,5 +57,6 @@ num_processor_checkpoint_segments: 0
 recompute_activation: false
 
 seed: 0
-train_from_scratch: true
+train_from_scratch: false
+resume_training: true
 ckpt_path: /work/m24046/m24046mrcr/Test_Aube_T1_regular/checkpoints/config_Aube_T1_ghost_40m_useQ_multi_70steps_phase1/Seed0/
