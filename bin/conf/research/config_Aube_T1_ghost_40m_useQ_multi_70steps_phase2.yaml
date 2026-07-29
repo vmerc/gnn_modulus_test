@@ -1,0 +1,64 @@
+# Refinement of the six-flood Aube T1 model from phase 1 epoch 1000.
+# Q30 remains excluded and reserved for evaluation.
+
+# data
+data_dir: /work/m24046/m24046mrcr/Test_Aube_T1_regular/dataset_40m_ghost/regular_short/Aube_T1_multimesh_40_160_base.bin
+
+dynamic_dir: [
+  "/work/m24046/m24046mrcr/Test_Aube_T1_regular/dataset_40m_ghost/regular_short/06_T1_V9_Topo3_KV5_1910V1_0_7-76_interpolated.pkl",
+  "/work/m24046/m24046mrcr/Test_Aube_T1_regular/dataset_40m_ghost/regular_short/07_T1_V9_Topo3_KV5_Q2_0_27-96_interpolated.pkl",
+  "/work/m24046/m24046mrcr/Test_Aube_T1_regular/dataset_40m_ghost/regular_short/08_T1_V9_Topo3_KV5_Q5_0_27-96_interpolated.pkl",
+  "/work/m24046/m24046mrcr/Test_Aube_T1_regular/dataset_40m_ghost/regular_short/09_T1_V9_Topo3_KV5_Q10_0_27-96_interpolated.pkl",
+  "/work/m24046/m24046mrcr/Test_Aube_T1_regular/dataset_40m_ghost/regular_short/11_T1_V9_Topo3_KV5_Q50_0_27-96_interpolated.pkl",
+  "/work/m24046/m24046mrcr/Test_Aube_T1_regular/dataset_40m_ghost/regular_short/12_T1_V9_Topo3_KV5_Q100_0_27-96_interpolated.pkl",
+]
+
+hydro_dir: [
+  "/work/m24046/m24046mrcr/Test_Aube_T1_regular/original_dataset/Q_1910_V1.liq",
+  "/work/m24046/m24046mrcr/Test_Aube_T1_regular/original_dataset/T1_Q2_V1.liq",
+  "/work/m24046/m24046mrcr/Test_Aube_T1_regular/original_dataset/T1_Q5_V1.liq",
+  "/work/m24046/m24046mrcr/Test_Aube_T1_regular/original_dataset/T1_Q10_V1.liq",
+  "/work/m24046/m24046mrcr/Test_Aube_T1_regular/original_dataset/T1_Q50_V1.liq",
+  "/work/m24046/m24046mrcr/Test_Aube_T1_regular/original_dataset/T1_Q100_V1.liq",
+]
+
+inlet_node_lists:
+  - [37, 38, 39, 40]
+  - [817, 848, 881]
+  - [11006, 11007, 11092, 11093]
+
+# training
+batch_size: 1
+epochs: 501
+mp_layers: 10
+hidden_dim: 128
+lr: 0.0001
+lr_scheduler: exponential
+lr_decay_rate: 0.999995
+num_input_features: 12
+num_input_features_source: 1
+use_q_feature: true
+num_output_features: 3
+num_edge_features: 3
+dt_seconds: 7200.0
+
+# one-step
+sequence_length: 2
+overlap: 2
+pf_warmup_epochs: 0
+
+# performance
+use_apex: true
+amp: true
+jit: false
+num_dataloader_workers: 1
+do_concat_trick: true
+num_processor_checkpoint_segments: 0
+recompute_activation: false
+
+seed: 0
+train_from_scratch: false
+resume_training: false
+init_ckpt_path: /work/m24046/m24046mrcr/Test_Aube_T1_regular/checkpoints/config_Aube_T1_ghost_40m_useQ_multi_70steps_phase1/Seed0/
+init_epoch: 1000
+ckpt_path: /work/m24046/m24046mrcr/Test_Aube_T1_regular/checkpoints/config_Aube_T1_ghost_40m_useQ_multi_70steps_phase2/Seed0/
