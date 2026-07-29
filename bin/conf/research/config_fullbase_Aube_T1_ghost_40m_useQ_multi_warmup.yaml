@@ -30,10 +30,16 @@ inlet_node_lists:
 
 # training
 batch_size: 1
-epochs: 3501
 mp_layers: 10
-lr: 0.0001
-lr_decay_rate: 0.999995
+
+epochs: 2001
+lr: 0.0005
+
+lr_scheduler: warmup_cosine
+lr_warmup_epochs: 50
+lr_warmup_start: 0.00001
+lr_min: 0.00002
+
 num_input_features: 12
 num_input_features_source: 1
 use_q_feature: true
@@ -42,8 +48,8 @@ num_edge_features: 3
 dt_seconds: 7200.0
 
 # one-step overfit
-sequence_length: 3
-overlap: 3
+sequence_length: 2
+overlap: 2
 pf_warmup_epochs: 0
 
 # performance
@@ -57,4 +63,4 @@ recompute_activation: false
 
 seed: 0
 train_from_scratch: false
-ckpt_path: /work/m24046/m24046mrcr/Test_Aube_T1_regular/checkpoints/config_fullbase_Aube_T1_ghost_40m_useQ_multi/Seed0/
+ckpt_path: /work/m24046/m24046mrcr/Test_Aube_T1_regular/checkpoints/config_fullbase_Aube_T1_ghost_40m_useQ_multi_warmup/Seed0/
