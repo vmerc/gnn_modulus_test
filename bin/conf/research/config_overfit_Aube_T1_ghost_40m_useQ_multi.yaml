@@ -1,5 +1,5 @@
-# Overfit Aube T1 on one Q5 trajectory projected onto the regular 20 m mesh.
-# Three ghost nodes carry Q1, Q2 and Q3; the same three values are also global features.
+# One-step overfit on one Aube T1 trajectory and the 40-160 m multimesh.
+# Three ghost nodes carry Q1, Q2 and Q3, also provided as global features.
 
 # data
 data_dir: /work/m24046/m24046mrcr/Test_Aube_T1_regular/dataset_40m_ghost/regular_short/Aube_T1_multimesh_40_160_base.bin
@@ -19,9 +19,11 @@ inlet_node_lists:
 
 # training
 batch_size: 1
-epochs: 2001
+epochs: 1501
 mp_layers: 10
-lr: 0.0001
+hidden_dim: 128
+lr: 0.0005
+lr_scheduler: exponential
 lr_decay_rate: 0.999995
 num_input_features: 12
 num_input_features_source: 1
@@ -45,5 +47,5 @@ num_processor_checkpoint_segments: 0
 recompute_activation: false
 
 seed: 0
-train_from_scratch: false
+train_from_scratch: true
 ckpt_path: /work/m24046/m24046mrcr/Test_Aube_T1_regular/checkpoints/config_overfit_Aube_T1_ghost_40m_useQ_multi/Seed0/

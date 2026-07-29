@@ -97,16 +97,17 @@ class SourceNodeTrainer:
             collate_fn=collate_source_sequences,
         )
 
+        hidden_dim = int(getattr(cfg, "hidden_dim", 64))
         self.model = MeshGraphNetWithSourceNodes(
             input_dim_nodes_phys=expected_phys_features,
             input_dim_nodes_src=expected_source_features,
             input_dim_edges=cfg.num_edge_features,
             output_dim=cfg.num_output_features,
             processor_size=cfg.mp_layers,
-            hidden_dim_processor=64,
-            hidden_dim_node_encoder=64,
-            hidden_dim_edge_encoder=64,
-            hidden_dim_node_decoder=64,
+            hidden_dim_processor=hidden_dim,
+            hidden_dim_node_encoder=hidden_dim,
+            hidden_dim_edge_encoder=hidden_dim,
+            hidden_dim_node_decoder=hidden_dim,
             do_concat_trick=cfg.do_concat_trick,
             num_processor_checkpoint_segments=cfg.num_processor_checkpoint_segments,
         ).to(self.dist.device)
