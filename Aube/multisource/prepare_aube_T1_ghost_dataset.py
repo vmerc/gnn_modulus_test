@@ -26,18 +26,24 @@ OUTPUT_ROOT = CASE_ROOT / f"dataset_{REGULAR_MESH_SIZE_M}m_ghost"
 CHUNK_SIZE = 100
 WINDOW_SIZE = 70
 
+#CASES = {
+#    "06_T1_V9_Topo3_KV5_1910V1.res": "Q_1910_V1.liq",
+#    "07_T1_V9_Topo3_KV5_Q2.res": "T1_Q2_V1.liq",
+#    "08_T1_V9_Topo3_KV5_Q5.res": "T1_Q5_V1.liq",
+#    "09_T1_V9_Topo3_KV5_Q10.res": "T1_Q10_V1.liq",
+#    "10_T1_V9_Topo3_KV5_Q30.res": "T1_Q30_V1.liq",
+#    "11_T1_V9_Topo3_KV5_Q50.res": "T1_Q50_V1.liq",
+#    "12_T1_V9_Topo3_KV5_Q100.res": "T1_Q100_V1.liq",
+#}
+
 CASES = {
-    "06_T1_V9_Topo3_KV5_1910V1.res": "Q_1910_V1.liq",
-    "07_T1_V9_Topo3_KV5_Q2.res": "T1_Q2_V1.liq",
-    "08_T1_V9_Topo3_KV5_Q5.res": "T1_Q5_V1.liq",
-    "09_T1_V9_Topo3_KV5_Q10.res": "T1_Q10_V1.liq",
-    "10_T1_V9_Topo3_KV5_Q30.res": "T1_Q30_V1.liq",
-    "11_T1_V9_Topo3_KV5_Q50.res": "T1_Q50_V1.liq",
-    "12_T1_V9_Topo3_KV5_Q100.res": "T1_Q100_V1.liq",
+    "T1_V9_Topo3_KV5_Janv2018.res": "Q_Janvier2018_V3.liq",
 }
 
 ENFORCE_Q_BOUNDARY = False
 ENFORCE_H_BOUNDARY = True
+
+USE_FULL_TRAJECTORY = True
 
 REGULAR_BASE_BIN_NAME = f"Aube_T1_regular_{REGULAR_MESH_SIZE_M}m_base.bin"
 INLET_JSON_NAME = "regular_inlet_node_lists.json"
@@ -425,7 +431,15 @@ def build_peak_centered_dataset(
     for res_path, liq_path in cases:
         event = res_path.stem
         samples = load_event_samples(fine_dataset_dir, event)
-        start, stop, peak_time, q_names = find_peak_window(res_path, liq_path)
+        #start, stop, peak_time, q_names = find_peak_window(res_path, liq_path)
+        
+        if USE_FULL_TRAJECTORY:
+            _, q_values, q_names = load_liq_q_series(liq_path)
+            start, stop = 0, len(samples)
+            peak_time = np.nan
+        else:
+            start, stop, peak_time, q_names = find_peak_window(res_path, liq_path)
+    
         if len(samples) < stop:
             raise ValueError(
                 f"{event}: {len(samples)} extracted samples, need at least {stop}"
