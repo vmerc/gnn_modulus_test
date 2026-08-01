@@ -58,7 +58,7 @@ recompute_activation: false
 
 seed: 0
 train_from_scratch: false
-resume_training: false
-init_ckpt_path: /work/m24046/m24046mrcr/Test_Aube_T1_regular/checkpoints/config_Aube_T1_ghost_40m_useQ_multi_70steps_pushforward/Seed0/
-init_epoch: 500
+resume_training: true
+#init_ckpt_path: /work/m24046/m24046mrcr/Test_Aube_T1_regular/checkpoints/config_Aube_T1_ghost_40m_useQ_multi_70steps_pushforward/Seed0/
+#init_epoch: 490
 ckpt_path: /work/m24046/m24046mrcr/Test_Aube_T1_regular/checkpoints/config_Aube_T1_ghost_40m_useQ_multi_70steps_pushforward_phase2/Seed0/
