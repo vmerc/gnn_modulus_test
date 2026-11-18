@@ -1,0 +1,20 @@
+# @package _global_
+# Manuscrit Elsevier, tableau 2, E6.
+
+defaults:
+  - base
+  - _self_
+
+data_dir: ${short_data_dir}/Multimesh_8_32.bin
+
+use_q_feature: true
+num_input_features: 10
+
+sequence_length: 3
+overlap: 3
+pf_warmup_epochs: 150
+
+train_from_scratch: false
+init_ckpt_path: ${oc.env:TET_GHOST_INIT_CKPT}
+init_epoch: 600
+resume_training: true

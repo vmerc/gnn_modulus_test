@@ -1,0 +1,11 @@
+# @package _global_
+# Manuscrit Elsevier, tableau 2, E5.
+
+defaults:
+  - base
+  - _self_
+
+data_dir: ${short_data_dir}/Multimesh_8_32.bin
+
+use_q_feature: true
+num_input_features: 10

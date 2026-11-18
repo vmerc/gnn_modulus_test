@@ -1,0 +1,6 @@
+# @package _global_
+# Manuscrit Elsevier, tableau 2, E1.
+
+defaults:
+  - base
+  - _self_

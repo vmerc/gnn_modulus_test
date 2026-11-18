@@ -4,12 +4,13 @@ import time
 import random
 from pathlib import Path
 
+import hydra
 import numpy as np
 import torch
 
 from dgl.dataloading import GraphDataLoader
 from hydra.utils import to_absolute_path
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 from torch.cuda.amp import GradScaler, autocast
 from torch.nn.parallel import DistributedDataParallel
 
@@ -17,7 +18,7 @@ project_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "")
 if project_path not in sys.path:
     sys.path.append(project_path)
 
-from python.create_dgl_dataset import TelemacDatasetWithSourceNodes, collate_source_sequences
+from python.create_dgl_dataset import TelemacDatasetWithSourceNodes, collate_source_sequences, save_json
 from python.CustomMeshGraphNet import MeshGraphNetWithSourceNodes
 
 from modulus.distributed.manager import DistributedManager
@@ -40,8 +41,8 @@ class SourceNodeTrainer:
         self.amp = bool(getattr(cfg, "amp", False)) and self.dist.device.type == "cuda"
 
         self.sequence_length = int(cfg.sequence_length)
-        if self.sequence_length < 2:
-            raise ValueError("sequence_length doit etre >= 2 pour le pushforward.")
+        if self.sequence_length < 1:
+            raise ValueError("sequence_length doit etre >= 1.")
         self.use_q_feature = bool(getattr(cfg, "use_q_feature", False))
 
         hydro_files = getattr(cfg, "hydro_dir", None)
@@ -52,6 +53,10 @@ class SourceNodeTrainer:
         if cli_file is None and inlet_node_lists is None:
             raise ValueError("Provide cli_file or inlet_node_lists in config.")
 
+        output_ckpt = to_absolute_path(cfg.ckpt_path)
+        resuming = not cfg.get("train_from_scratch", False) and cfg.get("resume_training", True)
+        stats_ckpt = to_absolute_path(cfg.get("init_ckpt_path", output_ckpt)) if resuming else output_ckpt
+
         self.dataset = TelemacDatasetWithSourceNodes(
             name="telemac_train_source_nodes",
             data_dir=to_absolute_path(cfg.data_dir),
@@ -60,11 +65,12 @@ class SourceNodeTrainer:
             cli_file=to_absolute_path(cli_file) if cli_file else None,
             inlet_node_lists=inlet_node_lists,
             use_q_feature=self.use_q_feature,
-            split="train",
-            ckpt_path=to_absolute_path(cfg.ckpt_path),
+            # The split selects how statistics are obtained, independently of the event list.
+            split="test" if resuming else "train",
+            ckpt_path=stats_ckpt,
             normalize=True,
             sequence_length=self.sequence_length,
-            overlap=self.sequence_length,
+            overlap=int(getattr(cfg, "overlap", self.sequence_length)),
             dt_seconds=float(getattr(cfg, "dt_seconds", 1800.0)),
         )
 
@@ -169,6 +175,10 @@ class SourceNodeTrainer:
             torch.distributed.barrier()
 
         self.epoch_init = self._load_init_weights(cfg, r0)
+        if resuming and self.dist.rank == 0 and Path(stats_ckpt).resolve() != Path(output_ckpt).resolve():
+            save_json(self.dataset.node_stats, output_ckpt, "node_stats.json")
+            save_json(self.dataset.edge_stats, output_ckpt, "edge_stats.json")
+            save_json(self.dataset.source_stats, output_ckpt, "source_stats.json")
 
         self.pf_start_epoch = self.epoch_init
         self.pf_warmup_epochs = int(getattr(cfg, "pf_warmup_epochs", 0))
@@ -210,7 +220,7 @@ class SourceNodeTrainer:
     def _load_init_weights(self, cfg: DictConfig, r0: RankZeroLoggingWrapper) -> int:
         if bool(getattr(cfg, "train_from_scratch", False)):
             r0.info("train_from_scratch=True, skipping checkpoint loading.")
-            return 0
+            return 1
 
         init_ckpt_path = to_absolute_path(getattr(cfg, "init_ckpt_path", cfg.ckpt_path))
         init_epoch = getattr(cfg, "init_epoch", None)
@@ -223,7 +233,12 @@ class SourceNodeTrainer:
             "device": self.dist.device,
         }
         if init_epoch is not None:
-            load_kwargs["epoch"] = int(init_epoch)
+            init_epoch = int(init_epoch)
+            model = self.model.module if isinstance(self.model, DistributedDataParallel) else self.model
+            model_path = Path(init_ckpt_path) / f"{model.meta.name}.0.{init_epoch}.mdlus"
+            if not model_path.is_file():
+                raise FileNotFoundError(f"Poids d'initialisation introuvables: {model_path}")
+            load_kwargs["epoch"] = init_epoch
         if resume_training:
             load_kwargs.update(
                 optimizer=self.optimizer,
@@ -241,6 +256,8 @@ class SourceNodeTrainer:
                 "load model weights without optimizer state."
             ) from exc
 
+        if resume_training and init_epoch is not None and int(loaded_epoch or 0) != init_epoch:
+            raise RuntimeError(f"État d'entraînement de l'époque {init_epoch} absent dans {init_ckpt_path}")
         checkpoint_epoch = int(init_epoch if init_epoch is not None else loaded_epoch or 0)
         if resume_training:
             start_epoch = checkpoint_epoch + 1
@@ -254,7 +271,7 @@ class SourceNodeTrainer:
             f"Initialized source-node weights from {init_ckpt_path} "
             f"at epoch {checkpoint_epoch}"
         )
-        return 0
+        return 1
 
     @staticmethod
     def _denorm(xn, mean, std):
@@ -269,10 +286,9 @@ class SourceNodeTrainer:
         x_pred[h_mask, 0] = x_gt[h_mask, 0]
         return x_pred
 
-    def train_pushforward(self, sequence, epoch):
-        k_steps = len(sequence) - 1
-        if k_steps < 1:
-            raise ValueError("La sequence doit contenir au moins 2 pas.")
+    def train_batch(self, sequence, epoch):
+        one_step = len(sequence) == 1
+        k_steps = 1 if one_step else len(sequence) - 1
 
         current_x_phys = sequence[0]["x_phys"].to(self.dist.device)
         current_x_src = sequence[0]["x_src"].to(self.dist.device)
@@ -282,7 +298,6 @@ class SourceNodeTrainer:
 
         for t in range(k_steps):
             step = sequence[t]
-            next_step = sequence[t + 1]
             graph = step["graph"].to(self.dist.device)
             edge_features = graph.edata["x"].to(self.dist.device)
 
@@ -296,6 +311,11 @@ class SourceNodeTrainer:
                 y_gt_n = step["y_phys"].to(self.dist.device)
                 loss_t = self.criterion(y_pred_n, y_gt_n)
 
+            total_loss = total_loss + loss_t
+            if one_step:
+                break
+
+            next_step = sequence[t + 1]
             onehot = current_x_phys[:, :4]
             xn_t = current_x_phys[:, self.static_dim:self.static_dim + 3]
             x_t = self._denorm(xn_t, self.mx.to(xn_t.device), self.sx.to(xn_t.device))
@@ -307,7 +327,6 @@ class SourceNodeTrainer:
             x_t1_gt = self._denorm(xn_t1_gt, self.mx.to(xn_t.device), self.sx.to(xn_t.device))
 
             x_t1_pred = self._apply_h_boundary_inplace(x_t1_pred, x_t1_gt, onehot)
-            total_loss = total_loss + loss_t
 
             use_tf = torch.rand(1, device=self.dist.device).item() < self.p_tf(epoch)
             x_t1_next = x_t1_gt if use_tf else x_t1_pred
@@ -324,7 +343,7 @@ class SourceNodeTrainer:
             ).detach()
             current_x_src = next_step["x_src"].to(self.dist.device)
 
-        total_loss = total_loss / max(1, k_steps)
+        total_loss = total_loss / k_steps
 
         if self.amp:
             self.scaler.scale(total_loss).backward()
@@ -353,13 +372,14 @@ def main(cfg: DictConfig):
 
     start = time.time()
     r0.info(f"len(dataloader) = {len(trainer.dataloader)}")
-    r0.info("Training (pushforward source nodes) started...")
+    mode = "one-step" if trainer.sequence_length == 1 else "pushforward"
+    r0.info(f"Training ({mode}, source nodes) started...")
 
     for epoch in range(trainer.epoch_init, cfg.epochs):
         epoch_lr = trainer.optimizer.param_groups[0]["lr"]
         epoch_loss = 0.0
         for sequence in trainer.dataloader:
-            loss = trainer.train_pushforward(sequence, epoch)
+            loss = trainer.train_batch(sequence, epoch)
             epoch_loss += loss.item()
         epoch_loss /= len(trainer.dataloader)
 
@@ -394,12 +414,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     config_name = sys.argv.pop(1)
-    script_dir = Path(__file__).resolve().parent
-    conf_path = script_dir / "conf" / config_name
-    if conf_path.suffix not in {".yaml", ".yml"}:
-        conf_path = conf_path.with_suffix(".yaml")
-    if not conf_path.exists():
-        raise FileNotFoundError(f"Config file not found: {conf_path}")
-
-    cfg = OmegaConf.load(conf_path)
-    main(cfg)
+    if config_name.endswith((".yaml", ".yml")):
+        config_name = os.path.splitext(config_name)[0]
+    conf_dir = Path(__file__).resolve().parent / "conf"
+    with hydra.initialize_config_dir(version_base=None, config_dir=str(conf_dir)):
+        cfg = hydra.compose(config_name=config_name)
+        main(cfg)

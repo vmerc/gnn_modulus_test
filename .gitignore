@@ -18,3 +18,9 @@
 /temp/
 
 *.log
+/.turpan-runs/
+/revision.md
+AGENTS.md
+/.agents/
+/.codex/
+/docs/contexte-recherche.md

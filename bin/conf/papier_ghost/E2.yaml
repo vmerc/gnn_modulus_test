@@ -1,0 +1,9 @@
+# @package _global_
+# Manuscrit Elsevier, tableau 2, E2.
+
+defaults:
+  - base
+  - _self_
+
+use_q_feature: true
+num_input_features: 10
