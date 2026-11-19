@@ -54,20 +54,73 @@ def check_same_edges(generated, historical, label: str) -> None:
     if not np.array_equal(generated_edges, historical_edges):
         generated_set = set(map(tuple, generated_edges))
         historical_set = set(map(tuple, historical_edges))
+        generated_only = generated_set - historical_set
+        historical_only = historical_set - generated_set
         raise ValueError(
             f"{label}: different topology: "
-            f"generated_only={len(generated_set - historical_set)}, "
-            f"historical_only={len(historical_set - generated_set)}"
+            f"generated_only={len(generated_only)} "
+            f"(self_loops={sum(src == dst for src, dst in generated_only)}, "
+            f"sample={sorted(generated_only)[:10]}), "
+            f"historical_only={len(historical_only)} "
+            f"(self_loops={sum(src == dst for src, dst in historical_only)}, "
+            f"sample={sorted(historical_only)[:10]})"
         )
     np.testing.assert_allclose(
         generated_features, historical_features, rtol=1e-5, atol=1e-4
     )
 
 
+def remove_surplus_self_loops(multimesh, historical):
+    src, dst = multimesh.edges(order="eid")
+    edge_pairs = list(zip(src.tolist(), dst.tolist()))
+    generated_edges = set(edge_pairs)
+    historical_edges = set(zip(*(ids.tolist() for ids in historical.edges())))
+    generated_only = generated_edges - historical_edges
+    historical_only = historical_edges - generated_edges
+    if not generated_only and not historical_only:
+        return multimesh
+    if (
+        len(generated_only) != 4
+        or historical_only
+        or any(source != destination for source, destination in generated_only)
+    ):
+        raise ValueError(
+            "The regenerated graph does not differ from the published graph "
+            f"only by four self-loops: generated_only={sorted(generated_only)[:10]}, "
+            f"historical_only={sorted(historical_only)[:10]}"
+        )
+
+    keep = torch.tensor(
+        [edge not in generated_only for edge in edge_pairs], dtype=torch.bool
+    )
+    filtered = dgl.graph((src[keep], dst[keep]), num_nodes=multimesh.num_nodes())
+    for name, values in multimesh.ndata.items():
+        filtered.ndata[name] = values.clone()
+    for name, values in multimesh.edata.items():
+        filtered.edata[name] = values[keep].clone()
+    print(
+        "Removed four regenerated self-loops absent from the published topology: "
+        f"{sorted(generated_only)}"
+    )
+    return filtered
+
+
 def check_graphs(base_graph, multimesh, cfg) -> None:
     historical_base = load_graph(Path(cfg.historical_base_graph_path))
     historical_multimesh = load_graph(Path(cfg.historical_multimesh_path))
 
+    for label, graph in (
+        ("regenerated multimesh", multimesh),
+        ("historical multimesh", historical_multimesh),
+    ):
+        src, dst = graph.edges()
+        print(
+            f"{label}: edges={graph.num_edges()}, "
+            f"self_loops={int(torch.count_nonzero(src == dst).item())}"
+        )
+
+    check_same_edges(base_graph, historical_base, "x8 graph")
+    check_same_edges(multimesh, historical_multimesh, "x8-x16-x32 graph")
     if base_graph.num_nodes() != EXPECTED_NODES or base_graph.num_edges() != EXPECTED_BASE_EDGES:
         raise ValueError(
             f"Unexpected x8 graph size: {base_graph.num_nodes()} nodes, "
@@ -79,8 +132,6 @@ def check_graphs(base_graph, multimesh, cfg) -> None:
             f"{multimesh.num_edges()} edges"
         )
 
-    check_same_edges(base_graph, historical_base, "x8 graph")
-    check_same_edges(multimesh, historical_multimesh, "x8-x16-x32 graph")
     if not torch.equal(base_graph.ndata["static"][:, :4], historical_base.ndata["static"][:, :4]):
         raise ValueError("Regenerated and historical x8 boundary types differ.")
     torch.testing.assert_close(
@@ -138,6 +189,9 @@ def build_graphs(output_dir: Path, cfg) -> None:
         keep_self_loops=True,
     )
     multimesh = load_graph(multimesh_path)
+    historical_multimesh = load_graph(Path(cfg.historical_multimesh_path))
+    multimesh = remove_surplus_self_loops(multimesh, historical_multimesh)
+    dgl.save_graphs(str(multimesh_path), [multimesh])
     check_graphs(base_graph, multimesh, cfg)
     shutil.copy2(x8_mesh_path, output_dir / x8_mesh_path.name)
 

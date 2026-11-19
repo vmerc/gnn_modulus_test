@@ -21,7 +21,7 @@ Chaque entraînement couvre 900 époques. E3 reprend le checkpoint 600 d’E2 et
 
 ## Préparer et vérifier les données
 
-Le dataset historique a été inventorié sur Turpan avec 56 fenêtres courtes 35–64 et 56 trajectoires complètes 0–80. Il ne doit pas être régénéré pour cette campagne. Depuis `bin/` sur la frontale, régénère uniquement les deux graphes physiques. Le job reconstruit le ×8 et le multimaillage ×8–×16–×32, conserve les boucles de la topologie publiée et exige respectivement 96 984 et 130 597 arêtes dirigées. Il compare ensuite leur topologie aux graphes historiques avant de les publier.
+Le dataset historique a été inventorié sur Turpan avec 56 fenêtres courtes 35–64 et 56 trajectoires complètes 0–80. Il ne doit pas être régénéré pour cette campagne. Depuis `bin/` sur la frontale, régénère uniquement les deux graphes physiques. Le job reconstruit le ×8 et le multimaillage ×8–×16–×32, puis retire uniquement quatre self-loops supplémentaires si ce sont les seules différences avec la topologie publiée. Il exige respectivement 96 984 et 130 597 arêtes dirigées et vérifie l’égalité topologique avant de publier.
 
 ```bash
 sbatch prepare_tet_ghost_graphs.sh

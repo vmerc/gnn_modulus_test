@@ -485,10 +485,13 @@ def create_multimesh(
         coarse_edges = get_edge_index_from_triangles(
             mapped_triangles, keep_self_loops=keep_self_loops
         ).T
+        coarse_self_loops = coarse_edges[coarse_edges[:, 0] == coarse_edges[:, 1], 0]
         edge_blocks.append(coarse_edges)
         print(
             f"{coarse_mesh_path}: nodes={len(coarse_xy)}, "
             f"edges={len(coarse_edges)}, "
+            f"self_loops={len(coarse_self_loops)} "
+            f"{coarse_self_loops[:10].tolist()}, "
             f"collapsed_triangles={int(collapsed_triangles.sum())}, "
             f"max_mapping_distance={float(np.max(distances)):.3f}"
         )

@@ -11,7 +11,7 @@ x8_mesh_path: /work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Mesh8_
 x16_mesh_path: /work/m24046/m24046mrcr/results_data_30min_35_70_maillagex16/Mesh16_corrige.slf
 x32_mesh_path: /work/m24046/m24046mrcr/results_data_30min_35_70_maillagex32/Mesh32.slf
 historical_base_graph_path: ${short_data_dir}/Mesh8_base.bin
-historical_multimesh_path: /work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Multimesh_8_32.bin
+historical_multimesh_path: /work/m24046/m24046mrcr/dataset_x8_avec_ts/shortx8/Multimesh_8_32.bin
 multimesh_path: ${graph_dir}/Multimesh_8_32.bin  # Arêtes des niveaux ×8, ×16 et ×32.
 
 data_dir: ${graph_dir}/Mesh8_base.bin
