@@ -26,6 +26,7 @@ import hydra
 import numpy as np
 import torch
 
+import train_push_source_nodes as training
 from train_push_source_nodes import SourceNodeTrainer, seed_everything
 from modulus.distributed.manager import DistributedManager
 from modulus.launch.logging import PythonLogger, RankZeroLoggingWrapper
@@ -36,7 +37,12 @@ dist = DistributedManager()
 assert dist.device.type == "cuda", "CUDA indisponible dans le conteneur"
 logger = RankZeroLoggingWrapper(PythonLogger("test"), dist)
 
-with hydra.initialize_config_dir(version_base=None, config_dir=str(Path("conf").resolve())):
+conf_dir = Path(training.__file__).resolve().parent / "conf"
+print(f"Configuration Hydra: {conf_dir}")
+if not conf_dir.is_dir():
+    raise FileNotFoundError(f"Dossier de configuration introuvable: {conf_dir}")
+
+with hydra.initialize_config_dir(version_base=None, config_dir=str(conf_dir)):
     configs = [hydra.compose(config_name=f"papier_ghost/{name}") for name in ("E1", "E5", "E6")]
 
 with TemporaryDirectory(prefix=".check-", dir=configs[0].campaign_dir) as temp_dir:
