@@ -9,8 +9,14 @@
 
 set -eu
 
-cd -- "${SLURM_SUBMIT_DIR:?Soumettre ce job depuis le dossier bin}"
+submit_dir=${SLURM_SUBMIT_DIR:?Répertoire de soumission Slurm absent}
+if [ -d "$submit_dir/conf/papier_ghost" ]; then
+  bin_dir=$submit_dir
+else
+  bin_dir=$submit_dir/bin
+fi
+cd -- "$bin_dir"
 srun apptainer exec --bind /tmpdir,/work \
-  --pwd "$SLURM_SUBMIT_DIR" \
+  --pwd "$bin_dir" \
   /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif \
   python -u prepare_x8_short_ghost_dataset.py

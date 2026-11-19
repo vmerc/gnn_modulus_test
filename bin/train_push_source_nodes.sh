@@ -10,7 +10,13 @@
 
 set -euo pipefail
 
-cd -- "${SLURM_SUBMIT_DIR:?Soumettre ce job depuis le dossier bin}"
+submit_dir=${SLURM_SUBMIT_DIR:?Répertoire de soumission Slurm absent}
+if [ -d "$submit_dir/conf/papier_ghost" ]; then
+  bin_dir=$submit_dir
+else
+  bin_dir=$submit_dir/bin
+fi
+cd -- "$bin_dir"
 
 if [ "$#" -ne 1 ]; then
   echo "Usage: sbatch train_push_source_nodes.sh papier_ghost/E1" >&2
@@ -19,5 +25,5 @@ fi
 
 module load gnu/11.2.0
 module load openmpi/gnu/4.1.4-gpu
-srun --kill-on-bad-exit=1 apptainer exec --bind /tmpdir,/work --pwd "$SLURM_SUBMIT_DIR" --nv /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif \
+srun --kill-on-bad-exit=1 apptainer exec --bind /tmpdir,/work --pwd "$bin_dir" --nv /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif \
   python -u train_push_source_nodes.py "$1"
