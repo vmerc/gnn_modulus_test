@@ -17,17 +17,11 @@ Chaque entraînement couvre 900 époques. E3 reprend le checkpoint 600 d’E2 et
 
 ## Stockage
 
-`bin/conf/papier_ghost/base.yaml` définit `campaign_dir` à `/work/m24046/m24046mrcr/paper_ghost`. Le dataset est partagé dans `data/`. Les poids et la normalisation de chaque expérience sont dans `E1/Seed0/` à `E6/Seed0/`. Cette structure reprend le rangement des anciennes expériences sous `paper/Experience*/Seed0/`. Chaque job protège son dossier de sortie existant. Pour relancer une expérience avec le même seed, déplace son dossier de sortie précédent sur Turpan.
+`bin/conf/papier_ghost/base.yaml` définit `campaign_dir` à `/work/m24046/m24046mrcr/paper_ghost`. La campagne réutilise le dataset ghost historique dans `/work/m24046/m24046mrcr/dataset_Tet_short_ghost` et le graphe multimesh historique dans `/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Multimesh_8_32.bin`. Les poids et la normalisation de chaque expérience sont dans `E1/Seed0/` à `E6/Seed0/`. Cette structure reprend le rangement des anciennes expériences sous `paper/Experience*/Seed0/`. Chaque job protège son dossier de sortie existant. Pour relancer une expérience avec le même seed, déplace son dossier de sortie précédent sur Turpan.
 
 ## Préparer et vérifier les données
 
-Depuis `bin/` sur la frontale, soumets la préparation. Le job projette les sorties TELEMAC ×8 et publie les deux graphes et les fenêtres dans `data/` une fois le dataset complet.
-
-```bash
-sbatch prepare_x8_short_ghost_dataset.sh
-```
-
-Après succès, soumets le contrôle. Il vérifie les chemins d’entraînement, l’alignement du débit au ghost node et les incréments à l’entrée. Il exécute des batches à un pas et en pushforward sur un GPU et vérifie la conservation de la normalisation lors d’une reprise de test E5 vers E6.
+Le dataset historique a été inventorié sur Turpan avec 56 fenêtres courtes 35–64 et 56 trajectoires complètes 0–80. Il ne doit pas être régénéré pour cette campagne. Depuis `bin/` sur la frontale, soumets directement le contrôle. Il vérifie les chemins d’entraînement, l’alignement du débit au ghost node et les incréments à l’entrée. Il exécute des batches à un pas et en pushforward sur un GPU et vérifie la conservation de la normalisation lors d’une reprise de test E5 vers E6.
 
 ```bash
 sbatch test_turpan_gnn.sh

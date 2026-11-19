@@ -1,11 +1,12 @@
 # @package _global_
 
 campaign_dir: /work/m24046/m24046mrcr/paper_ghost
-dataset_dir: ${campaign_dir}/data
+dataset_dir: /work/m24046/m24046mrcr/dataset_Tet_short_ghost
 short_data_dir: ${dataset_dir}/x8_short
 hydro_data_dir: /work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes
 fine_res_dir: /work/m24046/m24046mrcr/results_data_30min
-coarse_mesh_path: ${short_data_dir}/Mesh8_corrige.slf
+coarse_mesh_path: ${dataset_dir}/x8_full/Mesh8_corrige.slf
+multimesh_path: /work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Multimesh_8_32.bin
 
 data_dir: ${short_data_dir}/Mesh8_base.bin
 inlet_node_lists: [[12770]]

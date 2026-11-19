@@ -7,7 +7,7 @@ defaults:
 
 experiment: E5
 
-data_dir: ${short_data_dir}/Multimesh_8_32.bin
+data_dir: ${multimesh_path}
 
 use_q_feature: true
 num_input_features: 10

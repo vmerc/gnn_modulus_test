@@ -19,18 +19,22 @@ image=/work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif
 
 srun apptainer exec --bind /tmpdir,/work --pwd "$bin_dir" --nv "$image" python -u - <<'PY'
 import pickle
+from contextlib import closing
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import dgl
 import hydra
 import numpy as np
 import torch
 
 import train_push_source_nodes as training
+from eval_tet_ghost import TEST_EVENTS, check_projected_geometry
 from train_push_source_nodes import SourceNodeTrainer, seed_everything
 from modulus.distributed.manager import DistributedManager
 from modulus.launch.logging import PythonLogger, RankZeroLoggingWrapper
 from modulus.launch.utils import save_checkpoint
+from python.python_code.data_manip.extraction.telemac_file import TelemacFile
 
 DistributedManager.initialize()
 dist = DistributedManager()
@@ -47,22 +51,42 @@ with hydra.initialize_config_dir(version_base=None, config_dir=str(conf_dir)):
 
 dataset_dir = Path(configs[0].dataset_dir)
 if not dataset_dir.is_dir():
-    raise FileNotFoundError(
-        f"Dataset introuvable: {dataset_dir}. "
-        "Lancer d'abord: sbatch prepare_x8_short_ghost_dataset.sh"
-    )
+    raise FileNotFoundError(f"Dataset historique introuvable: {dataset_dir}")
 
-with TemporaryDirectory(prefix=".check-", dir=configs[0].campaign_dir) as temp_dir:
+def load_samples(path, expected_timestamps):
+    with open(path, "rb") as data_file:
+        samples = pickle.load(data_file)
+    timestamps = [int(ts) for _, _, ts in samples]
+    assert timestamps == list(expected_timestamps), (path, timestamps)
+    return samples
+
+for path in configs[0].dynamic_dir:
+    load_samples(path, range(35, 65))
+for event in TEST_EVENTS:
+    load_samples(dataset_dir / "x8_short" / f"{event}_{event}_0_35-64_interpolated.pkl", range(35, 65))
+    load_samples(dataset_dir / "x8_full" / f"{event}_{event}_0_0-80_interpolated.pkl", range(80))
+
+[simple_graph], _ = dgl.load_graphs(str(configs[0].data_dir))
+[multimesh_graph], _ = dgl.load_graphs(str(configs[1].data_dir))
+assert simple_graph.num_nodes() == multimesh_graph.num_nodes()
+assert torch.equal(simple_graph.ndata["static"][:, :4], multimesh_graph.ndata["static"][:, :4])
+torch.testing.assert_close(simple_graph.ndata["static"][:, 4:], multimesh_graph.ndata["static"][:, 4:])
+simple_edges = set(zip(*(ids.tolist() for ids in simple_graph.edges())))
+multimesh_edges = set(zip(*(ids.tolist() for ids in multimesh_graph.edges())))
+assert simple_edges.issubset(multimesh_edges), "Le multimaillage ne contient pas toutes les arêtes ×8"
+
+with closing(TelemacFile(str(configs[0].coarse_mesh_path))) as coarse_mesh:
+    coarse_tri = coarse_mesh.tri
+
+with TemporaryDirectory(prefix=".check-", dir="/tmpdir") as temp_dir:
     run_dir = Path(temp_dir)
     for cfg in configs:
         experiment = cfg.experiment
         for path in [cfg.data_dir, *cfg.dynamic_dir, *cfg.hydro_dir]:
             assert Path(path).is_file(), path
 
-        with open(cfg.dynamic_dir[0], "rb") as data_file:
-            samples = pickle.load(data_file)
+        samples = load_samples(cfg.dynamic_dir[0], range(35, 65))
         timestamps = [int(ts) for _, _, ts in samples]
-        assert timestamps == list(range(35, 65)), timestamps
         inlet = cfg.inlet_node_lists[0][0]
         inlet_states = np.stack([x[inlet] for x, _, _ in samples])
         inlet_deltas = np.stack([y[inlet] for _, y, _ in samples])
@@ -79,6 +103,7 @@ with TemporaryDirectory(prefix=".check-", dir=configs[0].campaign_dir) as temp_d
         trainer = SourceNodeTrainer(cfg, logger)
         dataset = trainer.dataset
         assert len(dataset) == len(samples) - cfg.sequence_length + 1
+        check_projected_geometry(dataset, coarse_tri)
 
         hydro = dataset.hydrographs[cfg.hydro_dir[0]]
         expected_q = np.interp(
