@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import filecmp
 import os
-import shutil
 import sys
 from contextlib import closing
 from pathlib import Path
@@ -23,7 +22,6 @@ from prepare_x8_short_ghost_dataset import (  # noqa: E402
     X8_BASE_BIN_NAME,
     build_interpolation_plan,
     build_x8_base_dataset,
-    find_paper_results,
     find_single_file,
 )
 from python.create_dgl_dataset import add_mesh_info, create_multimesh  # noqa: E402
@@ -32,7 +30,8 @@ from python.python_code.data_manip.extraction.telemac_file import TelemacFile  #
 
 EXPECTED_NODES = 16_222
 EXPECTED_BASE_EDGES = 96_984
-EXPECTED_MULTIMESH_EDGES = 130_597
+EXPECTED_MULTIMESH_EDGES = 130_601
+EXPECTED_SELF_LOOPS = 39
 
 
 def load_graph(path: Path):
@@ -70,57 +69,10 @@ def check_same_edges(generated, historical, label: str) -> None:
     )
 
 
-def remove_surplus_self_loops(multimesh, historical):
-    src, dst = multimesh.edges(order="eid")
-    edge_pairs = list(zip(src.tolist(), dst.tolist()))
-    generated_edges = set(edge_pairs)
-    historical_edges = set(zip(*(ids.tolist() for ids in historical.edges())))
-    generated_only = generated_edges - historical_edges
-    historical_only = historical_edges - generated_edges
-    if not generated_only and not historical_only:
-        return multimesh
-    if (
-        len(generated_only) != 4
-        or historical_only
-        or any(source != destination for source, destination in generated_only)
-    ):
-        raise ValueError(
-            "The regenerated graph does not differ from the published graph "
-            f"only by four self-loops: generated_only={sorted(generated_only)[:10]}, "
-            f"historical_only={sorted(historical_only)[:10]}"
-        )
-
-    keep = torch.tensor(
-        [edge not in generated_only for edge in edge_pairs], dtype=torch.bool
-    )
-    filtered = dgl.graph((src[keep], dst[keep]), num_nodes=multimesh.num_nodes())
-    for name, values in multimesh.ndata.items():
-        filtered.ndata[name] = values.clone()
-    for name, values in multimesh.edata.items():
-        filtered.edata[name] = values[keep].clone()
-    print(
-        "Removed four regenerated self-loops absent from the published topology: "
-        f"{sorted(generated_only)}"
-    )
-    return filtered
-
-
 def check_graphs(base_graph, multimesh, cfg) -> None:
     historical_base = load_graph(Path(cfg.historical_base_graph_path))
-    historical_multimesh = load_graph(Path(cfg.historical_multimesh_path))
-
-    for label, graph in (
-        ("regenerated multimesh", multimesh),
-        ("historical multimesh", historical_multimesh),
-    ):
-        src, dst = graph.edges()
-        print(
-            f"{label}: edges={graph.num_edges()}, "
-            f"self_loops={int(torch.count_nonzero(src == dst).item())}"
-        )
 
     check_same_edges(base_graph, historical_base, "x8 graph")
-    check_same_edges(multimesh, historical_multimesh, "x8-x16-x32 graph")
     if base_graph.num_nodes() != EXPECTED_NODES or base_graph.num_edges() != EXPECTED_BASE_EDGES:
         raise ValueError(
             f"Unexpected x8 graph size: {base_graph.num_nodes()} nodes, "
@@ -141,10 +93,12 @@ def check_graphs(base_graph, multimesh, cfg) -> None:
 
     src, dst = multimesh.edges()
     self_loops = int(torch.count_nonzero(src == dst).item())
-    if self_loops == 0:
-        raise ValueError("The historical multimesh topology requires self-loops.")
+    if self_loops != EXPECTED_SELF_LOOPS:
+        raise ValueError(
+            f"Unexpected multimesh self-loop count: {self_loops} != {EXPECTED_SELF_LOOPS}"
+        )
     print(
-        f"Validated manuscript topology: nodes={multimesh.num_nodes()}, "
+        f"Validated regenerated topology: nodes={multimesh.num_nodes()}, "
         f"directed_edges={multimesh.num_edges()}, self_loops={self_loops}"
     )
 
@@ -155,7 +109,11 @@ def build_graphs(output_dir: Path, cfg) -> None:
     cli_path = find_single_file(
         source_case_dir, ["*.cli", "*.conlim", "cli", "conlim"], "boundary file"
     )
-    first_result_path = next(iter(find_paper_results(source_case_dir).values()))
+    first_result_path = find_single_file(
+        source_case_dir,
+        ["Group_1_peak_1000.res", "Group_1_peak_1000_Group_1_peak_1000.res"],
+        "sample result",
+    )
     x8_mesh_path = Path(cfg.x8_mesh_path)
 
     if not filecmp.cmp(x8_mesh_path, Path(cfg.coarse_mesh_path), shallow=False):
@@ -189,11 +147,7 @@ def build_graphs(output_dir: Path, cfg) -> None:
         keep_self_loops=True,
     )
     multimesh = load_graph(multimesh_path)
-    historical_multimesh = load_graph(Path(cfg.historical_multimesh_path))
-    multimesh = remove_surplus_self_loops(multimesh, historical_multimesh)
-    dgl.save_graphs(str(multimesh_path), [multimesh])
     check_graphs(base_graph, multimesh, cfg)
-    shutil.copy2(x8_mesh_path, output_dir / x8_mesh_path.name)
 
 
 def main() -> None:

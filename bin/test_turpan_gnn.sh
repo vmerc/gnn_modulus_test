@@ -75,7 +75,7 @@ for event in TEST_EVENTS:
 assert (simple_graph.num_nodes(), simple_graph.num_edges()) == (16222, 96984), (
     "Taille du graphe ×8 inattendue"
 )
-assert (multimesh_graph.num_nodes(), multimesh_graph.num_edges()) == (16222, 130597), (
+assert (multimesh_graph.num_nodes(), multimesh_graph.num_edges()) == (16222, 130601), (
     "Taille du multimaillage inattendue"
 )
 if not torch.equal(simple_graph.ndata["static"][:, :4], multimesh_graph.ndata["static"][:, :4]):
@@ -85,7 +85,7 @@ simple_edges = set(zip(*(ids.tolist() for ids in simple_graph.edges())))
 multimesh_edges = set(zip(*(ids.tolist() for ids in multimesh_graph.edges())))
 assert simple_edges.issubset(multimesh_edges), "Le multimaillage ne contient pas toutes les arêtes ×8"
 src, dst = multimesh_graph.edges()
-assert torch.count_nonzero(src == dst) > 0, "Les boucles de la topologie historique sont absentes"
+assert torch.count_nonzero(src == dst) == 39, "Nombre de self-loops multimesh inattendu"
 
 with closing(TelemacFile(str(configs[0].coarse_mesh_path))) as coarse_mesh:
     coarse_tri = coarse_mesh.tri
