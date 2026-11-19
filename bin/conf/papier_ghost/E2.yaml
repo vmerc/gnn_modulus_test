@@ -5,5 +5,7 @@ defaults:
   - base
   - _self_
 
+experiment: E2
+
 use_q_feature: true
 num_input_features: 10

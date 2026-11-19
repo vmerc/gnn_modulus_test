@@ -1,6 +1,7 @@
 # @package _global_
 
-dataset_dir: ${oc.env:TET_GHOST_DATA_ROOT}
+campaign_dir: /work/m24046/m24046mrcr/paper_ghost
+dataset_dir: ${campaign_dir}/data
 short_data_dir: ${dataset_dir}/x8_short
 hydro_data_dir: /work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes
 fine_res_dir: /work/m24046/m24046mrcr/results_data_30min
@@ -114,4 +115,4 @@ num_processor_checkpoint_segments: 0
 seed: 0
 
 train_from_scratch: true
-ckpt_path: ${oc.env:TURPAN_RUN_DIR}/checkpoints
+ckpt_path: ${campaign_dir}/${experiment}/Seed${seed}

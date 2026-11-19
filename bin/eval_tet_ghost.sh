@@ -9,8 +9,7 @@
 
 set -euo pipefail
 
-repo_dir="${TURPAN_REPO_DIR:-$(cd "${SLURM_SUBMIT_DIR:-.}/.." && pwd -P)}"
 image=/work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif
 
 srun apptainer exec --bind /tmpdir,/work --nv "$image" \
-    python -u "$repo_dir/bin/eval_tet_ghost.py" "$@"
+    python -u eval_tet_ghost.py "$@"

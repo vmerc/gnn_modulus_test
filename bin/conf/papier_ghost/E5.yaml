@@ -5,6 +5,8 @@ defaults:
   - base
   - _self_
 
+experiment: E5
+
 data_dir: ${short_data_dir}/Multimesh_8_32.bin
 
 use_q_feature: true

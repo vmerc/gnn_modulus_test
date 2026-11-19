@@ -14,10 +14,10 @@ from tempfile import TemporaryDirectory
 import dgl
 import numpy as np
 import torch
+from omegaconf import OmegaConf
 from scipy.spatial import Delaunay, KDTree
 
 
-SOURCE_CASE_DIR = Path("/work/m24046/m24046mrcr/results_data_30min")
 X8_CASE_DIR = Path("/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8")
 X8_MESH_NAME = "Mesh8_corrige.slf"
 MULTIMESH_NAME = "Multimesh_8_32.bin"
@@ -309,16 +309,15 @@ def write_historical_multimesh(
     print(f"Directed edges: ×8={base_graph.num_edges()}, ×8/×32={historical.num_edges()}")
 
 
-def main() -> None:
-    output_root = Path(os.environ["TURPAN_RUN_DIR"]) / "data"
-    fine_mesh_path = find_single_file(SOURCE_CASE_DIR, ["*.slf", "*.geo"], "fine mesh")
+def build_dataset(output_root: Path, dataset_dir: Path, source_case_dir: Path) -> None:
+    fine_mesh_path = find_single_file(source_case_dir, ["*.slf", "*.geo"], "fine mesh")
     cli_path = find_single_file(
-        SOURCE_CASE_DIR,
+        source_case_dir,
         ["*.cli", "*.conlim", "cli", "conlim"],
         "boundary file",
     )
     x8_mesh_path = X8_CASE_DIR / X8_MESH_NAME
-    results = find_paper_results(SOURCE_CASE_DIR)
+    results = find_paper_results(source_case_dir)
 
     output_root.mkdir()
     x8_full_dir = output_root / "x8_full"
@@ -386,13 +385,27 @@ def main() -> None:
         short_path = x8_short_dir / f"{short_name}_interpolated.pkl"
         save_pickle(full_path, projected)
         save_pickle(short_path, projected[SHORT_START:SHORT_STOP])
-        full_files.append(full_path)
-        short_files.append(short_path)
+        full_files.append(dataset_dir / full_path.relative_to(output_root))
+        short_files.append(dataset_dir / short_path.relative_to(output_root))
         print(f"{event}: {len(projected)} full pairs, {SHORT_STOP - SHORT_START} short pairs")
 
     write_yaml_list(x8_full_dir / DYNAMIC_YAML_NAME, "dynamic_dir", full_files)
     write_yaml_list(x8_short_dir / DYNAMIC_YAML_NAME, "dynamic_dir", short_files)
-    print(f"Dataset ready ({len(results)} crues): {output_root}")
+
+
+def main() -> None:
+    cfg = OmegaConf.load(SCRIPT_DIR / "conf" / "papier_ghost" / "base.yaml")
+    dataset_dir = Path(cfg.dataset_dir)
+    if os.path.lexists(dataset_dir):
+        raise FileExistsError(f"Dataset already exists: {dataset_dir}")
+
+    dataset_dir.parent.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(prefix=".prepare-x8-", dir=dataset_dir.parent) as tmp_dir:
+        output_root = Path(tmp_dir) / dataset_dir.name
+        build_dataset(output_root, dataset_dir, Path(cfg.fine_res_dir))
+        # A concurrent publication leaves a non-empty destination that rename cannot replace.
+        output_root.rename(dataset_dir)
+    print(f"Dataset ready: {dataset_dir}")
 
 
 if __name__ == "__main__":

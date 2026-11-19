@@ -362,7 +362,13 @@ def main(cfg: DictConfig):
 
     logger = PythonLogger("train")
     r0 = RankZeroLoggingWrapper(logger, dist)
-    r0.file_logging()
+
+    ckpt_path = Path(to_absolute_path(cfg.ckpt_path))
+    if dist.rank == 0:
+        ckpt_path.mkdir(parents=True)
+        r0.info(f"Checkpoint directory: {ckpt_path}")
+    if dist.world_size > 1:
+        torch.distributed.barrier()
 
     base_seed = int(getattr(cfg, "seed", 0))
     seed_everything(base_seed + int(dist.rank))
@@ -396,7 +402,7 @@ def main(cfg: DictConfig):
             torch.distributed.barrier()
         if (dist.rank == 0) and (epoch % 10 == 0):
             save_checkpoint(
-                to_absolute_path(cfg.ckpt_path),
+                str(ckpt_path),
                 models=trainer.model,
                 optimizer=trainer.optimizer,
                 scheduler=trainer.scheduler,

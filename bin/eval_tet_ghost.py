@@ -1,6 +1,5 @@
 import argparse
 import csv
-import os
 import sys
 from collections import defaultdict
 from contextlib import closing
@@ -48,7 +47,7 @@ LONG_MAP_EVENT = "Group_3_peak_2800"
 LONG_MAP_HOURS = (6, 12, 24, 36)
 
 
-def build_test_dataset(cfg, checkpoint, sequence_length, full=False):
+def build_test_dataset(cfg, sequence_length, full=False):
     hydro_root = Path(cfg.get("hydro_data_dir", Path(cfg.hydro_dir[0]).parent))
     hydro_files = [hydro_root / f"generated_hydrographs_{event}.liq" for event in TEST_EVENTS]
     if {path.name for path in hydro_files} & {Path(path).name for path in cfg.hydro_dir}:
@@ -67,7 +66,7 @@ def build_test_dataset(cfg, checkpoint, sequence_length, full=False):
         cli_file=cfg.get("cli_file"),
         use_q_feature=cfg.use_q_feature,
         split="test",
-        ckpt_path=checkpoint,
+        ckpt_path=cfg.ckpt_path,
         sequence_length=sequence_length,
         overlap=0,
         dt_seconds=cfg.dt_seconds,
@@ -294,18 +293,14 @@ def write_results(rows, output_dir, prefix, metrics):
 def main():
     parser = argparse.ArgumentParser(description="Évalue un checkpoint ghost Têt sur les 16 crues de test.")
     parser.add_argument("config", help="Nom du YAML relatif à bin/conf, sans extension")
-    parser.add_argument("dataset_root", type=Path)
-    parser.add_argument("checkpoint_dir", type=Path)
     parser.add_argument("epoch", type=int, nargs="?", default=900)
     args = parser.parse_args()
-    os.environ["TET_GHOST_DATA_ROOT"] = str(args.dataset_root.resolve())
     with initialize_config_dir(config_dir=str(BIN_DIR / "conf"), version_base=None):
         cfg = compose(config_name=args.config)
 
     steps_per_hour = int(3600 / cfg.dt_seconds)
     if steps_per_hour * cfg.dt_seconds != 3600 or steps_per_hour < 1:
         raise ValueError("Le pas de temps doit diviser une heure pour l’évaluation à horizons fixes.")
-    ds = build_test_dataset(cfg, args.checkpoint_dir, MAIN_HOURS * steps_per_hour + 1)
     device = torch.device("cuda")
     hidden_dim = cfg.get("hidden_dim", 64)
     model = MeshGraphNetWithSourceNodes(
@@ -321,15 +316,19 @@ def main():
         do_concat_trick=cfg.do_concat_trick,
         num_processor_checkpoint_segments=cfg.num_processor_checkpoint_segments,
     )
-    weights = args.checkpoint_dir / f"{model.meta.name}.0.{args.epoch}.mdlus"
+    checkpoint_dir = Path(cfg.ckpt_path)
+    weights = checkpoint_dir / f"{model.meta.name}.0.{args.epoch}.mdlus"
+    if not weights.is_file():
+        raise FileNotFoundError(f"Checkpoint introuvable : {weights}")
     print(f"Évaluation {args.config}, checkpoint {weights}")
     model.load(str(weights))
     model.to(device).eval()
 
-    experiment = Path(args.config).name
+    experiment = cfg.experiment
     fine_res_dir = Path(cfg.fine_res_dir)
-    output_dir = Path(os.environ.get("TURPAN_RUN_DIR", "."))
-    output_dir.mkdir(parents=True, exist_ok=True)
+    ds = build_test_dataset(cfg, MAIN_HOURS * steps_per_hour + 1)
+    output_dir = checkpoint_dir / f"eval-{args.epoch}"
+    output_dir.mkdir()
     with closing(TelemacFile(cfg.coarse_mesh_path)) as coarse_mesh:
         coarse_tri = coarse_mesh.tri
         rows = evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experiment, output_dir)
@@ -338,7 +337,7 @@ def main():
         del ds
 
         if experiment in {"E5", "E6"}:
-            ds = build_test_dataset(cfg, args.checkpoint_dir, FULL_HOURS * steps_per_hour, full=True)
+            ds = build_test_dataset(cfg, FULL_HOURS * steps_per_hour, full=True)
             rows = evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experiment, output_dir, full=True)
             write_results(rows, output_dir, "metrics_long", STATE_METRICS)
 

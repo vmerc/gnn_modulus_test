@@ -11,4 +11,4 @@ set -eu
 
 srun apptainer exec --bind /tmpdir,/work \
   /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif \
-  python -u "${TURPAN_REPO_DIR:?Lancer avec bin/turpan.sh}/bin/prepare_x8_short_ghost_dataset.py"
+  python -u prepare_x8_short_ghost_dataset.py

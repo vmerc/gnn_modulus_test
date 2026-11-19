@@ -15,48 +15,47 @@ Chaque expérience utilise les mêmes 40 crues d’entraînement, avec 30 transi
 
 Chaque entraînement couvre 900 époques. E3 reprend le checkpoint 600 d’E2 et E6 celui d’E5. Le pushforward s’applique des époques 601 à 900 avec une décroissance linéaire du teacher forcing sur 150 époques. Les reprises conservent la normalisation, les poids et les états de l’optimiseur, du scheduler et du scaler du checkpoint d’origine. Le lanceur réserve 8 GPU A100 de 80 Go sur 4 nœuds, comme au § 4.4. La partition `small` autorise jusqu’à 4 h par job. [Documentation Turpan](https://www.mesonet.fr/documentation/user-documentation/arch_exp/turpan/soumettre_calcul/)
 
+## Stockage
+
+`bin/conf/papier_ghost/base.yaml` définit `campaign_dir` à `/work/m24046/m24046mrcr/paper_ghost`. Le dataset est partagé dans `data/`. Les poids et la normalisation de chaque expérience sont dans `E1/Seed0/` à `E6/Seed0/`. Cette structure reprend le rangement des anciennes expériences sous `paper/Experience*/Seed0/`. Chaque job protège son dossier de sortie existant. Pour relancer une expérience avec le même seed, déplace son dossier de sortie précédent sur Turpan.
+
 ## Préparer et vérifier les données
 
-Après avoir versionné les fichiers actifs, soumets la préparation. Le job projette les sorties TELEMAC ×8 avec la nouvelle condition amont et écrit les deux graphes et les fenêtres dans `data/` sous son dossier Turpan.
+Depuis `bin/` sur la frontale, soumets la préparation. Le job projette les sorties TELEMAC ×8 et publie les deux graphes et les fenêtres dans `data/` une fois le dataset complet.
 
 ```bash
-bash bin/turpan.sh submit bin/prepare_x8_short_ghost_dataset.sh
+sbatch prepare_x8_short_ghost_dataset.sh
 ```
 
-Récupère le log du job avec `bash bin/turpan.sh logs ID_EXECUTION`. Après succès, renseigne `dataset_root` avec le dossier `data/` de ce job. Le contrôle vérifie les chemins d’entraînement, l’alignement du débit au ghost node et les incréments à l’entrée. Il exécute des batches à un pas et en pushforward sur un GPU et vérifie la conservation de la normalisation lors d’une reprise de test E5 vers E6.
+Après succès, soumets le contrôle. Il vérifie les chemins d’entraînement, l’alignement du débit au ghost node et les incréments à l’entrée. Il exécute des batches à un pas et en pushforward sur un GPU et vérifie la conservation de la normalisation lors d’une reprise de test E5 vers E6.
 
 ```bash
-dataset_root=/CHEMIN/TURPAN/DU/JOB_DE_PREPARATION/data
-bash bin/turpan.sh submit bin/test_turpan_gnn.sh "$dataset_root"
+sbatch test_turpan_gnn.sh
 ```
 
 ## Entraîner
 
-Après succès du contrôle, soumets les quatre entraînements à un pas. Chaque nouveau job produit ses propres poids sous `checkpoints/` dans son dossier d’exécution, ainsi que les statistiques de normalisation. Les poids sont initialisés à neuf.
+Après succès du contrôle, soumets les quatre entraînements à un pas. E2 et E5 passent en premier pour produire les checkpoints de reprise. Les options `-J` identifient l’expérience dans les fichiers `.out` et `.err`.
 
 ```bash
-for exp in E1 E2 E4 E5; do
-  bash bin/turpan.sh submit bin/train_push_source_nodes.sh "papier_ghost/$exp" "$dataset_root"
+for exp in E2 E5 E1 E4; do
+  sbatch -J "$exp" train_push_source_nodes.sh "papier_ghost/$exp"
 done
 ```
 
-Après la sauvegarde des checkpoints à l’époque 600, renseigne les dossiers de poids des jobs E2 et E5 pour lancer E3 et E6.
+Après la sauvegarde du checkpoint 600 d’E2, soumets E3. Fais de même pour E6 à partir du checkpoint 600 d’E5. Les chemins des deux reprises sont définis dans leurs YAML.
 
 ```bash
-ckpt_e2=/CHEMIN/TURPAN/DU/JOB_E2/checkpoints
-ckpt_e5=/CHEMIN/TURPAN/DU/JOB_E5/checkpoints
-bash bin/turpan.sh submit bin/train_push_source_nodes.sh papier_ghost/E3 "$dataset_root" "$ckpt_e2"
-bash bin/turpan.sh submit bin/train_push_source_nodes.sh papier_ghost/E6 "$dataset_root" "$ckpt_e5"
+sbatch -J E3 train_push_source_nodes.sh papier_ghost/E3
+sbatch -J E6 train_push_source_nodes.sh papier_ghost/E6
 ```
 
 ## Évaluer
 
-Pour chaque expérience, soumets le checkpoint final de son job. L’évaluation principale utilise les 16 crues de test et rapporte la MAE horaire sur \(h,u,v\) de 1 à 12 h. Elle rapporte aussi le CSI à 5 et 30 cm sur une grille de 25 m pour E2, E3, E5 et E6, par rapport aux sorties TELEMAC fines. Les CSV fournissent les scores par crue, leur moyenne et leur écart-type par horizon.
+Pour chaque expérience, soumets l’évaluation après la sauvegarde du checkpoint final. Le job lit l’époque 900 par défaut et écrit les résultats dans `EXPERIENCE/Seed0/eval-900/`. L’évaluation principale utilise les 16 crues de test et rapporte la MAE horaire sur \(h,u,v\) de 1 à 12 h. Elle rapporte aussi le CSI à 5 et 30 cm sur une grille de 25 m pour E2, E3, E5 et E6, par rapport aux sorties TELEMAC fines. Les CSV fournissent les scores par crue, leur moyenne et leur écart-type par horizon.
 
 ```bash
-exp=E1
-ckpt_dir=/CHEMIN/TURPAN/DU/JOB_E1/checkpoints
-bash bin/turpan.sh submit bin/eval_tet_ghost.sh "papier_ghost/$exp" "$dataset_root" "$ckpt_dir" 900
+sbatch eval_tet_ghost.sh papier_ghost/E1
 ```
 
 Les jobs E3 et E6 écrivent aussi `map_figure8.npz` pour le groupe 3 au pic de 3400 m³/s à 6 h et au seuil de 30 cm. `timing_6h.csv` contient trois mesures du rollout sur un GPU après échauffement. Le compteur démarre une fois les entrées chargées et s’arrête avant la production des cartes.
