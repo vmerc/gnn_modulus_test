@@ -9,6 +9,7 @@
 
 set -eu
 
+cd -- "$(dirname -- "$0")"
 srun apptainer exec --bind /tmpdir,/work \
   /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif \
   python -u prepare_x8_short_ghost_dataset.py

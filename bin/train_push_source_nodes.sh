@@ -10,6 +10,8 @@
 
 set -euo pipefail
 
+cd -- "$(dirname -- "$0")"
+
 if [ "$#" -ne 1 ]; then
   echo "Usage: sbatch train_push_source_nodes.sh papier_ghost/E1" >&2
   exit 1

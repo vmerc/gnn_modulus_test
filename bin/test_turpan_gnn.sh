@@ -8,6 +8,7 @@
 
 set -euo pipefail
 
+cd -- "$(dirname -- "$0")"
 image=/work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif
 
 srun apptainer exec --bind /tmpdir,/work --nv "$image" python -u - <<'PY'
