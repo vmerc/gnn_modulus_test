@@ -17,11 +17,15 @@ fi
 cd -- "$bin_dir"
 image=/work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif
 
-srun apptainer exec --bind /tmpdir,/work --pwd "$bin_dir" --nv "$image" python -u - <<'PY'
+srun apptainer exec --bind /tmpdir,/work --pwd "$bin_dir" --nv "$image" python -u - "$bin_dir" <<'PY'
 import pickle
+import sys
 from contextlib import closing
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
+bin_dir = Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(bin_dir))
 
 import dgl
 import hydra
