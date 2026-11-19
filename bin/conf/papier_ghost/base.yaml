@@ -1,14 +1,20 @@
 # @package _global_
 
 campaign_dir: /work/m24046/m24046mrcr/paper_ghost
+graph_dir: ${campaign_dir}/graphs
 dataset_dir: /work/m24046/m24046mrcr/dataset_Tet_short_ghost
 short_data_dir: ${dataset_dir}/x8_short
 hydro_data_dir: /work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes
 fine_res_dir: /work/m24046/m24046mrcr/results_data_30min
 coarse_mesh_path: ${dataset_dir}/x8_full/Mesh8_corrige.slf
-multimesh_path: /work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Multimesh_8_32.bin
+x8_mesh_path: /work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Mesh8_corrige.slf
+x16_mesh_path: /work/m24046/m24046mrcr/results_data_30min_35_70_maillagex16/Mesh16_corrige.slf
+x32_mesh_path: /work/m24046/m24046mrcr/results_data_30min_35_70_maillagex32/Mesh32.slf
+historical_base_graph_path: ${short_data_dir}/Mesh8_base.bin
+historical_multimesh_path: /work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Multimesh_8_32.bin
+multimesh_path: ${graph_dir}/Multimesh_8_32.bin  # Arêtes des niveaux ×8, ×16 et ×32.
 
-data_dir: ${short_data_dir}/Mesh8_base.bin
+data_dir: ${graph_dir}/Mesh8_base.bin
 inlet_node_lists: [[12770]]
 dynamic_dir:
   - ${short_data_dir}/Group_3_peak_1400_Group_3_peak_1400_0_35-64_interpolated.pkl

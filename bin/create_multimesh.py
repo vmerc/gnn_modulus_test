@@ -18,6 +18,7 @@ def parse_args():
     parser.add_argument("--fine-mesh", required=True)
     parser.add_argument("--coarse-mesh", nargs="+", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--keep-self-loops", action="store_true")
     return parser.parse_args()
 
 
@@ -33,6 +34,7 @@ def main():
         fine_mesh_path=absolute_path(args.fine_mesh),
         coarse_mesh_paths=[absolute_path(path) for path in args.coarse_mesh],
         output_path=absolute_path(args.output),
+        keep_self_loops=args.keep_self_loops,
     )
     print("written:", output_path)
 

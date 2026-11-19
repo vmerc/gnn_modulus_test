@@ -1,15 +1,15 @@
 # Campagne Têt avec ghost nodes
 
-Le protocole suit le manuscrit Elsevier `main.pdf` fourni le 18 novembre 2026 (§ 4, tableau 2, § 5 et annexe A). Les six expériences utilisent un ghost node alimenté par le débit amont grâce à un encodeur distinct. La hauteur prescrite à l’aval reste imposée comme dans TELEMAC-2D. L’ablation de \(Q(t)\) porte sur sa diffusion supplémentaire aux nœuds physiques.
+Le protocole suit le manuscrit Elsevier `main.pdf` fourni le 18 novembre 2026 (§ 3.4–3.5, § 4, tableau 2, § 5 et annexe A). Les six expériences utilisent un ghost node alimenté par le débit amont grâce à un encodeur distinct. La hauteur prescrite à l’aval reste imposée comme dans TELEMAC-2D. L’ablation de \(Q(t)\) porte sur sa diffusion supplémentaire aux nœuds physiques.
 
 | YAML dans `bin/conf/papier_ghost/` | YAML historique | Graphe | \(Q(t)\) global | Fenêtre d’entraînement | Entraînement |
 | --- | --- | --- | --- | --- | --- |
 | `E1.yaml` | `Experience1` | ×8 | Non | 35–64 | Un pas |
 | `E2.yaml` | `Experience7` | ×8 | Oui | 35–64 | Un pas |
 | `E3.yaml` | `Experience9` | ×8 | Oui | 35–64 | Pushforward, warmup 150 |
-| `E4.yaml` | `Experience2` | ×8 + ×32 | Non | 35–64 | Un pas |
-| `E5.yaml` | `Experience8` | ×8 + ×32 | Oui | 35–64 | Un pas |
-| `E6.yaml` | `Experience10` | ×8 + ×32 | Oui | 35–64 | Pushforward, warmup 150 |
+| `E4.yaml` | `Experience2` | ×8 + ×16 + ×32 | Non | 35–64 | Un pas |
+| `E5.yaml` | `Experience8` | ×8 + ×16 + ×32 | Oui | 35–64 | Un pas |
+| `E6.yaml` | `Experience10` | ×8 + ×16 + ×32 | Oui | 35–64 | Pushforward, warmup 150 |
 
 Chaque expérience utilise les mêmes 40 crues d’entraînement, avec 30 transitions d’une demi-heure, d’indices 35 à 64, dans la fenêtre de 15 h centrée sur le débordement. Les 16 crues de test sont séparées à l’échelle de l’événement.
 
@@ -17,11 +17,19 @@ Chaque entraînement couvre 900 époques. E3 reprend le checkpoint 600 d’E2 et
 
 ## Stockage
 
-`bin/conf/papier_ghost/base.yaml` définit `campaign_dir` à `/work/m24046/m24046mrcr/paper_ghost`. La campagne réutilise le dataset ghost historique dans `/work/m24046/m24046mrcr/dataset_Tet_short_ghost` et le graphe multimesh historique dans `/work/m24046/m24046mrcr/results_data_30min_35_70_maillagex8/Multimesh_8_32.bin`. Les poids et la normalisation de chaque expérience sont dans `E1/Seed0/` à `E6/Seed0/`. Cette structure reprend le rangement des anciennes expériences sous `paper/Experience*/Seed0/`. Chaque job protège son dossier de sortie existant. Pour relancer une expérience avec le même seed, déplace son dossier de sortie précédent sur Turpan.
+`bin/conf/papier_ghost/base.yaml` définit `campaign_dir` à `/work/m24046/m24046mrcr/paper_ghost`. La campagne réutilise les trajectoires historiques dans `/work/m24046/m24046mrcr/dataset_Tet_short_ghost`. Les graphes physiques régénérés sont dans `paper_ghost/graphs/`, avec les mêmes nœuds ×8 pour les six expériences et les arêtes projetées ×16 et ×32 pour E4–E6. Les poids et la normalisation de chaque expérience sont dans `E1/Seed0/` à `E6/Seed0/`. Chaque job protège son dossier de sortie existant. Pour relancer une expérience avec le même seed, déplace son dossier de sortie précédent sur Turpan.
 
 ## Préparer et vérifier les données
 
-Le dataset historique a été inventorié sur Turpan avec 56 fenêtres courtes 35–64 et 56 trajectoires complètes 0–80. Il ne doit pas être régénéré pour cette campagne. Depuis `bin/` sur la frontale, soumets directement le contrôle. Il vérifie les chemins d’entraînement, l’alignement du débit au ghost node et les incréments à l’entrée. Il exécute des batches à un pas et en pushforward sur un GPU et vérifie la conservation de la normalisation lors d’une reprise de test E5 vers E6.
+Le dataset historique a été inventorié sur Turpan avec 56 fenêtres courtes 35–64 et 56 trajectoires complètes 0–80. Il ne doit pas être régénéré pour cette campagne. Depuis `bin/` sur la frontale, régénère uniquement les deux graphes physiques. Le job reconstruit le ×8 et le multimaillage ×8–×16–×32, conserve les boucles de la topologie publiée et exige respectivement 96 984 et 130 597 arêtes dirigées. Il compare ensuite leur topologie aux graphes historiques avant de les publier.
+
+```bash
+sbatch prepare_tet_ghost_graphs.sh
+```
+
+Le job refuse de remplacer un dossier `paper_ghost/graphs` existant.
+
+Après succès, soumets le contrôle. Il vérifie les chemins d’entraînement, les graphes, l’alignement du débit au ghost node et les incréments à l’entrée. Il exécute des batches à un pas et en pushforward sur un GPU et vérifie la conservation de la normalisation lors d’une reprise de test E5 vers E6.
 
 ```bash
 sbatch test_turpan_gnn.sh

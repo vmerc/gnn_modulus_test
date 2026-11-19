@@ -154,8 +154,8 @@ def get_edge_index(tri):
     return get_edge_index_from_triangles(tri.triangles)
 
 
-def get_edge_index_from_triangles(triangles):
-    """Return both directions of every non-degenerate triangle edge."""
+def get_edge_index_from_triangles(triangles, keep_self_loops=False):
+    """Return both directions of every triangle edge."""
     triangles = np.asarray(triangles, dtype=np.int64)
     if triangles.ndim != 2 or triangles.shape[1] != 3:
         raise ValueError("triangles must have shape (n, 3)")
@@ -167,7 +167,8 @@ def get_edge_index_from_triangles(triangles):
             triangles[:, [2, 0]],
         ]
     )
-    edges = edges[edges[:, 0] != edges[:, 1]]
+    if not keep_self_loops:
+        edges = edges[edges[:, 0] != edges[:, 1]]
     edges = np.concatenate([edges, edges[:, ::-1]])
     edges = np.unique(edges, axis=0)
     return edges.T
@@ -427,8 +428,17 @@ def create_dgl_dataset_chunked(
     dgl.save_graphs(os.path.join(data_folder, f"{dataset_name}_base.bin"), base_graph_list)
     return True
 
-def create_multimesh(base_graph_path, fine_mesh_path, coarse_mesh_paths, output_path):
-    """Add projected coarse-mesh edges to an existing physical base graph."""
+def create_multimesh(
+    base_graph_path,
+    fine_mesh_path,
+    coarse_mesh_paths,
+    output_path,
+    keep_self_loops=False,
+):
+    """Add projected coarse-mesh edges to an existing physical base graph.
+
+    ``keep_self_loops`` reproduces legacy loops created by collapsed projected triangles.
+    """
     if not coarse_mesh_paths:
         raise ValueError("At least one coarse mesh is required.")
 
@@ -472,7 +482,9 @@ def create_multimesh(base_graph_path, fine_mesh_path, coarse_mesh_paths, output_
             np.diff(np.sort(mapped_triangles, axis=1), axis=1) == 0,
             axis=1,
         )
-        coarse_edges = get_edge_index_from_triangles(mapped_triangles).T
+        coarse_edges = get_edge_index_from_triangles(
+            mapped_triangles, keep_self_loops=keep_self_loops
+        ).T
         edge_blocks.append(coarse_edges)
         print(
             f"{coarse_mesh_path}: nodes={len(coarse_xy)}, "
@@ -482,9 +494,14 @@ def create_multimesh(base_graph_path, fine_mesh_path, coarse_mesh_paths, output_
         )
 
     edges = np.unique(np.concatenate(edge_blocks), axis=0)
-    edges = edges[edges[:, 0] != edges[:, 1]]
+    if not keep_self_loops:
+        edges = edges[edges[:, 0] != edges[:, 1]]
     edge_features = get_edge_features_from_positions(fine_xy, edges.T)
-    if np.any(edge_features[:, 2] == 0.0):
+    zero_length = edge_features[:, 2] == 0.0
+    self_loop = edges[:, 0] == edges[:, 1]
+    if np.any(zero_length & ~self_loop):
+        raise ValueError("The multimesh contains a zero-length edge between distinct nodes.")
+    if not keep_self_loops and np.any(zero_length):
         raise ValueError("The multimesh contains zero-length edges.")
 
     multimesh = dgl.graph(
@@ -499,12 +516,12 @@ def create_multimesh(base_graph_path, fine_mesh_path, coarse_mesh_paths, output_
     dgl.save_graphs(str(output_path), [multimesh], graph_labels)
 
     base_edges = np.unique(edge_blocks[0], axis=0)
-    base_edges = base_edges[base_edges[:, 0] != base_edges[:, 1]]
+    self_loops = int(np.count_nonzero(edges[:, 0] == edges[:, 1]))
     print(
         f"base edges={len(base_edges)}, "
         f"multimesh edges={multimesh.num_edges()}, "
         f"added edges={multimesh.num_edges() - len(base_edges)}, "
-        "self_loops=0"
+        f"self_loops={self_loops}"
     )
     return output_path
     

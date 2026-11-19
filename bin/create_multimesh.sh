@@ -9,7 +9,7 @@
 #SBATCH --gres=gpu:0
 
 if [ "$#" -eq 0 ]; then
-  echo "Usage: sbatch create_multimesh.sh --base-graph BASE.bin --fine-mesh FINE.slf --coarse-mesh COARSE.slf [COARSE.slf ...] --output MULTIMESH.bin"
+  echo "Usage: sbatch create_multimesh.sh --base-graph BASE.bin --fine-mesh FINE.slf --coarse-mesh COARSE.slf [COARSE.slf ...] --output MULTIMESH.bin [--keep-self-loops]"
   exit 1
 fi
 
