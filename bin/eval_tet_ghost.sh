@@ -9,8 +9,8 @@
 
 set -euo pipefail
 
-cd -- "$(dirname -- "$0")"
+cd -- "${SLURM_SUBMIT_DIR:?Soumettre ce job depuis le dossier bin}"
 image=/work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif
 
-srun apptainer exec --bind /tmpdir,/work --nv "$image" \
+srun apptainer exec --bind /tmpdir,/work --pwd "$SLURM_SUBMIT_DIR" --nv "$image" \
     python -u eval_tet_ghost.py "$@"

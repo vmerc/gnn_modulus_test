@@ -9,7 +9,8 @@
 
 set -eu
 
-cd -- "$(dirname -- "$0")"
+cd -- "${SLURM_SUBMIT_DIR:?Soumettre ce job depuis le dossier bin}"
 srun apptainer exec --bind /tmpdir,/work \
+  --pwd "$SLURM_SUBMIT_DIR" \
   /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif \
   python -u prepare_x8_short_ghost_dataset.py
