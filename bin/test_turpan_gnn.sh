@@ -90,7 +90,7 @@ assert torch.count_nonzero(src == dst) == 39, "Nombre de self-loops multimesh in
 with closing(TelemacFile(str(configs[0].coarse_mesh_path))) as coarse_mesh:
     coarse_tri = coarse_mesh.tri
 
-with TemporaryDirectory(prefix=".check-", dir="/tmpdir") as temp_dir:
+with TemporaryDirectory(prefix=".check-") as temp_dir:
     run_dir = Path(temp_dir)
     for cfg in configs:
         experiment = cfg.experiment
