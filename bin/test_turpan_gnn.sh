@@ -45,6 +45,13 @@ if not conf_dir.is_dir():
 with hydra.initialize_config_dir(version_base=None, config_dir=str(conf_dir)):
     configs = [hydra.compose(config_name=f"papier_ghost/{name}") for name in ("E1", "E5", "E6")]
 
+dataset_dir = Path(configs[0].dataset_dir)
+if not dataset_dir.is_dir():
+    raise FileNotFoundError(
+        f"Dataset introuvable: {dataset_dir}. "
+        "Lancer d'abord: sbatch prepare_x8_short_ghost_dataset.sh"
+    )
+
 with TemporaryDirectory(prefix=".check-", dir=configs[0].campaign_dir) as temp_dir:
     run_dir = Path(temp_dir)
     for cfg in configs:
