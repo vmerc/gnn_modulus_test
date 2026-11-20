@@ -10,7 +10,7 @@ import torch
 
 from dgl.dataloading import GraphDataLoader
 from hydra.utils import to_absolute_path
-from omegaconf import DictConfig
+from omegaconf import DictConfig, open_dict
 from torch.cuda.amp import GradScaler, autocast
 from torch.nn.parallel import DistributedDataParallel
 
@@ -32,6 +32,28 @@ def seed_everything(seed: int) -> None:
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+
+
+def configure_resume(cfg: DictConfig, ckpt_path: Path) -> int:
+    model_epochs = {
+        int(path.name.split(".")[-2])
+        for path in ckpt_path.glob("*.0.*.mdlus")
+    }
+    state_epochs = {
+        int(path.name.split(".")[-2])
+        for path in ckpt_path.glob("checkpoint.0.*.pt")
+    }
+    complete_epochs = model_epochs & state_epochs
+    if not complete_epochs:
+        raise FileNotFoundError(f"Aucun checkpoint complet trouvé dans {ckpt_path}")
+
+    epoch = max(complete_epochs)
+    with open_dict(cfg):
+        cfg.train_from_scratch = False
+        cfg.init_ckpt_path = str(ckpt_path)
+        cfg.init_epoch = epoch
+        cfg.resume_training = True
+    return epoch
 
 
 class SourceNodeTrainer:
@@ -180,7 +202,7 @@ class SourceNodeTrainer:
             save_json(self.dataset.edge_stats, output_ckpt, "edge_stats.json")
             save_json(self.dataset.source_stats, output_ckpt, "source_stats.json")
 
-        self.pf_start_epoch = self.epoch_init
+        self.pf_start_epoch = int(getattr(cfg, "pf_start_epoch", self.epoch_init))
         self.pf_warmup_epochs = int(getattr(cfg, "pf_warmup_epochs", 0))
         self.p_tf = (
             lambda epoch: 0.0
@@ -356,7 +378,7 @@ class SourceNodeTrainer:
         return total_loss.detach()
 
 
-def main(cfg: DictConfig):
+def main(cfg: DictConfig, resume: bool = False):
     DistributedManager.initialize()
     dist = DistributedManager()
 
@@ -364,8 +386,14 @@ def main(cfg: DictConfig):
     r0 = RankZeroLoggingWrapper(logger, dist)
 
     ckpt_path = Path(to_absolute_path(cfg.ckpt_path))
+    if resume and not ckpt_path.is_dir():
+        raise FileNotFoundError(f"Checkpoint directory not found: {ckpt_path}")
+    if resume:
+        resume_epoch = configure_resume(cfg, ckpt_path)
+        r0.info(f"Latest complete checkpoint: epoch {resume_epoch}")
     if dist.rank == 0:
-        ckpt_path.mkdir(parents=True)
+        if not resume:
+            ckpt_path.mkdir(parents=True)
         r0.info(f"Checkpoint directory: {ckpt_path}")
     if dist.world_size > 1:
         torch.distributed.barrier()
@@ -415,14 +443,15 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python train_push_source_nodes.py <config_name>")
+    if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] != "resume"):
+        print("Usage: python train_push_source_nodes.py <config_name> [resume]")
         sys.exit(1)
 
-    config_name = sys.argv.pop(1)
+    config_name = sys.argv[1]
+    resume = len(sys.argv) == 3
     if config_name.endswith((".yaml", ".yml")):
         config_name = os.path.splitext(config_name)[0]
     conf_dir = Path(__file__).resolve().parent / "conf"
     with hydra.initialize_config_dir(version_base=None, config_dir=str(conf_dir)):
         cfg = hydra.compose(config_name=config_name)
-        main(cfg)
+        main(cfg, resume=resume)

@@ -17,7 +17,7 @@ Chaque entraînement couvre 900 époques. E3 reprend le checkpoint 600 d’E2 et
 
 ## Stockage
 
-`bin/conf/papier_ghost/base.yaml` définit `campaign_dir` à `/work/m24046/m24046mrcr/paper_ghost`. La campagne réutilise les trajectoires historiques dans `/work/m24046/m24046mrcr/dataset_Tet_short_ghost`. Les graphes physiques régénérés sont dans `paper_ghost/graphs/`, avec les mêmes nœuds ×8 pour les six expériences et les arêtes projetées ×16 et ×32 pour E4–E6. Les poids et la normalisation de chaque expérience sont dans `E1/Seed0/` à `E6/Seed0/`. Chaque job protège son dossier de sortie existant. Pour relancer une expérience avec le même seed, déplace son dossier de sortie précédent sur Turpan.
+`bin/conf/papier_ghost/base.yaml` définit `campaign_dir` à `/work/m24046/m24046mrcr/paper_ghost`. La campagne réutilise les trajectoires historiques dans `/work/m24046/m24046mrcr/dataset_Tet_short_ghost`. Les graphes physiques régénérés sont dans `paper_ghost/graphs/`, avec les mêmes nœuds ×8 pour les six expériences et les arêtes projetées ×16 et ×32 pour E4–E6. Les poids et la normalisation de chaque expérience sont dans `E1/Seed0/` à `E6/Seed0/`. Un lancement normal protège son dossier de sortie existant ; le mode `resume` est le seul à le réutiliser.
 
 ## Préparer et vérifier les données
 
@@ -51,6 +51,20 @@ Après la sauvegarde du checkpoint 600 d’E2, soumets E3. Fais de même pour E6
 sbatch -J E3 train_push_source_nodes.sh papier_ghost/E3
 sbatch -J E6 train_push_source_nodes.sh papier_ghost/E6
 ```
+
+Si Slurm interrompt un entraînement à la limite de quatre heures, attends la fin du job puis ajoute `resume` à la même commande. La reprise choisit la dernière époque possédant à la fois les poids du modèle et l’état d’entraînement, puis restaure le modèle, l’optimiseur, le scheduler et le scaler. Elle conserve aussi le début du pushforward à l’époque 601 pour E3 et E6.
+
+```bash
+sbatch -J E2-resume train_push_source_nodes.sh papier_ghost/E2 resume
+```
+
+Pour préparer la reprise avant la coupure sans faire tourner deux jobs simultanément, ajoute une dépendance au job actif :
+
+```bash
+sbatch --dependency=afterany:ID_JOB -J E2-resume train_push_source_nodes.sh papier_ghost/E2 resume
+```
+
+Ne lance jamais une reprise sans cette dépendance pendant que le job précédent écrit encore dans le même dossier. Les états des générateurs aléatoires ne sont pas sauvegardés : les paramètres d’entraînement et la graine restent identiques, mais la suite des batches après une reprise n’est pas garantie bit à bit.
 
 ## Évaluer
 

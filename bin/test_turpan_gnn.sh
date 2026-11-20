@@ -142,4 +142,11 @@ with TemporaryDirectory(prefix=".check-") as temp_dir:
                 cfg.ckpt_path, models=trainer.model, optimizer=trainer.optimizer,
                 scheduler=trainer.scheduler, scaler=trainer.scaler, epoch=600,
             )
+            (Path(cfg.ckpt_path) / f"{trainer.model.meta.name}.0.610.mdlus").touch()
+            resume_epoch = training.configure_resume(cfg, Path(cfg.ckpt_path))
+            assert resume_epoch == 600
+            resumed = SourceNodeTrainer(cfg, logger)
+            assert resumed.epoch_init == 601
+            print("E5: reprise du dernier checkpoint complet vérifiée")
+            del resumed
 PY

@@ -13,6 +13,7 @@ num_input_features: 10
 sequence_length: 3
 overlap: 3
 pf_warmup_epochs: 150
+pf_start_epoch: 601
 
 train_from_scratch: false
 init_ckpt_path: ${campaign_dir}/E2/Seed${seed}
