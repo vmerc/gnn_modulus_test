@@ -40,7 +40,8 @@ MAIN_HOURS = 12
 FULL_HOURS = 40
 GRID_STEP_M = 25.0
 EXPECTED_GRID_SHAPE = (689, 748)
-EXPECTED_VALID_GRID_POINTS = 276_001
+EXPECTED_FINE_GRID_POINTS = 276_001
+EXPECTED_COMMON_GRID_POINTS = 275_827
 THRESHOLDS = (0.05, 0.30)
 STATE_METRICS = ("mae_h", "mae_u", "mae_v")
 CSI_METRICS = ("csi_5cm", "csi_30cm")
@@ -100,12 +101,19 @@ def depth_grids(prediction, target_grid, coarse_tri, grid):
     predicted_grid, _ = interpolate_on_grid(coarse_tri, prediction.astype(np.float64), grid=grid)
     predicted_values = predicted_grid.filled(np.nan)
     target_values = target_grid.filled(np.nan)
-    valid = np.isfinite(predicted_values) & np.isfinite(target_values)
-    valid_points = np.count_nonzero(valid)
-    if valid_points != EXPECTED_VALID_GRID_POINTS:
+    fine_valid = np.isfinite(target_values)
+    fine_points = np.count_nonzero(fine_valid)
+    if fine_points != EXPECTED_FINE_GRID_POINTS:
         raise ValueError(
-            f"Masque CSI inattendu : {valid_points} points valides, "
-            f"attendu {EXPECTED_VALID_GRID_POINTS}."
+            f"Domaine TELEMAC inattendu : {fine_points} points valides, "
+            f"attendu {EXPECTED_FINE_GRID_POINTS}."
+        )
+    valid = np.isfinite(predicted_values) & fine_valid
+    common_points = np.count_nonzero(valid)
+    if common_points != EXPECTED_COMMON_GRID_POINTS:
+        raise ValueError(
+            f"Support commun ×8/TELEMAC inattendu : {common_points} points valides, "
+            f"attendu {EXPECTED_COMMON_GRID_POINTS}."
         )
     return predicted_values, target_values, valid
 
@@ -261,7 +269,7 @@ def evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experi
                 raise ValueError(f"{event}: erreur absolue non finie à {hour:g} h.")
             csi = []
             if fine_csi:
-                # CALCULER le CSI à 5 cm et 30 cm sur les 276 001 points valides.
+                # CALCULER le CSI à 5 cm et 30 cm sur les 275 827 points communs.
                 predicted_depth, target_depth, valid = depth_grids(
                     prediction[:, 0].cpu().numpy(), fine_depths[step // steps_per_hour - 1], coarse_tri, grid
                 )

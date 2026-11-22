@@ -76,7 +76,7 @@ sbatch analyze_tet_ghost_graphs.sh
 
 ## Évaluer
 
-Pour chaque expérience, soumets l’évaluation après la sauvegarde du checkpoint final. Le job lit l’époque 900 par défaut et écrit dans `/work/m24046/m24046mrcr/paper_ghost/article_results/E*/Seed0/eval-900/`, sans mélanger les analyses et les poids. Il refuse de remplacer un résultat existant. L’évaluation principale utilise les 16 crues de test et rapporte la MAE horaire — la norme \(L_1\) du manuscrit — sur \(h,u,v\) de 1 à 12 h. Elle rapporte aussi le CSI à 5 et 30 cm sur la grille de 25 m pour E2, E3, E5 et E6, par rapport aux sorties TELEMAC fines. Le contrôle exige les 515 372 points de la grille 689 × 748 et les 276 001 points valides annoncés au § 5.4.
+Pour chaque expérience, soumets l’évaluation après la sauvegarde du checkpoint final. Le job lit l’époque 900 par défaut et écrit dans `/work/m24046/m24046mrcr/paper_ghost/article_results/E*/Seed0/eval-900/`, sans mélanger les analyses et les poids. Il refuse de remplacer un résultat existant. L’évaluation principale utilise les 16 crues de test et rapporte la MAE horaire — la norme \(L_1\) du manuscrit — sur \(h,u,v\) de 1 à 12 h. Elle rapporte aussi le CSI à 5 et 30 cm sur la grille de 25 m pour E2, E3, E5 et E6, par rapport aux sorties TELEMAC fines. Le contrôle exige la grille 689 × 748 du § 5.4 et ses 276 001 points dans le domaine TELEMAC. Le CSI utilise les 275 827 points également contenus dans la triangulation ×8, sans extrapoler les 174 points périphériques restants.
 
 ```bash
 for exp in E1 E2 E3 E4 E5 E6; do
