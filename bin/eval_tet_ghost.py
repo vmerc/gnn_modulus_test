@@ -39,6 +39,8 @@ SHORT_FIRST_STEP = 35
 MAIN_HOURS = 12
 FULL_HOURS = 40
 GRID_STEP_M = 25.0
+EXPECTED_GRID_SHAPE = (689, 748)
+EXPECTED_VALID_GRID_POINTS = 276_001
 THRESHOLDS = (0.05, 0.30)
 STATE_METRICS = ("mae_h", "mae_u", "mae_v")
 CSI_METRICS = ("csi_5cm", "csi_30cm")
@@ -48,13 +50,16 @@ LONG_MAP_HOURS = (6, 12, 24, 36)
 
 
 def build_test_dataset(cfg, sequence_length, full=False):
+    # CHARGER les 16 crues de test, leurs états ×8 et leurs hydrogrammes Q(t).
     hydro_root = Path(cfg.get("hydro_data_dir", Path(cfg.hydro_dir[0]).parent))
     hydro_files = [hydro_root / f"generated_hydrographs_{event}.liq" for event in TEST_EVENTS]
+    # VÉRIFIER qu'aucune crue de test ne figure dans l'apprentissage.
     if {path.name for path in hydro_files} & {Path(path).name for path in cfg.hydro_dir}:
         raise ValueError("Une crue de test apparaît dans la liste des hydrogrammes d’entraînement.")
 
     data_root = Path(cfg.dataset_dir) / "x8_full" if full else Path(cfg.short_data_dir)
     window = "0-80" if full else "35-64"
+    # CHARGER le graphe ×8 ou multimesh, puis lui ajouter le ghost node amont.
     ds = TelemacDatasetWithSourceNodes(
         data_dir=cfg.data_dir,
         dynamic_data_files=[
@@ -77,18 +82,31 @@ def build_test_dataset(cfg, sequence_length, full=False):
 
 
 def make_grid(tri):
+    # CONSTRUIRE la grille commune de 25 m utilisée pour comparer GNN et TELEMAC.
     axes = [
         coords.min() + GRID_STEP_M * np.arange(int(np.ceil(np.ptp(coords) / GRID_STEP_M)) + 1)
         for coords in (tri.x, tri.y)
     ]
-    return np.meshgrid(*axes)
+    grid = np.meshgrid(*axes)
+    if tuple(sorted(grid[0].shape)) != EXPECTED_GRID_SHAPE:
+        raise ValueError(
+            f"Grille fine inattendue : {grid[0].shape}, attendu {EXPECTED_GRID_SHAPE}."
+        )
+    return grid
 
 
 def depth_grids(prediction, target_grid, coarse_tri, grid):
+    # INTERPOLER la prédiction ×8 et conserver l'intersection des points valides.
     predicted_grid, _ = interpolate_on_grid(coarse_tri, prediction.astype(np.float64), grid=grid)
     predicted_values = predicted_grid.filled(np.nan)
     target_values = target_grid.filled(np.nan)
     valid = np.isfinite(predicted_values) & np.isfinite(target_values)
+    valid_points = np.count_nonzero(valid)
+    if valid_points != EXPECTED_VALID_GRID_POINTS:
+        raise ValueError(
+            f"Masque CSI inattendu : {valid_points} points valides, "
+            f"attendu {EXPECTED_VALID_GRID_POINTS}."
+        )
     return predicted_values, target_values, valid
 
 
@@ -149,12 +167,13 @@ def rollout(model, graph, sequence, context, n_steps, report_every):
     static = x_phys[:, :start]
     h_mask = (static[:, :4] == static.new_tensor([0, 1, 0, 0])).all(dim=1)
 
+    # POUR chaque pas : prédire un incrément, le dénormaliser et mettre à jour l'état.
     for step in range(1, n_steps + 1):
         src = sequence[step - 1][1]
         state = denormalize_state(x_phys[:, start:start + 3], context)
         delta = model(graph=graph, x_phys=x_phys, x_src=src, edge_features=edge_features)
         prediction = state + denormalize_delta(delta, context)
-        # Each input already carries the prescribed downstream depth at the forecast time.
+        # IMPOSER la hauteur aval prescrite portée par l'entrée au temps de prévision.
         prediction[h_mask, 0] = state[h_mask, 0]
 
         if report_every and step % report_every == 0:
@@ -169,6 +188,7 @@ def rollout(model, graph, sequence, context, n_steps, report_every):
             yield step, prediction, target
 
         if step < n_steps:
+            # CONSTRUIRE l'entrée suivante avec la prédiction et la prochaine hauteur aval.
             next_phys = sequence[step][0]
             next_depth = next_phys[h_mask, start] * context.state_std[0] + context.state_mean[0]
             prediction[h_mask, 0] = next_depth
@@ -178,7 +198,7 @@ def rollout(model, graph, sequence, context, n_steps, report_every):
 def write_rollout_timing(model, graph, sequence, context, steps_per_hour, output_dir):
     gpu = torch.cuda.get_device_name(context.device)
     n_steps = 6 * steps_per_hour
-    # Load and warm up the autoregressive path before the timed runs.
+    # E3/E6 : ÉCHAUFFER puis mesurer trois fois le rollout autorégressif de 6 h.
     for _ in rollout(model, graph, sequence, context, n_steps, report_every=0):
         pass
     torch.cuda.synchronize(context.device)
@@ -198,6 +218,7 @@ def write_rollout_timing(model, graph, sequence, context, steps_per_hour, output
 
 @torch.inference_mode()
 def evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experiment, output_dir, full=False):
+    # VÉRIFIER que le graphe chargé correspond bien à la géométrie du maillage ×8.
     check_projected_geometry(ds, coarse_tri)
     context = build_rollout_context(ds, device, ds.use_q_feature)
     graph = ds.base_graph_with_sources.to(device)
@@ -213,6 +234,7 @@ def evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experi
     grid = None
     long_maps = []
     rows = []
+    # POUR chaque crue de test, dérouler le modèle sans réinjecter les états cibles.
     for index, event in enumerate(TEST_EVENTS):
         print(f"Rollout {'complet' if full else 'sur fenêtre courte'} {event}")
         times = [unpack_dynamic_sample(sample)[2] for sample in ds.sequences[index]]
@@ -220,6 +242,7 @@ def evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experi
             raise ValueError(f"{event}: indices temporels incorrects dans la fenêtre ×8.")
 
         if fine_csi:
+            # E2/E3/E5/E6 : CHARGER les hauteurs TELEMAC sur la grille commune.
             fine_tri, grid, fine_depths = read_reference_depths(
                 event, fine_res_dir, fine_tri, grid, times[steps_per_hour::steps_per_hour], ds.dt_seconds
             )
@@ -232,11 +255,13 @@ def evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experi
 
         for step, prediction, target in rollout(model, graph, sequence, context, n_steps, report_every):
             hour = step * ds.dt_seconds / 3600
+            # CALCULER la MAE (norme L1 du manuscrit) séparément sur h, u et v.
             mae = (prediction - target).abs().mean(dim=0)
             if not torch.isfinite(mae).all():
                 raise ValueError(f"{event}: erreur absolue non finie à {hour:g} h.")
             csi = []
             if fine_csi:
+                # CALCULER le CSI à 5 cm et 30 cm sur les 276 001 points valides.
                 predicted_depth, target_depth, valid = depth_grids(
                     prediction[:, 0].cpu().numpy(), fine_depths[step // steps_per_hour - 1], coarse_tri, grid
                 )
@@ -246,12 +271,14 @@ def evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experi
                     score = compute_csi(flooded, reference_flooded)
                     csi.append(score)
                     if figure8 and event == MAP_EVENT and hour == 6 and threshold == 0.30:
+                        # E3/E6 : CONSERVER les masques nécessaires à la figure 8.
                         np.savez_compressed(
                             output_dir / "map_figure8.npz", event=event, hour=hour, threshold_m=threshold,
                             x=grid[0][0], y=grid[1][:, 0], valid=valid,
                             flooded=flooded, reference_flooded=reference_flooded, csi=score,
                         )
             if figure10 and event == LONG_MAP_EVENT and hour in LONG_MAP_HOURS:
+                # E5 : CONSERVER les masques nécessaires à la figure 10.
                 flooded = prediction[:, 0].cpu().numpy() >= 0.10
                 reference_flooded = target[:, 0].cpu().numpy() >= 0.10
                 long_maps.append((flooded, reference_flooded, compute_csi(flooded, reference_flooded)))
@@ -267,11 +294,13 @@ def evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experi
 
 
 def write_results(rows, output_dir, prefix, metrics):
+    # ÉCRIRE d'abord une ligne par crue et par horizon.
     with (output_dir / f"{prefix}_by_event.csv").open("w", newline="") as handle:
         writer = csv.writer(handle)
         writer.writerow(("event", "horizon_h", *metrics))
         writer.writerows(rows)
 
+    # AGRÉGER ensuite la moyenne et l'écart-type population sur les 16 crues.
     by_hour = defaultdict(list)
     for _, horizon, *values in rows:
         by_hour[horizon].append(values)
@@ -295,12 +324,14 @@ def main():
     parser.add_argument("config", help="Nom du YAML relatif à bin/conf, sans extension")
     parser.add_argument("epoch", type=int, nargs="?", default=900)
     args = parser.parse_args()
+    # CHARGER la configuration Hydra de l'expérience demandée.
     with initialize_config_dir(config_dir=str(BIN_DIR / "conf"), version_base=None):
         cfg = compose(config_name=args.config)
 
     steps_per_hour = int(3600 / cfg.dt_seconds)
     if steps_per_hour * cfg.dt_seconds != 3600 or steps_per_hour < 1:
         raise ValueError("Le pas de temps doit diviser une heure pour l’évaluation à horizons fixes.")
+    # CHARGER le modèle et le checkpoint demandé sur le GPU.
     device = torch.device("cuda")
     hidden_dim = cfg.get("hidden_dim", 64)
     model = MeshGraphNetWithSourceNodes(
@@ -326,17 +357,27 @@ def main():
 
     experiment = cfg.experiment
     fine_res_dir = Path(cfg.fine_res_dir)
+    # ÉVALUATION PRINCIPALE : 16 crues et horizons horaires de 1 à 12 h.
     ds = build_test_dataset(cfg, MAIN_HOURS * steps_per_hour + 1)
-    output_dir = checkpoint_dir / f"eval-{args.epoch}"
-    output_dir.mkdir()
+    output_dir = (
+        Path(cfg.article_results_dir)
+        / experiment
+        / f"Seed{cfg.seed}"
+        / f"eval-{args.epoch}"
+    )
+    # ÉCRIRE les métriques séparément des checkpoints, sans remplacer un résultat existant.
+    output_dir.mkdir(parents=True)
+    print(f"Résultats : {output_dir}")
     with closing(TelemacFile(cfg.coarse_mesh_path)) as coarse_mesh:
         coarse_tri = coarse_mesh.tri
         rows = evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experiment, output_dir)
+        # E1/E4 : MAE seulement ; E2/E3/E5/E6 : ajouter les deux CSI.
         metrics = STATE_METRICS + CSI_METRICS if ds.use_q_feature else STATE_METRICS
         write_results(rows, output_dir, "metrics", metrics)
         del ds
 
         if experiment in {"E5", "E6"}:
+            # ANNEXE A : reprendre les mêmes poids pour les rollouts complets de 40 h.
             ds = build_test_dataset(cfg, FULL_HOURS * steps_per_hour, full=True)
             rows = evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experiment, output_dir, full=True)
             write_results(rows, output_dir, "metrics_long", STATE_METRICS)

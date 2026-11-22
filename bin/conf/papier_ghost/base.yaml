@@ -2,6 +2,7 @@
 
 campaign_dir: /work/m24046/m24046mrcr/paper_ghost
 graph_dir: ${campaign_dir}/graphs
+article_results_dir: ${campaign_dir}/article_results
 dataset_dir: /work/m24046/m24046mrcr/dataset_Tet_short_ghost
 short_data_dir: ${dataset_dir}/x8_short
 hydro_data_dir: /work/m24046/m24046mrcr/dataset_x8_avec_ts/hydrogrammes

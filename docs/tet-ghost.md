@@ -17,7 +17,7 @@ Chaque entraînement couvre 900 époques. E3 reprend le checkpoint 600 d’E2 et
 
 ## Stockage
 
-`bin/conf/papier_ghost/base.yaml` définit `campaign_dir` à `/work/m24046/m24046mrcr/paper_ghost`. La campagne réutilise les trajectoires historiques dans `/work/m24046/m24046mrcr/dataset_Tet_short_ghost`. Les graphes physiques régénérés sont dans `paper_ghost/graphs/`, avec les mêmes nœuds ×8 pour les six expériences et les arêtes projetées ×16 et ×32 pour E4–E6. Les poids et la normalisation de chaque expérience sont dans `E1/Seed0/` à `E6/Seed0/`. Un lancement normal protège son dossier de sortie existant ; le mode `resume` est le seul à le réutiliser.
+`bin/conf/papier_ghost/base.yaml` définit `campaign_dir` à `/work/m24046/m24046mrcr/paper_ghost`. La campagne réutilise les trajectoires historiques dans `/work/m24046/m24046mrcr/dataset_Tet_short_ghost`. Les graphes physiques régénérés sont dans `paper_ghost/graphs/`, avec les mêmes nœuds ×8 pour les six expériences et les arêtes projetées ×16 et ×32 pour E4–E6. Les poids et la normalisation de chaque expérience sont dans `E1/Seed0/` à `E6/Seed0/`. Les métriques et données de figures sont séparées dans `article_results/E*/Seed0/eval-900/`. Un lancement normal protège son dossier de sortie existant ; le mode `resume` est le seul à le réutiliser.
 
 ## Préparer et vérifier les données
 
@@ -66,14 +66,26 @@ sbatch --dependency=afterany:ID_JOB -J E2-resume train_push_source_nodes.sh papi
 
 Ne lance jamais une reprise sans cette dépendance pendant que le job précédent écrit encore dans le même dossier. Les états des générateurs aléatoires ne sont pas sauvegardés : les paramètres d’entraînement et la graine restent identiques, mais la suite des batches après une reprise n’est pas garantie bit à bit.
 
-## Évaluer
+## Analyser les graphes
 
-Pour chaque expérience, soumets l’évaluation après la sauvegarde du checkpoint final. Le job lit l’époque 900 par défaut et écrit les résultats dans `EXPERIENCE/Seed0/eval-900/`. L’évaluation principale utilise les 16 crues de test et rapporte la MAE horaire sur \(h,u,v\) de 1 à 12 h. Elle rapporte aussi le CSI à 5 et 30 cm sur une grille de 25 m pour E2, E3, E5 et E6, par rapport aux sorties TELEMAC fines. Les CSV fournissent les scores par crue, leur moyenne et leur écart-type par horizon.
+Le tableau 1 et la figure 2 doivent être recalculés, car le multimaillage régénéré possède 130 601 arêtes au lieu des 130 597 du manuscrit. Ce job lit les graphes existants sans les modifier et écrit `article_results/graph/graph_summary_table1.csv` ainsi que `edge_lengths_figure2.npz`.
 
 ```bash
-sbatch eval_tet_ghost.sh papier_ghost/E1
+sbatch analyze_tet_ghost_graphs.sh
 ```
 
-Les jobs E3 et E6 écrivent aussi `map_figure8.npz` pour le groupe 3 au pic de 3400 m³/s à 6 h et au seuil de 30 cm. `timing_6h.csv` contient trois mesures du rollout sur un GPU après échauffement. Le compteur démarre une fois les entrées chargées et s’arrête avant la production des cartes.
+## Évaluer
+
+Pour chaque expérience, soumets l’évaluation après la sauvegarde du checkpoint final. Le job lit l’époque 900 par défaut et écrit dans `/work/m24046/m24046mrcr/paper_ghost/article_results/E*/Seed0/eval-900/`, sans mélanger les analyses et les poids. Il refuse de remplacer un résultat existant. L’évaluation principale utilise les 16 crues de test et rapporte la MAE horaire — la norme \(L_1\) du manuscrit — sur \(h,u,v\) de 1 à 12 h. Elle rapporte aussi le CSI à 5 et 30 cm sur la grille de 25 m pour E2, E3, E5 et E6, par rapport aux sorties TELEMAC fines. Le contrôle exige les 515 372 points de la grille 689 × 748 et les 276 001 points valides annoncés au § 5.4.
+
+```bash
+for exp in E1 E2 E3 E4 E5 E6; do
+  sbatch -J "eval-$exp" eval_tet_ghost.sh "papier_ghost/$exp"
+done
+```
+
+Chaque dossier contient `metrics_by_event.csv` et `metrics_summary.csv`. Les jobs E3 et E6 écrivent aussi `map_figure8.npz` pour le groupe 3 au pic de 3400 m³/s à 6 h et au seuil de 30 cm. `timing_6h.csv` contient trois mesures du rollout sur un GPU après échauffement. Le compteur démarre une fois les entrées chargées et s’arrête avant la production des cartes.
 
 Les jobs E5 et E6 enchaînent avec l’annexe A sur les 16 crues de test complètes avec le même checkpoint. `metrics_long_by_event.csv` et `metrics_long_summary.csv` contiennent la MAE toutes les 30 minutes jusqu’à 40 h. Pour E5, `map_figure10.npz` fournit les masques sur le maillage ×8 à 6, 12, 24 et 36 h pour le groupe 3 au pic de 2800 m³/s et au seuil de 10 cm, avec le CSI nodal indiqué dans la figure.
+
+Ces fichiers couvrent les données des figures 3 à 10 de `main.pdf`. Une fois les six dossiers récupérés, construis les figures à partir de ces sorties communes plutôt que depuis les anciens notebooks. Les temps TELEMAC de 27 min et 180 min ne sont pas mesurés par ce job et doivent garder leur provenance séparée.
