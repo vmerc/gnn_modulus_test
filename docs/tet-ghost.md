@@ -92,10 +92,10 @@ Ces fichiers couvrent les données des figures 3 à 10 de `main.pdf`. Une fois l
 
 ## Tracer les courbes
 
-Après les six évaluations, ce job CPU lit les CSV communs et crée les figures 3 à 7 et 9 en PDF et PNG dans `article_results/figures/`. Depuis le Mac, soumets le job après avoir commité les scripts.
+Après les six évaluations, ce job CPU lit les CSV communs et crée les figures 3 à 7 et 9 en PDF et PNG dans `article_results/figures/`. Soumets le job depuis la racine du dépôt sur la frontale Turpan.
 
 ```bash
-bash bin/turpan.sh submit bin/plot_tet_ghost_curves.sh \
+sbatch bin/plot_tet_ghost_curves.sh \
   /work/m24046/m24046mrcr/paper_ghost/article_results
 ```
 

@@ -18,7 +18,7 @@ else
 fi
 cd -- "$bin_dir"
 
-git_commit=${TURPAN_COMMIT:-$(git -C "$bin_dir/.." rev-parse --short HEAD)}
+git_commit=$(git -C "$bin_dir/.." rev-parse --short HEAD)
 echo "Commit: $git_commit"
 echo "Entrypoint: bin/plot_tet_ghost_curves.py"
 
