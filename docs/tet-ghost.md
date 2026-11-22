@@ -89,3 +89,14 @@ Chaque dossier contient `metrics_by_event.csv` et `metrics_summary.csv`. Les job
 Les jobs E5 et E6 enchaînent avec l’annexe A sur les 16 crues de test complètes avec le même checkpoint. `metrics_long_by_event.csv` et `metrics_long_summary.csv` contiennent la MAE toutes les 30 minutes jusqu’à 40 h. Pour E5, `map_figure10.npz` fournit les masques sur le maillage ×8 à 6, 12, 24 et 36 h pour le groupe 3 au pic de 2800 m³/s et au seuil de 10 cm, avec le CSI nodal indiqué dans la figure.
 
 Ces fichiers couvrent les données des figures 3 à 10 de `main.pdf`. Une fois les six dossiers récupérés, construis les figures à partir de ces sorties communes plutôt que depuis les anciens notebooks. Les temps TELEMAC de 27 min et 180 min ne sont pas mesurés par ce job et doivent garder leur provenance séparée.
+
+## Tracer les courbes
+
+Après les six évaluations, ce job CPU lit les CSV communs et crée les figures 3 à 7 et 9 en PDF et PNG dans `article_results/figures/`. Depuis le Mac, soumets le job après avoir commité les scripts.
+
+```bash
+bash bin/turpan.sh submit bin/plot_tet_ghost_curves.sh \
+  /work/m24046/m24046mrcr/paper_ghost/article_results
+```
+
+Si `figures/` existe déjà, ajoute `--output-dir /work/…/autre-dossier` pour conserver la génération précédente. Les cartes des figures 8 et 10 restent dans leurs fichiers NPZ et font l’objet d’un tracé séparé.
