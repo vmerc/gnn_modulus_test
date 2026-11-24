@@ -51,7 +51,10 @@ if not conf_dir.is_dir():
     raise FileNotFoundError(f"Dossier de configuration introuvable: {conf_dir}")
 
 with hydra.initialize_config_dir(version_base=None, config_dir=str(conf_dir)):
-    configs = [hydra.compose(config_name=f"papier_ghost/{name}") for name in ("E1", "E5", "E6")]
+    configs = [
+        hydra.compose(config_name=f"papier_ghost/{name}")
+        for name in ("E1", "E5", "E6", "E7_one_step", "E7")
+    ]
 
 dataset_dir = Path(configs[0].dataset_dir)
 if not dataset_dir.is_dir():
@@ -110,6 +113,9 @@ with TemporaryDirectory(prefix=".check-") as temp_dir:
         cfg.ckpt_path = str(run_dir / f"test-{experiment}")
         if experiment == "E6":
             cfg.init_ckpt_path = str(run_dir / "test-E5")
+        elif experiment == "E7" and cfg.sequence_length > 1:
+            resume_epoch = training.configure_resume(cfg, Path(cfg.ckpt_path))
+            assert resume_epoch == 600
         cfg.num_dataloader_workers = 0
         seed_everything(cfg.seed)
         trainer = SourceNodeTrainer(cfg, logger)
@@ -118,30 +124,35 @@ with TemporaryDirectory(prefix=".check-") as temp_dir:
         check_projected_geometry(dataset, coarse_tri)
 
         hydro = dataset.hydrographs[cfg.hydro_dir[0]]
-        expected_q = np.interp(
-            np.array(timestamps) * cfg.dt_seconds, hydro["time_seconds"], hydro["q_values"][:, 0]
-        )
-        mean = dataset.source_stats["q"].item()
-        std = dataset.source_stats["q_std"].item()
-        assert std > 0, "Hydrogramme de contrôle constant"
-        seen_q = [dataset[i][0]["x_src"][0, 0].item() * std + mean for i in range(len(dataset))]
-        np.testing.assert_allclose(seen_q, expected_q[:len(dataset)], rtol=1e-5, atol=1e-4)
+        seen_q = np.array([dataset[i][0]["x_src"][0].tolist() for i in range(len(dataset))])
+        for offset, feature in enumerate(dataset.source_feature_names):
+            times = (np.array(timestamps) + offset) * cfg.dt_seconds
+            expected_q = np.interp(times, hydro["time_seconds"], hydro["q_values"][:, 0])
+            mean = dataset.source_stats[feature].item()
+            std = dataset.source_stats[f"{feature}_std"].item()
+            assert std > 0, "Hydrogramme de contrôle constant"
+            np.testing.assert_allclose(
+                seen_q[:, offset] * std + mean, expected_q[:len(dataset)], rtol=1e-5, atol=1e-4
+            )
 
         test_epoch = trainer.pf_start_epoch + cfg.get("pf_warmup_epochs", 0)
-        if experiment == "E6":
-            assert trainer.epoch_init == cfg.init_epoch + 1
+        if cfg.sequence_length > 1:
+            assert trainer.epoch_init == cfg.init_epoch + 1 == cfg.pf_start_epoch
             assert trainer.p_tf(trainer.epoch_init) == 1 and trainer.p_tf(test_epoch) == 0
+        if experiment == "E6":
             for filename in ("node_stats.json", "edge_stats.json", "source_stats.json"):
                 assert (Path(cfg.ckpt_path) / filename).read_bytes() == (Path(cfg.init_ckpt_path) / filename).read_bytes()
 
         loss = trainer.train_batch(next(iter(trainer.dataloader)), epoch=test_epoch)
         assert torch.isfinite(loss), loss
-        print(f"{experiment}: {len(dataset)} fenêtres, Q(t) et états amont vérifiés, loss={loss.item():.6g}")
-        if experiment == "E5":
+        print(f"{experiment}: {len(dataset)} fenêtres, {dataset.source_feature_names} et états amont vérifiés, "
+              f"loss={loss.item():.6g}")
+        if experiment in {"E5", "E7"} and cfg.sequence_length == 1:
             save_checkpoint(
                 cfg.ckpt_path, models=trainer.model, optimizer=trainer.optimizer,
                 scheduler=trainer.scheduler, scaler=trainer.scaler, epoch=600,
             )
+        if experiment == "E5":
             (Path(cfg.ckpt_path) / f"{trainer.model.meta.name}.0.610.mdlus").touch()
             resume_epoch = training.configure_resume(cfg, Path(cfg.ckpt_path))
             assert resume_epoch == 600

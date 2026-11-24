@@ -48,6 +48,11 @@ def configure_resume(cfg: DictConfig, ckpt_path: Path) -> int:
         raise FileNotFoundError(f"Aucun checkpoint complet trouvé dans {ckpt_path}")
 
     epoch = max(complete_epochs)
+    init_epoch = cfg.get("init_epoch")
+    if init_epoch is not None and epoch < init_epoch:
+        raise ValueError(
+            f"Checkpoint complet requis à partir de l’époque {init_epoch}, trouvé {epoch} dans {ckpt_path}."
+        )
     with open_dict(cfg):
         cfg.train_from_scratch = False
         cfg.init_ckpt_path = str(ckpt_path)
@@ -87,6 +92,7 @@ class SourceNodeTrainer:
             cli_file=to_absolute_path(cli_file) if cli_file else None,
             inlet_node_lists=inlet_node_lists,
             use_q_feature=self.use_q_feature,
+            use_next_q=cfg.get("use_next_q", False),
             # The split selects how statistics are obtained, independently of the event list.
             split="test" if resuming else "train",
             ckpt_path=stats_ckpt,

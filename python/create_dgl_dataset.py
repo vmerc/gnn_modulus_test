@@ -1137,6 +1137,7 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
         sequence_length=1,
         overlap=0,
         dt_seconds=1800.0,
+        use_next_q=False,
     ):
         if hydro_data_files is None:
             raise ValueError("hydro_data_files is required for TelemacDatasetWithSourceNodes.")
@@ -1151,10 +1152,11 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
         self.dt_seconds = float(dt_seconds)
         self.cli_file = cli_file
         self.use_q_feature = bool(use_q_feature)
+        self.use_next_q = bool(use_next_q)
         self.sequence_meta = []
         self.hydrographs = {}
         self.source_stats = None
-        self.source_feature_names = ["q"]
+        self.source_feature_names = ["q", "q_next"] if self.use_next_q else ["q"]
 
         super().__init__(
             name=name,
@@ -1253,6 +1255,11 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
         hydro = self.hydrographs[hydro_path]
         t_sec = float(ts) * self.dt_seconds
         t_arr = hydro["time_seconds"]
+        if self.use_next_q and not t_arr[0] <= t_sec <= t_arr[-1]:
+            raise ValueError(
+                f"{hydro_path}: débit requis à {t_sec:g} s hors de l’intervalle "
+                f"[{t_arr[0]:g}, {t_arr[-1]:g}] s."
+            )
         q_values = hydro["q_values"]
 
         return np.asarray(
@@ -1271,7 +1278,9 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
 
     def _build_source_features_raw(self, hydro_path, ts):
         q_values = self._source_q_at_ts(hydro_path, ts)
-        return q_values[:, None].astype(np.float32)
+        if self.use_next_q:
+            return np.column_stack((q_values, self._source_q_at_ts(hydro_path, ts + 1)))
+        return q_values[:, None]
 
     def _build_global_q_features_raw(self, hydro_path, ts):
         return self._source_q_at_ts(hydro_path, ts)

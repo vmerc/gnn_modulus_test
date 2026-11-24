@@ -1,0 +1,10 @@
+# @package _global_
+
+defaults:
+  - E5
+  - _self_
+
+experiment: E7
+use_next_q: true
+num_input_features_source: 2
+epochs: 601

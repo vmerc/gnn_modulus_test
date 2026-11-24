@@ -27,7 +27,7 @@ if [ "$#" -eq 2 ] && [ "$2" != resume ]; then
   exit 1
 fi
 
-git_commit=$(git -C "$bin_dir/.." rev-parse --short HEAD)
+git_commit=${TURPAN_COMMIT:-$(git -C "$bin_dir/.." rev-parse --short HEAD)}
 echo "Commit: $git_commit"
 echo "Entrypoint: bin/train_push_source_nodes.py"
 echo "Configuration: $1"

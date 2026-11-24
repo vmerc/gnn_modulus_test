@@ -25,7 +25,7 @@ if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
   exit 1
 fi
 
-git_commit=$(git -C "$bin_dir/.." rev-parse --short HEAD)
+git_commit=${TURPAN_COMMIT:-$(git -C "$bin_dir/.." rev-parse --short HEAD)}
 echo "Commit: $git_commit"
 echo "Entrypoint: bin/eval_tet_ghost.py"
 echo "Configuration: $1"
