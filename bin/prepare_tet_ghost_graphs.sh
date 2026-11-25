@@ -20,4 +20,4 @@ cd -- "$bin_dir"
 
 srun apptainer exec --bind /tmpdir,/work,/users --pwd "$bin_dir" --nv \
   /work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif \
-  python -u prepare_tet_ghost_graphs.py
+  python -u prepare_tet_ghost_graphs.py "$@"

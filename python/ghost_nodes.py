@@ -6,7 +6,8 @@ from pathlib import Path
 PRESCRIBED_Q_BC = (4, 5, 5)
 
 
-def _parse_conlim_rows(cli_path):
+def read_conlim_rows(cli_path):
+    """Read boundary codes and zero-based node indices from a TELEMAC .cli."""
     rows = []
     for line in Path(cli_path).read_text(encoding="utf-8", errors="ignore").splitlines():
         parts = line.split()
@@ -51,7 +52,7 @@ def extract_inlet_node_lists_from_conlim(
     cli_path,
     boundary_type=PRESCRIBED_Q_BC,
 ):
-    rows = _parse_conlim_rows(cli_path)
+    rows = read_conlim_rows(cli_path)
     inlet_node_lists = []
     current_nodes = []
 

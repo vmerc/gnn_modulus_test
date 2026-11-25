@@ -99,7 +99,8 @@ def unique_preserve_order(values: list[int]) -> list[int]:
     return output
 
 
-def boundary_node_indices(triangles: np.ndarray) -> np.ndarray:
+def boundary_edges(triangles: np.ndarray) -> list[tuple[int, int]]:
+    """Return the edges that belong to exactly one triangle."""
     edge_count: dict[tuple[int, int], int] = defaultdict(int)
     for tri in triangles:
         a, b, c = [int(node_id) for node_id in tri]
@@ -107,12 +108,11 @@ def boundary_node_indices(triangles: np.ndarray) -> np.ndarray:
         edge_count[tuple(sorted((b, c)))] += 1
         edge_count[tuple(sorted((c, a)))] += 1
 
-    boundary_nodes = set()
-    for edge, count in edge_count.items():
-        if count != 1:
-            continue
-        boundary_nodes.update(edge)
+    return [edge for edge, count in edge_count.items() if count == 1]
 
+
+def boundary_node_indices(triangles: np.ndarray) -> np.ndarray:
+    boundary_nodes = {node for edge in boundary_edges(triangles) for node in edge}
     if not boundary_nodes:
         raise ValueError("Could not detect boundary nodes on x8 mesh.")
 
