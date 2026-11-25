@@ -26,7 +26,13 @@ from prepare_x8_short_ghost_dataset import (  # noqa: E402
     build_x8_base_dataset,
     find_single_file,
 )
-from python.create_dgl_dataset import add_mesh_info, create_multimesh, load_liq_q_series  # noqa: E402
+from python.create_dgl_dataset import (  # noqa: E402
+    add_mesh_info,
+    create_multimesh,
+    integrate_liq_step,
+    load_liq_q_series,
+    validate_liq_for_integration,
+)
 from python.ghost_nodes import PRESCRIBED_Q_BC, read_conlim_rows  # noqa: E402
 from python.python_code.data_manip.extraction.telemac_file import TelemacFile  # noqa: E402
 
@@ -286,24 +292,14 @@ def inspect_inlet_discharge(
 ) -> None:
     """Intègre le débit du .liq sur un pas et affiche sa répartition sur le ×8."""
     times, flows, labels = load_liq_q_series(hydro_path)
-    times = times.astype(float, copy=False)
     if flows.shape[1] != 1:
         raise ValueError(f"La Têt attend un seul débit amont dans {hydro_path}, trouvé {labels}.")
-    if not (np.all(np.isfinite(times)) and np.all(np.diff(times) > 0)):
-        raise ValueError(f"Les temps dans {hydro_path} doivent être finis et strictement croissants.")
-    if not np.all(np.isfinite(flows)):
-        raise ValueError(f"Les débits dans {hydro_path} doivent être finis.")
+    validate_liq_for_integration(times, flows, hydro_path)
 
     start = start_hour * 3600.0
     stop = start + dt_seconds
-    if not times[0] <= start < stop <= times[-1]:
-        raise ValueError(f"Pas [{start:g}, {stop:g}] s hors de l’hydrogramme {hydro_path}.")
-
-    # Intégrer la ligne brisée du .liq en conservant chaque jalon intérieur au pas.
-    interior_times = times[(start < times) & (times < stop)]
-    step_times = np.concatenate(([start], interior_times, [stop]))
-    step_flows = np.interp(step_times, times, flows[:, 0])
-    volume = np.sum(0.5 * (step_flows[:-1] + step_flows[1:]) * np.diff(step_times))
+    step_flows, volumes = integrate_liq_step(times, flows, start, stop)
+    volume = volumes[0]
     mean_flow = volume / dt_seconds
     linear_flow = mean_flow / sum(node_lengths.values())
     node_flows = {node: linear_flow * length for node, length in node_lengths.items()}
@@ -312,7 +308,7 @@ def inspect_inlet_discharge(
         raise ValueError("La somme des apports aux nœuds ×8 diffère du volume entrant.")
 
     print(f"Hydrogramme {hydro_path} ({labels[0]}), pas [{start_hour:g}, {stop / 3600:g}] h")
-    print(f"  Q(t) = {step_flows[0]:.3f} m³/s, Q(t+Δt) = {step_flows[-1]:.3f} m³/s")
+    print(f"  Q(t) = {step_flows[0, 0]:.3f} m³/s, Q(t+Δt) = {step_flows[-1, 0]:.3f} m³/s")
     print(
         f"  Q moyen = {mean_flow:.3f} m³/s, débit linéique = {linear_flow:.3f} m²/s, "
         f"volume = {volume:.3f} m³"
@@ -321,11 +317,27 @@ def inspect_inlet_discharge(
         print(f"  nœud ×8 {node}, apport = {flow:.3f} m³/s, volume = {flow * dt_seconds:.3f} m³")
 
 
+def export_inlet_section(path: Path, node_lengths: dict[int, float]) -> None:
+    """Enregistre les longueurs P1 à pleine précision pour E8."""
+    section = {"inlet_sections": [[[node, length] for node, length in node_lengths.items()]]}
+    with TemporaryDirectory(prefix=".inlet-section-", dir=path.parent) as temp_dir:
+        temporary = Path(temp_dir) / path.name
+        OmegaConf.save(OmegaConf.create(section), temporary)
+        # Publier le fichier complet et accepter une relance si la géométrie est identique.
+        try:
+            os.link(temporary, path)
+        except FileExistsError:
+            if OmegaConf.to_container(OmegaConf.load(path)) != section:
+                raise FileExistsError(f"La section existe déjà avec une autre géométrie : {path}") from None
+    print(f"Section ×8 enregistrée dans {path}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Prépare les graphes de la Têt.")
     inspection = parser.add_mutually_exclusive_group()
     inspection.add_argument("--inspect-fine-inlet", action="store_true", help="Affiche la section d'entrée fine.")
     inspection.add_argument("--inspect-x8-inlet", action="store_true", help="Affiche les contributions P1 sur le ×8.")
+    inspection.add_argument("--export-inlet-section", action="store_true", help="Enregistre la section ×8 pour E8.")
     inspection.add_argument(
         "--inspect-inlet-discharge", nargs="?", const=17.5, type=float, metavar="HEURE",
         help="Affiche aussi les apports par sommet sur un pas (heure de début par défaut 17,5).",
@@ -335,9 +347,11 @@ def main() -> None:
     if args.inspect_fine_inlet:
         inspect_fine_inlet(Path(cfg.fine_res_dir))
         return
-    if args.inspect_x8_inlet or args.inspect_inlet_discharge is not None:
+    if args.inspect_x8_inlet or args.export_inlet_section or args.inspect_inlet_discharge is not None:
         fine_line = inspect_fine_inlet(Path(cfg.fine_res_dir))
         node_lengths = inspect_x8_inlet(fine_line, Path(cfg.coarse_mesh_path))
+        if args.export_inlet_section:
+            export_inlet_section(Path(cfg.graph_dir) / "inlet_section.yaml", node_lengths)
         if args.inspect_inlet_discharge is not None:
             inspect_inlet_discharge(
                 Path(cfg.hydro_dir[0]), args.inspect_inlet_discharge, cfg.dt_seconds, node_lengths

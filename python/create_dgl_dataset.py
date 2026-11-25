@@ -615,14 +615,18 @@ def collate_source_sequences(batch):
         x_src = torch.cat([item[t]["x_src"] for item in batch], dim=0)
         y_phys = torch.cat([item[t]["y_phys"] for item in batch], dim=0)
 
-        output_sequence.append(
-            {
-                "graph": dgl.batch(graphs),
-                "x_phys": x_phys,
-                "x_src": x_src,
-                "y_phys": y_phys,
-            }
-        )
+        step = {
+            "graph": dgl.batch(graphs),
+            "x_phys": x_phys,
+            "x_src": x_src,
+            "y_phys": y_phys,
+        }
+        if "ghost_edge_features" in batch[0][t]:
+            # dgl.batch concatène les arêtes dans le même ordre que les graphes.
+            step["ghost_edge_features"] = torch.cat(
+                [item[t]["ghost_edge_features"] for item in batch], dim=0
+            )
+        output_sequence.append(step)
 
     return output_sequence
 
@@ -944,6 +948,31 @@ def load_liq_q_series(liq_path):
     return time_seconds, q_values, q_labels
 
 
+def validate_liq_for_integration(times, flows, hydro_path):
+    """Vérifie les temps et les débits avant d'intégrer un hydrogramme."""
+    if len(times) < 2 or not (np.all(np.isfinite(times)) and np.all(np.diff(times) > 0)):
+        raise ValueError(f"Les temps dans {hydro_path} doivent être finis et strictement croissants.")
+    if not np.all(np.isfinite(flows)):
+        raise ValueError(f"Les débits dans {hydro_path} doivent être finis.")
+
+
+def integrate_liq_step(times, flows, start, stop):
+    """Renvoie les débits aux jalons du pas et le volume de chaque entrée."""
+    if not times[0] <= start < stop <= times[-1]:
+        raise ValueError(f"Pas [{start:g}, {stop:g}] s hors de l’hydrogramme.")
+
+    first = np.searchsorted(times, start, side="right")
+    last = np.searchsorted(times, stop, side="left")
+    step_times = np.concatenate(([start], times[first:last], [stop]))
+    # Les jalons intérieurs sont déjà présents dans le .liq.
+    endpoints = np.column_stack([np.interp([start, stop], times, q) for q in flows.T])
+    step_flows = np.concatenate((endpoints[:1], flows[first:last], endpoints[1:]))
+    volume = np.sum(
+        0.5 * (step_flows[:-1] + step_flows[1:]) * np.diff(step_times)[:, None], axis=0
+    )
+    return step_flows, volume
+
+
 def load_liq_hydrograph(liq_path):
     """
     Load TELEMAC .liq hydrograph file and return (time_seconds, discharge_q).
@@ -1111,6 +1140,10 @@ class TelemacDatasetWithQ(TelemacDataset):
         return stats
 
 
+INLET_Q_REF = 1000.0  # m³/s
+INLET_LENGTH_REF = 100.0  # m
+
+
 class TelemacDatasetWithSourceNodes(TelemacDataset):
     """
     Dataset variant that augments the physical mesh with ghost/source inlet nodes.
@@ -1118,6 +1151,7 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
       - x_phys: [N_phys, d_phys]
       - x_src:  [N_src, d_src]
       - y_phys: [N_phys, 3]
+      - ghost_edge_features: [N_ghost_edges, 3] when inlet_sections is provided
     """
 
     def __init__(
@@ -1138,6 +1172,7 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
         overlap=0,
         dt_seconds=1800.0,
         use_next_q=False,
+        inlet_sections=None,
     ):
         if hydro_data_files is None:
             raise ValueError("hydro_data_files is required for TelemacDatasetWithSourceNodes.")
@@ -1145,8 +1180,8 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
             raise ValueError("dynamic_data_files is required for TelemacDatasetWithSourceNodes.")
         if len(dynamic_data_files) != len(hydro_data_files):
             raise ValueError("dynamic_data_files and hydro_data_files must have same length.")
-        if inlet_node_lists is None and cli_file is None:
-            raise ValueError("Provide either cli_file or inlet_node_lists.")
+        if inlet_sections is None and inlet_node_lists is None and cli_file is None:
+            raise ValueError("Provide cli_file, inlet_node_lists or inlet_sections.")
 
         self.hydro_data_files = [str(p) for p in hydro_data_files]
         self.dt_seconds = float(dt_seconds)
@@ -1157,6 +1192,24 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
         self.hydrographs = {}
         self.source_stats = None
         self.source_feature_names = ["q", "q_next"] if self.use_next_q else ["q"]
+        self.inlet_lengths = None
+        if inlet_sections is not None:
+            inlet_node_lists = []
+            inlet_lengths = []
+            for section in inlet_sections:
+                pairs = list(section)
+                nodes = [int(node) for node, _ in pairs]
+                lengths = np.asarray([length for _, length in pairs], dtype=float)
+                if not nodes or len(set(nodes)) != len(nodes) or any(node != int(node) for node, _ in pairs):
+                    raise ValueError("Chaque ouverture doit contenir des identifiants de sommets entiers et uniques.")
+                if not np.all(np.isfinite(lengths) & (lengths > 0)):
+                    raise ValueError("Les longueurs contributives doivent être finies et strictement positives.")
+                inlet_node_lists.append(nodes)
+                inlet_lengths.append(lengths)
+            if not inlet_lengths:
+                raise ValueError("Au moins une ouverture doit être renseignée dans inlet_sections.")
+            self.inlet_lengths = np.concatenate(inlet_lengths)
+            self.inlet_weights = np.concatenate([lengths / lengths.sum() for lengths in inlet_lengths])
 
         super().__init__(
             name=name,
@@ -1240,11 +1293,26 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
                     f"{hydro_path} provides {q_values.shape[1]} Q series but "
                     f"{self.num_source_nodes} source nodes are defined."
                 )
+            if self.inlet_lengths is not None:
+                validate_liq_for_integration(t_arr, q_values, hydro_path)
             self.hydrographs[hydro_path] = {
                 "time_seconds": t_arr,
                 "q_values": q_values,
                 "q_labels": q_labels,
             }
+
+    def _build_ghost_edge_features(self, hydro_path, ts):
+        hydro = self.hydrographs[hydro_path]
+        start = float(ts) * self.dt_seconds
+        _, volume = integrate_liq_step(
+            hydro["time_seconds"], hydro["q_values"], start, start + self.dt_seconds
+        )
+        # Les arêtes sont ordonnées par ghost, puis par destination dans le YAML.
+        mean_flow = np.repeat(volume / self.dt_seconds, [len(nodes) for nodes in self.inlet_node_lists])
+        features = np.zeros((len(self.inlet_lengths), 3), dtype=np.float32)
+        features[:, 0] = self.inlet_weights * mean_flow / INLET_Q_REF
+        features[:, 1] = self.inlet_lengths / INLET_LENGTH_REF
+        return torch.from_numpy(features)
 
     def _source_q_at_ts(self, hydro_path, ts):
         if ts is None:
@@ -1409,14 +1477,15 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
             x_src = torch.tensor(raw_source_features, dtype=torch.float32)
             x_src = self._normalize_source_features(x_src)
 
-            output_sequence.append(
-                {
-                    "graph": self.base_graph_with_sources.clone(),
-                    "x_phys": x_phys,
-                    "x_src": x_src,
-                    "y_phys": torch.tensor(y, dtype=torch.float32),
-                }
-            )
+            step = {
+                "graph": self.base_graph_with_sources.clone(),
+                "x_phys": x_phys,
+                "x_src": x_src,
+                "y_phys": torch.tensor(y, dtype=torch.float32),
+            }
+            if self.inlet_lengths is not None:
+                step["ghost_edge_features"] = self._build_ghost_edge_features(hydro_path, ts)
+            output_sequence.append(step)
 
         return output_sequence
 

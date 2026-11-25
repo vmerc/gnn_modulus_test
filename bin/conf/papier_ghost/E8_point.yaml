@@ -1,0 +1,8 @@
+# @package _global_
+
+defaults:
+  - E8
+  - _self_
+
+experiment: E8_point
+inlet_point_node: 12770

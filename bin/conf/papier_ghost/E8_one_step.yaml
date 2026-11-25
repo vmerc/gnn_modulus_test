@@ -1,0 +1,8 @@
+# @package _global_
+
+defaults:
+  - E7_one_step
+  - _self_
+
+experiment: E8
+inlet_section_path: ${graph_dir}/inlet_section.yaml

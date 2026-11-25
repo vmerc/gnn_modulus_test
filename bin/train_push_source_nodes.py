@@ -20,6 +20,7 @@ if project_path not in sys.path:
 
 from python.create_dgl_dataset import TelemacDatasetWithSourceNodes, collate_source_sequences, save_json
 from python.CustomMeshGraphNet import MeshGraphNetWithSourceNodes
+from python.ghost_nodes import edge_features_with_ghost_forcing, load_inlet_sections
 
 from modulus.distributed.manager import DistributedManager
 from modulus.launch.logging import PythonLogger, RankZeroLoggingWrapper
@@ -75,10 +76,11 @@ class SourceNodeTrainer:
         hydro_files = getattr(cfg, "hydro_dir", None)
         cli_file = getattr(cfg, "cli_file", None)
         inlet_node_lists = getattr(cfg, "inlet_node_lists", None)
+        inlet_sections = load_inlet_sections(cfg)
         if hydro_files is None:
             raise ValueError("hydro_dir is required for source-node training.")
-        if cli_file is None and inlet_node_lists is None:
-            raise ValueError("Provide cli_file or inlet_node_lists in config.")
+        if cli_file is None and inlet_node_lists is None and inlet_sections is None:
+            raise ValueError("Provide cli_file, inlet_node_lists or inlet_section_path in config.")
 
         output_ckpt = to_absolute_path(cfg.ckpt_path)
         resuming = not cfg.get("train_from_scratch", False) and cfg.get("resume_training", True)
@@ -91,6 +93,7 @@ class SourceNodeTrainer:
             hydro_data_files=[to_absolute_path(p) for p in hydro_files],
             cli_file=to_absolute_path(cli_file) if cli_file else None,
             inlet_node_lists=inlet_node_lists,
+            inlet_sections=inlet_sections,
             use_q_feature=self.use_q_feature,
             use_next_q=cfg.get("use_next_q", False),
             # The split selects how statistics are obtained, independently of the event list.
@@ -327,7 +330,7 @@ class SourceNodeTrainer:
         for t in range(k_steps):
             step = sequence[t]
             graph = step["graph"].to(self.dist.device)
-            edge_features = graph.edata["x"].to(self.dist.device)
+            edge_features = edge_features_with_ghost_forcing(graph, step.get("ghost_edge_features"))
 
             with autocast(enabled=self.amp):
                 y_pred_n = self.model(

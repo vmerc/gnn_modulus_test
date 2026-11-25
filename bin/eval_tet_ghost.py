@@ -25,6 +25,7 @@ from python.eval_rollout import (
     denormalize_state,
     renormalize_state,
 )
+from python.ghost_nodes import edge_features_with_ghost_forcing, load_inlet_sections
 from python.python_code.data_manip.extraction.telemac_file import TelemacFile
 from python.python_code.data_manip.formats.regular_grid import interpolate_on_grid
 
@@ -69,6 +70,7 @@ def build_test_dataset(cfg, sequence_length, full=False):
         ],
         hydro_data_files=hydro_files,
         inlet_node_lists=cfg.get("inlet_node_lists"),
+        inlet_sections=load_inlet_sections(cfg),
         cli_file=cfg.get("cli_file"),
         use_q_feature=cfg.use_q_feature,
         use_next_q=cfg.get("use_next_q", False),
@@ -171,14 +173,14 @@ def read_reference_depths(event, fine_res_dir, fine_tri, grid, times, dt_seconds
 
 def rollout(model, graph, sequence, context, n_steps, report_every):
     start = context.dyn_start
-    edge_features = graph.edata["x"]
     x_phys = sequence[0][0]
     static = x_phys[:, :start]
     h_mask = (static[:, :4] == static.new_tensor([0, 1, 0, 0])).all(dim=1)
 
     # POUR chaque pas : prédire un incrément, le dénormaliser et mettre à jour l'état.
     for step in range(1, n_steps + 1):
-        src = sequence[step - 1][1]
+        previous_phys, src, delta_target, ghost_edge_features = sequence[step - 1]
+        edge_features = edge_features_with_ghost_forcing(graph, ghost_edge_features)
         state = denormalize_state(x_phys[:, start:start + 3], context)
         delta = model(graph=graph, x_phys=x_phys, x_src=src, edge_features=edge_features)
         prediction = state + denormalize_delta(delta, context)
@@ -190,7 +192,6 @@ def rollout(model, graph, sequence, context, n_steps, report_every):
                 target = denormalize_state(sequence[step][0][:, start:start + 3], context)
             else:
                 # The last full-event record stores the transition from 39.5 to 40 h.
-                previous_phys, _, delta_target = sequence[step - 1]
                 target = denormalize_state(previous_phys[:, start:start + 3], context)
                 target += denormalize_delta(delta_target.to(context.device), context)
             target[h_mask, 0] = state[h_mask, 0]
@@ -251,12 +252,17 @@ def evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experi
             raise ValueError(f"{event}: indices temporels incorrects dans la fenêtre ×8.")
 
         if fine_csi:
-            # E2/E3/E5/E6 : CHARGER les hauteurs TELEMAC sur la grille commune.
+            # CHARGER les hauteurs TELEMAC sur la grille commune.
             fine_tri, grid, fine_depths = read_reference_depths(
                 event, fine_res_dir, fine_tri, grid, times[steps_per_hour::steps_per_hour], ds.dt_seconds
             )
         sequence = [
-            (sample["x_phys"].to(device), sample["x_src"].to(device), sample["y_phys"])
+            (
+                sample["x_phys"].to(device),
+                sample["x_src"].to(device),
+                sample["y_phys"],
+                sample.get("ghost_edge_features"),
+            )
             for sample in ds[index]
         ]
         if figure8 and event == MAP_EVENT:
@@ -380,12 +386,12 @@ def main():
     with closing(TelemacFile(cfg.coarse_mesh_path)) as coarse_mesh:
         coarse_tri = coarse_mesh.tri
         rows = evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experiment, output_dir)
-        # E1/E4 : MAE seulement ; E2/E3/E5/E6 : ajouter les deux CSI.
+        # AJOUTER les deux CSI pour les expériences avec Q global.
         metrics = STATE_METRICS + CSI_METRICS if ds.use_q_feature else STATE_METRICS
         write_results(rows, output_dir, "metrics", metrics)
         del ds
 
-        if experiment in {"E5", "E6", "E7"}:
+        if experiment in {"E5", "E6", "E7", "E8", "E8_point"}:
             # ANNEXE A : reprendre les mêmes poids pour les rollouts complets de 40 h.
             ds = build_test_dataset(cfg, FULL_HOURS * steps_per_hour, full=True)
             rows = evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experiment, output_dir, full=True)

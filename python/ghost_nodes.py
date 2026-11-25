@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from math import fsum
 from pathlib import Path
 
 
@@ -91,6 +92,24 @@ def normalize_inlet_node_lists(inlet_node_lists):
     return normalized
 
 
+def load_inlet_sections(cfg):
+    """Charge les longueurs P1 produites par la préparation géométrique."""
+    path = cfg.get("inlet_section_path")
+    if path is None:
+        return None
+
+    from omegaconf import OmegaConf
+
+    sections = OmegaConf.load(path).inlet_sections
+    point = cfg.get("inlet_point_node")
+    if point is None:
+        return sections
+
+    if len(sections) != 1 or point not in {node for node, _ in sections[0]}:
+        raise ValueError(f"Le témoin ponctuel {point} doit appartenir à l'unique ouverture de {path}.")
+    return [[(point, fsum(length for _, length in sections[0]))]]
+
+
 def add_ghost_source_nodes(graph, inlet_node_lists, edge_feature_dim):
     import dgl
     import torch
@@ -150,3 +169,14 @@ def add_ghost_source_nodes(graph, inlet_node_lists, edge_feature_dim):
     augmented_graph.ndata["source_id"] = source_id
 
     return augmented_graph
+
+
+def edge_features_with_ghost_forcing(graph, ghost_edge_features=None):
+    """Insère les apports courants dans les lignes des arêtes sortant des ghosts."""
+    edge_features = graph.edata["x"]
+    if ghost_edge_features is None:
+        return edge_features
+
+    src, _ = graph.edges(order="eid")
+    ghost_edges = graph.ndata["is_source"][src, 0].nonzero(as_tuple=True)[0]
+    return edge_features.index_copy(0, ghost_edges, ghost_edge_features.to(edge_features))

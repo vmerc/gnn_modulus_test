@@ -1,0 +1,14 @@
+# @package _global_
+
+defaults:
+  - E8_one_step
+  - _self_
+
+sequence_length: 3
+overlap: 3
+pf_warmup_epochs: 150
+pf_start_epoch: 601
+epochs: 901
+
+train_from_scratch: false
+init_epoch: 600
