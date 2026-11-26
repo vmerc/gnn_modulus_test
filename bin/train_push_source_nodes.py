@@ -94,6 +94,7 @@ class SourceNodeTrainer:
             cli_file=to_absolute_path(cli_file) if cli_file else None,
             inlet_node_lists=inlet_node_lists,
             inlet_sections=inlet_sections,
+            inlet_flow_fractions=cfg.get("inlet_flow_fractions"),
             use_q_feature=self.use_q_feature,
             use_next_q=cfg.get("use_next_q", False),
             # The split selects how statistics are obtained, independently of the event list.

@@ -72,6 +72,7 @@ def build_test_dataset(cfg, sequence_length, full=False):
         hydro_data_files=hydro_files,
         inlet_node_lists=cfg.get("inlet_node_lists"),
         inlet_sections=load_inlet_sections(cfg),
+        inlet_flow_fractions=cfg.get("inlet_flow_fractions"),
         cli_file=cfg.get("cli_file"),
         use_q_feature=cfg.use_q_feature,
         use_next_q=cfg.get("use_next_q", False),
@@ -530,7 +531,7 @@ def main():
         write_results(rows, output_dir, "metrics", metrics)
         del ds
 
-        if experiment in {"E5", "E6", "E7", "E8", "E8_point"}:
+        if experiment in {"E5", "E6", "E7", "E8", "E8_point", "E9"}:
             # ANNEXE A : reprendre les mêmes poids pour les rollouts complets de 40 h.
             ds = build_test_dataset(cfg, FULL_HOURS * steps_per_hour, full=True)
             rows = evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experiment, output_dir, full=True)

@@ -27,8 +27,11 @@ from tempfile import TemporaryDirectory
 
 parser = argparse.ArgumentParser()
 parser.add_argument("bin_dir", type=Path)
-parser.add_argument("--e8", action="store_true", help="Contrôler E8 et son témoin ponctuel.")
+group = parser.add_mutually_exclusive_group()
+group.add_argument("--e8", action="store_true", help="Contrôler E8 et son témoin ponctuel.")
+group.add_argument("--e9", action="store_true", help="Contrôler E9 et ses fractions de débit TELEMAC.")
 args = parser.parse_args()
+check_section = args.e8 or args.e9
 bin_dir = args.bin_dir.resolve()
 sys.path.insert(0, str(bin_dir))
 
@@ -61,8 +64,8 @@ if not conf_dir.is_dir():
 with hydra.initialize_config_dir(version_base=None, config_dir=str(conf_dir)):
     e1 = hydra.compose(config_name="papier_ghost/E1")
     e5 = hydra.compose(config_name="papier_ghost/E5")
-    if args.e8:
-        names = ("E8_one_step", "E8", "E8_point_one_step", "E8_point")
+    if check_section:
+        names = ("E9_one_step", "E9") if args.e9 else ("E8_one_step", "E8", "E8_point_one_step", "E8_point")
         configs = [hydra.compose(config_name=f"papier_ghost/{name}") for name in names]
     else:
         names = ("E6", "E7_one_step", "E7")
@@ -106,15 +109,21 @@ with closing(TelemacFile(str(e1.coarse_mesh_path))) as coarse_mesh:
     coarse_tri = coarse_mesh.tri
 
 
-def check_e8_forcing(dataset, cfg, event_size, start):
+def check_inlet_forcing(dataset, cfg, event_size, start):
     first_sequence = dataset[0]
     graph = dataset.base_graph_with_sources.to(dist.device)
     src, dst = graph.edges(order="eid")
     mask = graph.ndata["is_source"][src, 0]
     nodes = dst[mask].tolist()
-    expected_q = {3751: 89.417, 3756: 1.820, 12770: 489.305}
-    if cfg.experiment == "E8_point":
-        expected_q = {12770: 580.543}
+    expected_q = {
+        "E8": {3751: 89.417, 3756: 1.820, 12770: 489.305},
+        "E8_point": {12770: 580.543},
+        "E9": {3751: 114.353, 3756: 0.234, 12770: 465.955},
+    }[cfg.experiment]
+    expected_lengths = (
+        {12770: 159.987} if cfg.experiment == "E8_point"
+        else {3751: 24.642, 3756: 0.502, 12770: 134.844}
+    )
     assert set(nodes) == expected_q.keys(), nodes
     types = dataset.base_graph.ndata["static"][nodes, :NodeType.SIZE]
     print(f"{cfg.experiment}: types des sommets d’entrée {list(zip(nodes, types.tolist()))}")
@@ -122,7 +131,9 @@ def check_e8_forcing(dataset, cfg, event_size, start):
 
     rows = first_sequence[0]["ghost_edge_features"]
     np.testing.assert_allclose(rows[:, 0].numpy() * 1000, [expected_q[node] for node in nodes], atol=0.001, rtol=0)
-    np.testing.assert_allclose(rows[:, 1].sum().item() * 100, 159.987, atol=0.001, rtol=0)
+    np.testing.assert_allclose(
+        rows[:, 1].numpy() * 100, [expected_lengths[node] for node in nodes], atol=0.001, rtol=0,
+    )
 
     # VÉRIFIER le volume de chaque crue après insertion des lignes dans le batch DGL.
     batched = collate_source_sequences([first_sequence, dataset[event_size]])[0]
@@ -177,7 +188,7 @@ with TemporaryDirectory(prefix=".check-") as temp_dir:
         assert np.any(inlet_deltas[:, 1:] != 0), "Incréments de vitesse nuls à l'entrée Q"
         np.testing.assert_allclose(inlet_states[:-1] + inlet_deltas[:-1], inlet_states[1:], atol=1e-5)
 
-        event_count = 2 if args.e8 else 1
+        event_count = 2 if check_section else 1
         cfg.dynamic_dir = cfg.dynamic_dir[:event_count]
         cfg.hydro_dir = cfg.hydro_dir[:event_count]
         cfg.ckpt_path = str(run_dir / f"test-{experiment}")
@@ -210,8 +221,8 @@ with TemporaryDirectory(prefix=".check-") as temp_dir:
         if cfg.sequence_length > 1:
             assert trainer.epoch_init == cfg.init_epoch + 1 == cfg.pf_start_epoch
             assert trainer.p_tf(trainer.epoch_init) == 1 and trainer.p_tf(test_epoch) == 0
-            if args.e8:
-                check_e8_forcing(dataset, cfg, event_size, timestamps[0] * cfg.dt_seconds)
+            if check_section:
+                check_inlet_forcing(dataset, cfg, event_size, timestamps[0] * cfg.dt_seconds)
         if experiment == "E6":
             for filename in ("node_stats.json", "edge_stats.json", "source_stats.json"):
                 assert (Path(cfg.ckpt_path) / filename).read_bytes() == (Path(cfg.init_ckpt_path) / filename).read_bytes()

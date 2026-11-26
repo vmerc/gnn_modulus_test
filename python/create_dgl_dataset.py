@@ -1173,6 +1173,7 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
         dt_seconds=1800.0,
         use_next_q=False,
         inlet_sections=None,
+        inlet_flow_fractions=None,
     ):
         if hydro_data_files is None:
             raise ValueError("hydro_data_files is required for TelemacDatasetWithSourceNodes.")
@@ -1182,6 +1183,10 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
             raise ValueError("dynamic_data_files and hydro_data_files must have same length.")
         if inlet_sections is None and inlet_node_lists is None and cli_file is None:
             raise ValueError("Provide cli_file, inlet_node_lists or inlet_sections.")
+        if inlet_flow_fractions is not None and (
+            inlet_sections is None or len(inlet_flow_fractions) != len(inlet_sections)
+        ):
+            raise ValueError("Renseigner les fractions de débit pour chaque ouverture géométrique.")
 
         self.hydro_data_files = [str(p) for p in hydro_data_files]
         self.dt_seconds = float(dt_seconds)
@@ -1196,7 +1201,8 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
         if inlet_sections is not None:
             inlet_node_lists = []
             inlet_lengths = []
-            for section in inlet_sections:
+            inlet_weights = []
+            for index, section in enumerate(inlet_sections):
                 pairs = list(section)
                 nodes = [int(node) for node, _ in pairs]
                 lengths = np.asarray([length for _, length in pairs], dtype=float)
@@ -1204,12 +1210,23 @@ class TelemacDatasetWithSourceNodes(TelemacDataset):
                     raise ValueError("Chaque ouverture doit contenir des identifiants de sommets entiers et uniques.")
                 if not np.all(np.isfinite(lengths) & (lengths > 0)):
                     raise ValueError("Les longueurs contributives doivent être finies et strictement positives.")
+                weights = lengths
+                if inlet_flow_fractions is not None:
+                    fractions = inlet_flow_fractions[index]
+                    if set(fractions) != set(nodes):
+                        raise ValueError("Les fractions de débit doivent couvrir les sommets de l'ouverture.")
+                    weights = np.array([fractions[node] for node in nodes], dtype=float)
+                    if not np.all(np.isfinite(weights) & (weights >= 0)) or not np.isclose(
+                        weights.sum(), 1.0, rtol=0.0, atol=1e-9,
+                    ):
+                        raise ValueError("Les fractions de débit doivent être positives ou nulles et sommer à 1.")
                 inlet_node_lists.append(nodes)
                 inlet_lengths.append(lengths)
+                inlet_weights.append(weights / weights.sum())
             if not inlet_lengths:
                 raise ValueError("Au moins une ouverture doit être renseignée dans inlet_sections.")
             self.inlet_lengths = np.concatenate(inlet_lengths)
-            self.inlet_weights = np.concatenate([lengths / lengths.sum() for lengths in inlet_lengths])
+            self.inlet_weights = np.concatenate(inlet_weights)
 
         super().__init__(
             name=name,

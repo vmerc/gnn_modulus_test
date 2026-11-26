@@ -1,0 +1,13 @@
+# @package _global_
+
+defaults:
+  - E8_one_step
+  - _self_
+
+experiment: E9
+
+# Fractions moyennes sur les 24 instantanés du diagnostic TELEMAC inlet_flux.
+inlet_flow_fractions:
+  - 3751: 0.19697629937740052
+    3756: 0.0004034590950471189
+    12770: 0.8026202415275524
