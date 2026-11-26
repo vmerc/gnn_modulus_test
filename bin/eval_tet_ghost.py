@@ -171,6 +171,11 @@ def read_reference_depths(event, fine_res_dir, fine_tri, grid, times, dt_seconds
     return fine_tri, grid, depth_grids
 
 
+def predict_delta(model, graph, x_phys, x_src, ghost_edge_features):
+    edge_features = edge_features_with_ghost_forcing(graph, ghost_edge_features)
+    return model(graph=graph, x_phys=x_phys, x_src=x_src, edge_features=edge_features)
+
+
 def rollout(model, graph, sequence, context, n_steps, report_every):
     start = context.dyn_start
     x_phys = sequence[0][0]
@@ -180,9 +185,8 @@ def rollout(model, graph, sequence, context, n_steps, report_every):
     # POUR chaque pas : prédire un incrément, le dénormaliser et mettre à jour l'état.
     for step in range(1, n_steps + 1):
         previous_phys, src, delta_target, ghost_edge_features = sequence[step - 1]
-        edge_features = edge_features_with_ghost_forcing(graph, ghost_edge_features)
         state = denormalize_state(x_phys[:, start:start + 3], context)
-        delta = model(graph=graph, x_phys=x_phys, x_src=src, edge_features=edge_features)
+        delta = predict_delta(model, graph, x_phys, src, ghost_edge_features)
         prediction = state + denormalize_delta(delta, context)
         # IMPOSER la hauteur aval prescrite portée par l'entrée au temps de prévision.
         prediction[h_mask, 0] = state[h_mask, 0]
@@ -308,18 +312,54 @@ def evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experi
     return rows
 
 
-def write_results(rows, output_dir, prefix, metrics):
-    # ÉCRIRE d'abord une ligne par crue et par horizon.
+@torch.inference_mode()
+def evaluate_one_step(model, ds, coarse_tri, n_steps, device):
+    check_projected_geometry(ds, coarse_tri)
+    context = build_rollout_context(ds, device, ds.use_q_feature)
+    graph = ds.base_graph_with_sources.to(device)
+    types = ds.physical_static[:, :4].to(device)
+    h_mask = (types == types.new_tensor([0, 1, 0, 0])).all(dim=1)
+    expected_times = list(range(SHORT_FIRST_STEP, SHORT_FIRST_STEP + n_steps))
+
+    rows = []
+    for index, event in enumerate(TEST_EVENTS):
+        times = [unpack_dynamic_sample(sample)[2] for sample in ds.sequences[index]]
+        if times != expected_times:
+            raise ValueError(f"{event}: indices temporels incorrects pour l’évaluation à un pas.")
+
+        for ts, sample in zip(times, ds[index]):
+            # Chaque transition repart de l'état de référence et de ses conditions limites.
+            delta = predict_delta(
+                model, graph, sample["x_phys"].to(device), sample["x_src"].to(device),
+                sample.get("ghost_edge_features"),
+            )
+            error_normalized = delta - sample["y_phys"].to(device)
+            mse = error_normalized.square().mean()
+
+            # À état initial commun, l'erreur d'état est celle de l'incrément.
+            # La hauteur aval est imposée dans les deux états, comme dans le rollout.
+            error = error_normalized.abs() * context.delta_std
+            error[h_mask, 0] = 0
+            metrics = torch.cat((error.mean(dim=0), mse.view(1)))
+            start_time_h = ts * ds.dt_seconds / 3600
+            if not torch.isfinite(metrics).all():
+                raise ValueError(f"{event}: erreur non finie pour un départ à {start_time_h:g} h.")
+            rows.append((event, start_time_h, *metrics.tolist()))
+    return rows
+
+
+def write_results(rows, output_dir, prefix, metrics, time_column="horizon_h"):
+    # ÉCRIRE une ligne par crue et par instant évalué.
     with (output_dir / f"{prefix}_by_event.csv").open("w", newline="") as handle:
         writer = csv.writer(handle)
-        writer.writerow(("event", "horizon_h", *metrics))
+        writer.writerow(("event", time_column, *metrics))
         writer.writerows(rows)
 
     # AGRÉGER ensuite la moyenne et l'écart-type population sur les 16 crues.
     by_hour = defaultdict(list)
     for _, horizon, *values in rows:
         by_hour[horizon].append(values)
-    header = ["horizon_h", *(f"{name}_{stat}" for name in metrics for stat in ("mean", "std"))]
+    header = [time_column, *(f"{name}_{stat}" for name in metrics for stat in ("mean", "std"))]
     with (output_dir / f"{prefix}_summary.csv").open("w", newline="") as handle:
         writer = csv.writer(handle)
         writer.writerow(header)
@@ -338,7 +378,9 @@ def main():
     parser = argparse.ArgumentParser(description="Évalue un checkpoint ghost Têt sur les 16 crues de test.")
     parser.add_argument("config", help="Nom du YAML relatif à bin/conf, sans extension")
     parser.add_argument("epoch", type=int, nargs="?", default=900)
+    parser.add_argument("--one-step", action="store_true", help="Repartir de l'état de référence à chaque pas.")
     args = parser.parse_args()
+    print(f"Epoch: {args.epoch}")
     # CHARGER la configuration Hydra de l'expérience demandée.
     with initialize_config_dir(config_dir=str(BIN_DIR / "conf"), version_base=None):
         cfg = compose(config_name=args.config)
@@ -371,15 +413,22 @@ def main():
     model.to(device).eval()
 
     experiment = cfg.experiment
+    result_root = Path(cfg.article_results_dir) / experiment / f"Seed{cfg.seed}"
+    n_steps = MAIN_HOURS * steps_per_hour
+    if args.one_step:
+        ds = build_test_dataset(cfg, n_steps)
+        with closing(TelemacFile(cfg.coarse_mesh_path)) as coarse_mesh:
+            rows = evaluate_one_step(model, ds, coarse_mesh.tri, n_steps, device)
+        output_dir = result_root / f"eval-{args.epoch}-one-step"
+        output_dir.mkdir(parents=True)
+        print(f"Résultats à un pas ({cfg.dt_seconds / 60:g} min) dans {output_dir}")
+        write_results(rows, output_dir, "metrics", STATE_METRICS + ("mse_delta_norm",), time_column="start_time_h")
+        return
+
     fine_res_dir = Path(cfg.fine_res_dir)
     # ÉVALUATION PRINCIPALE : 16 crues et horizons horaires de 1 à 12 h.
-    ds = build_test_dataset(cfg, MAIN_HOURS * steps_per_hour + 1)
-    output_dir = (
-        Path(cfg.article_results_dir)
-        / experiment
-        / f"Seed{cfg.seed}"
-        / f"eval-{args.epoch}"
-    )
+    ds = build_test_dataset(cfg, n_steps + 1)
+    output_dir = result_root / f"eval-{args.epoch}"
     # ÉCRIRE les métriques séparément des checkpoints, sans remplacer un résultat existant.
     output_dir.mkdir(parents=True)
     print(f"Résultats : {output_dir}")
