@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import filecmp
 import os
 import sys
@@ -41,6 +42,7 @@ EXPECTED_NODES = 16_222
 EXPECTED_BASE_EDGES = 96_984
 EXPECTED_MULTIMESH_EDGES = 130_601
 EXPECTED_SELF_LOOPS = 39
+INLET_MIDPOINTS = (np.arange(32) + 0.5) / 32
 
 
 def load_graph(path: Path):
@@ -162,8 +164,8 @@ def fine_inlet_nodes(edges, boundary_types) -> tuple[list[int], list[int]]:
     return ordered, outside
 
 
-def inspect_fine_inlet(source_case_dir: Path) -> np.ndarray:
-    """Affiche la section fine et renvoie ses coordonnées ordonnées."""
+def inspect_fine_inlet(source_case_dir: Path):
+    """Affiche la section fine et renvoie ses nœuds ordonnés et son maillage."""
     cli_path, result_path = find_fine_boundary_files(source_case_dir)
     with closing(TelemacFile(str(result_path), bnd_file=str(cli_path))) as fine_res:
         xy, triangles = add_mesh_info(fine_res)
@@ -186,17 +188,18 @@ def inspect_fine_inlet(source_case_dir: Path) -> np.ndarray:
             f"  extrémité {node} ({x:.3f}, {y:.3f}) {boundary_types[node]}, "
             f"voisin {adjacent} {boundary_types[adjacent]}"
         )
-    return fine_line
+    return nodes, xy, triangles
 
 
-def inspect_x8_inlet(fine_line: np.ndarray, mesh_path: Path) -> dict[int, float]:
-    """Projette la section fine sur le bord ×8 et calcule les contributions P1."""
+def inspect_x8_inlet(fine_line: np.ndarray, mesh_path: Path):
+    """Renvoie les longueurs P1 et leur répartition aux points d'intégration."""
     with closing(TelemacFile(str(mesh_path))) as mesh:
         xy, triangles = add_mesh_info(mesh)
 
     edges = boundary_edges(triangles)
     if not edges:
         raise ValueError("Aucune arête de bord sur le ×8.")
+    edges = np.asarray(edges)
     edge_xy = xy[edges].astype(float)
     starts = edge_xy[:, 0]
     directions = edge_xy[:, 1] - starts
@@ -205,29 +208,29 @@ def inspect_x8_inlet(fine_line: np.ndarray, mesh_path: Path) -> dict[int, float]
         raise ValueError("Le bord ×8 contient une arête de longueur invalide.")
 
     # Subdiviser les arêtes fines pour intégrer les changements d'arête ou de sommet projeté.
-    subdivisions = 32
-    midpoints = (np.arange(subdivisions) + 0.5) / subdivisions
-    node_lengths = np.zeros(len(xy))
-    visited_edges = []
+    sample_nodes = []
+    sample_lengths = []
     max_distance = 0.0
     for start, end in zip(fine_line, fine_line[1:]):
         segment = end - start
-        part_length = np.linalg.norm(segment) / subdivisions
-        points = start + midpoints[:, None] * segment
+        part_length = np.linalg.norm(segment) / len(INLET_MIDPOINTS)
+        points = start + INLET_MIDPOINTS[:, None] * segment
         offsets = points[:, None, :] - starts
         fractions = np.clip(np.sum(offsets * directions, axis=2) / squared_lengths, 0, 1)
         distances = np.linalg.norm(offsets - fractions[:, :, None] * directions, axis=2)
         closest = distances.argmin(axis=1)
-        max_distance = max(max_distance, distances[np.arange(subdivisions), closest].max())
+        rows = np.arange(len(INLET_MIDPOINTS))
+        max_distance = max(max_distance, distances[rows, closest].max())
 
         # Chaque point dépose une part de longueur fine selon les fonctions de forme 1−ξ et ξ.
-        for row, index in enumerate(closest):
-            a, b = edges[index]
-            fraction = fractions[row, index]
-            node_lengths[a] += part_length * (1 - fraction)
-            node_lengths[b] += part_length * fraction
-            visited_edges.append((a, b))
+        fraction = fractions[rows, closest]
+        sample_nodes.append(edges[closest])
+        sample_lengths.append(part_length * np.column_stack((1 - fraction, fraction)))
 
+    sample_nodes = np.stack(sample_nodes)
+    sample_lengths = np.stack(sample_lengths)
+    node_lengths = np.bincount(sample_nodes.ravel(), weights=sample_lengths.ravel())
+    visited_edges = list(map(tuple, sample_nodes.reshape(-1, 2)))
     fine_length = np.linalg.norm(np.diff(fine_line, axis=0), axis=1).sum()
     np.testing.assert_allclose(node_lengths.sum(), fine_length, rtol=1e-10, atol=1e-10)
 
@@ -244,7 +247,7 @@ def inspect_x8_inlet(fine_line: np.ndarray, mesh_path: Path) -> dict[int, float]
         raise ValueError("La projection de la section saute entre des arêtes ×8 non adjacentes.")
     if len(support) < 2:
         raise ValueError("La projection de la section est concentrée sur un seul sommet ×8.")
-    return support
+    return support, sample_nodes, sample_lengths
 
 
 def build_graphs(output_dir: Path, cfg) -> None:
@@ -317,6 +320,148 @@ def inspect_inlet_discharge(
         print(f"  nœud ×8 {node}, apport = {flow:.3f} m³/s, volume = {flow * dt_seconds:.3f} m³")
 
 
+def inward_inlet_normals(nodes, xy, triangles, segments, lengths):
+    """Oriente la normale de chaque arête vers son triangle incident."""
+    normals = np.column_stack((-segments[:, 1], segments[:, 0])) / lengths[:, None]
+    for edge, (a, b) in enumerate(zip(nodes, nodes[1:])):
+        incident = (triangles == a).any(axis=1) & (triangles == b).any(axis=1)
+        triangle, = triangles[incident]
+        opposite, = set(triangle) - {a, b}
+        orientation = normals[edge] @ (xy[opposite] - xy[a])
+        if orientation == 0:
+            raise ValueError(f"Triangle incident dégénéré sur l'arête fine {a}–{b}.")
+        if orientation < 0:
+            normals[edge] *= -1
+    return normals
+
+
+def inlet_flux_snapshots(result_path, hydro_path, nodes, xy, triangles, normals):
+    """Reconstruit le flux normal lors de la montée et au pic échantillonné."""
+    liq_times, liq_flows, _ = load_liq_q_series(hydro_path)
+    validate_liq_for_integration(liq_times, liq_flows, hydro_path)
+    liq_flow, = liq_flows.T
+    with closing(TelemacFile(str(result_path))) as result:
+        result_xy, result_triangles = add_mesh_info(result)
+        if not (np.array_equal(result_xy, xy) and np.array_equal(result_triangles, triangles)):
+            raise ValueError(f"{result_path}: maillage différent de celui qui porte les indices du .cli.")
+        times = result.times
+        records = np.flatnonzero((times >= liq_times[0]) & (times <= liq_times[-1]))
+        if len(records) < 2 or not times[records[0]] <= liq_times[liq_flow.argmax()] <= times[records[-1]]:
+            raise ValueError(f"{result_path}: les sorties couvertes par le .liq ne couvrent pas le pic.")
+        discharges = np.interp(times[records], liq_times, liq_flow)
+        peak = int(discharges.argmax())
+        if peak == 0:
+            raise ValueError(f"{result_path}: aucun enregistrement de montée avant le pic.")
+        rise = discharges[peak] - discharges[0]
+        stages = []
+        for part in (0.5, 0.75):
+            target = discharges[0] + part * rise
+            stages.append((f"Montée {part:.0%}", int(np.argmin(abs(discharges[:peak] - target)))))
+        stages.append(("Pic", peak))
+        variables = (
+            ("WATER DEPTH", "VELOCITY U", "VELOCITY V")
+            if "WATER DEPTH" in result.varnames else ("HAUTEUR D'EAU", "VITESSE U", "VITESSE V")
+        )
+        for stage, index in stages:
+            record = int(records[index])
+            # Interpoler les états nodaux bruts aux mêmes milieux que la projection d'E8.
+            fields = np.column_stack([result.get_data_value(var, record)[nodes] for var in variables])
+            at_midpoints = fields[:-1, None] + INLET_MIDPOINTS[None, :, None] * np.diff(fields, axis=0)[:, None]
+            normal_velocity = (at_midpoints[..., 1:] * normals[:, None]).sum(axis=2)
+            flux = at_midpoints[..., 0] * normal_velocity
+            if not np.isfinite(flux).all():
+                raise ValueError(f"{result_path}: flux normal non fini à t={times[record]:g} s.")
+            yield stage, times[record] / 3600, discharges[index], flux
+
+
+def inspect_inlet_flux(cfg, nodes, xy, triangles, node_lengths, sample_nodes, sample_lengths):
+    """Compare le débit normal TELEMAC et les poids de section déjà utilisés par E8."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    output_dir = Path(cfg.article_results_dir) / "inlet_flux"
+    if output_dir.exists():
+        raise FileExistsError(f"Diagnostic déjà présent : {output_dir}")
+
+    section_path = Path(cfg.graph_dir) / "inlet_section.yaml"
+    section, = OmegaConf.load(section_path).inlet_sections
+    e8_lengths = dict(section)
+    if e8_lengths.keys() != node_lengths.keys():
+        raise ValueError(f"{section_path}: les sommets de la section diffèrent de la projection.")
+    x8_nodes = sorted(node_lengths)
+    lengths_e8 = np.array([e8_lengths[node] for node in x8_nodes])
+    np.testing.assert_allclose(lengths_e8, [node_lengths[node] for node in x8_nodes], rtol=1e-10, atol=1e-8)
+    shares_e8 = lengths_e8 / lengths_e8.sum()
+
+    segments = np.diff(xy[nodes].astype(float), axis=0)
+    lengths = np.linalg.norm(segments, axis=1)
+    normals = inward_inlet_normals(nodes, xy, triangles, segments, lengths)
+    distances = np.cumsum(lengths) - lengths / 2
+    training_hydrographs = {Path(path).name: Path(path) for path in cfg.hydro_dir}
+    result_dir = Path(cfg.fine_res_dir)
+
+    node_rows, profile_rows = [], []
+    fig, axes = plt.subplots(4, 2, figsize=(10, 10), sharex=True, sharey="col", constrained_layout=True)
+    for group, panels in enumerate(axes, start=1):
+        for peak, ax in zip((1800, 3200), panels):
+            event = f"Group_{group}_peak_{peak}"
+            result_path = find_single_file(result_dir, [f"{event}.res", f"{event}_{event}.res"], event)
+            hydro_path = training_hydrographs[f"generated_hydrographs_{event}.liq"]
+            snapshots = inlet_flux_snapshots(result_path, hydro_path, nodes, xy, triangles, normals)
+            for stage, hour, q_liq, flux in snapshots:
+                edge_flows = flux.mean(axis=1) * lengths
+                q_fine = edge_flows.sum()
+                apportioned = np.bincount(
+                    sample_nodes.ravel(), weights=(sample_lengths * flux[..., None]).ravel(),
+                )[x8_nodes]
+                np.testing.assert_allclose(apportioned.sum(), q_fine, rtol=1e-12, atol=1e-9)
+                shares = apportioned / q_fine if q_fine > 0 else np.full(len(x8_nodes), np.nan)
+                reverse_flow = np.maximum(-flux, 0).mean(axis=1) @ lengths
+                delta_q = q_fine - q_liq
+                delta_q_pct = 100 * delta_q / q_liq if q_liq != 0 else np.nan
+                print(
+                    f"{event}, {stage} à {hour:g} h, Q .res = {q_fine:.3f}, Q .liq = {q_liq:.3f} m³/s, "
+                    f"écart = {delta_q:+.3f} m³/s ({delta_q_pct:+.2f} %), flux sortant = {reverse_flow:.3f} m³/s, "
+                    f"parts ×8 = {dict(zip(x8_nodes, np.round(100 * shares, 2).tolist()))} %"
+                )
+                for node, q_node, share, share_e8 in zip(x8_nodes, apportioned, shares, shares_e8):
+                    node_rows.append((
+                        event, stage, hour, q_liq, q_fine, delta_q, delta_q_pct, reverse_flow,
+                        node, q_node, share, share_e8, 100 * (share - share_e8),
+                    ))
+                for a, b, distance, q_edge, length in zip(nodes, nodes[1:], distances, edge_flows, lengths):
+                    profile_rows.append((event, stage, hour, a, b, distance, q_edge / length, q_edge))
+                ax.plot(distances, edge_flows / lengths, label=f"{stage} ({hour:g} h)")
+                if stage == "Pic":
+                    ax.axhline(q_liq / lengths.sum(), color="0.45", linestyle="--", label="E8 uniforme au pic")
+            ax.set_title(f"Groupe {group}, pic {peak} m³/s")
+            ax.legend(fontsize=7)
+        panels[0].set_ylabel("Flux normal (m²/s)")
+    for ax in axes[-1]:
+        ax.set_xlabel(f"Abscisse sur la section fine depuis le nœud {nodes[0]} (m)")
+
+    output_dir.parent.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(prefix=".inlet-flux-", dir=output_dir.parent) as temp_dir:
+        staged = Path(temp_dir)
+        with (staged / "inlet_flux_by_node.csv").open("w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow((
+                "event", "stage", "time_h", "q_liq_m3s", "q_fine_m3s", "delta_q_m3s", "delta_q_pct", "reverse_flow_m3s",
+                "x8_node", "q_node_m3s", "share", "e8_share", "delta_share_pp",
+            ))
+            writer.writerows(node_rows)
+        with (staged / "inlet_flux_profile.csv").open("w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(("event", "stage", "time_h", "start_node", "end_node", "s_mid_m", "q_normal_m2s", "q_edge_m3s"))
+            writer.writerows(profile_rows)
+        fig.savefig(staged / "inlet_flux_profile.pdf")
+        plt.close(fig)
+        staged.rename(output_dir)
+    print(f"Diagnostic du flux sur la section d'entrée : {output_dir}")
+
+
 def export_inlet_section(path: Path, node_lengths: dict[int, float]) -> None:
     """Enregistre les longueurs P1 à pleine précision pour E8."""
     section = {"inlet_sections": [[[node, length] for node, length in node_lengths.items()]]}
@@ -338,6 +483,7 @@ def main() -> None:
     inspection.add_argument("--inspect-fine-inlet", action="store_true", help="Affiche la section d'entrée fine.")
     inspection.add_argument("--inspect-x8-inlet", action="store_true", help="Affiche les contributions P1 sur le ×8.")
     inspection.add_argument("--export-inlet-section", action="store_true", help="Enregistre la section ×8 pour E8.")
+    inspection.add_argument("--inspect-inlet-flux", action="store_true", help="Compare le flux normal TELEMAC aux poids d'E8.")
     inspection.add_argument(
         "--inspect-inlet-discharge", nargs="?", const=17.5, type=float, metavar="HEURE",
         help="Affiche aussi les apports par sommet sur un pas (heure de début par défaut 17,5).",
@@ -347,9 +493,13 @@ def main() -> None:
     if args.inspect_fine_inlet:
         inspect_fine_inlet(Path(cfg.fine_res_dir))
         return
-    if args.inspect_x8_inlet or args.export_inlet_section or args.inspect_inlet_discharge is not None:
-        fine_line = inspect_fine_inlet(Path(cfg.fine_res_dir))
-        node_lengths = inspect_x8_inlet(fine_line, Path(cfg.coarse_mesh_path))
+    if any((args.inspect_x8_inlet, args.export_inlet_section, args.inspect_inlet_discharge is not None, args.inspect_inlet_flux)):
+        nodes, xy, triangles = inspect_fine_inlet(Path(cfg.fine_res_dir))
+        node_lengths, sample_nodes, sample_lengths = inspect_x8_inlet(
+            xy[nodes].astype(float), Path(cfg.coarse_mesh_path),
+        )
+        if args.inspect_inlet_flux:
+            inspect_inlet_flux(cfg, nodes, xy, triangles, node_lengths, sample_nodes, sample_lengths)
         if args.export_inlet_section:
             export_inlet_section(Path(cfg.graph_dir) / "inlet_section.yaml", node_lengths)
         if args.inspect_inlet_discharge is not None:
