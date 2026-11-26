@@ -21,7 +21,7 @@ cd -- "$bin_dir"
 image=/work/conteneurs/sessions-interactives/modulus-24.01-calmip-si.sif
 
 if [ "$#" -lt 1 ]; then
-  echo "Usage: sbatch eval_tet_ghost.sh CONFIG [EPOCH] [--one-step]" >&2
+  echo "Usage: sbatch eval_tet_ghost.sh CONFIG [EPOCH] [--one-step | --diagnostic-against CONFIG]" >&2
   exit 1
 fi
 

@@ -4,6 +4,7 @@ import sys
 from collections import defaultdict
 from contextlib import closing
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from time import perf_counter
 
 import numpy as np
@@ -176,6 +177,28 @@ def predict_delta(model, graph, x_phys, x_src, ghost_edge_features):
     return model(graph=graph, x_phys=x_phys, x_src=x_src, edge_features=edge_features)
 
 
+def evaluation_sequence(ds, index, expected_times, device):
+    times = [unpack_dynamic_sample(sample)[2] for sample in ds.sequences[index]]
+    if times != expected_times:
+        raise ValueError(f"{TEST_EVENTS[index]}: indices temporels incorrects dans la fenêtre ×8.")
+    return [
+        (
+            sample["x_phys"].to(device),
+            sample["x_src"].to(device),
+            sample["y_phys"],
+            sample.get("ghost_edge_features"),
+        )
+        for sample in ds[index]
+    ]
+
+
+def one_step_normalized_error(model, graph, sample, device):
+    # À chaque pas indépendant, x_phys contient l'état de référence.
+    x_phys, x_src, target_delta, ghost_edge_features = sample
+    delta = predict_delta(model, graph, x_phys, x_src, ghost_edge_features)
+    return delta - target_delta.to(device)
+
+
 def rollout(model, graph, sequence, context, n_steps, report_every):
     start = context.dyn_start
     x_phys = sequence[0][0]
@@ -251,24 +274,14 @@ def evaluate(model, ds, fine_res_dir, coarse_tri, steps_per_hour, device, experi
     # POUR chaque crue de test, dérouler le modèle sans réinjecter les états cibles.
     for index, event in enumerate(TEST_EVENTS):
         print(f"Rollout {'complet' if full else 'sur fenêtre courte'} {event}")
-        times = [unpack_dynamic_sample(sample)[2] for sample in ds.sequences[index]]
-        if times != expected_times:
-            raise ValueError(f"{event}: indices temporels incorrects dans la fenêtre ×8.")
+        sequence = evaluation_sequence(ds, index, expected_times, device)
 
         if fine_csi:
             # CHARGER les hauteurs TELEMAC sur la grille commune.
             fine_tri, grid, fine_depths = read_reference_depths(
-                event, fine_res_dir, fine_tri, grid, times[steps_per_hour::steps_per_hour], ds.dt_seconds
+                event, fine_res_dir, fine_tri, grid,
+                expected_times[steps_per_hour::steps_per_hour], ds.dt_seconds,
             )
-        sequence = [
-            (
-                sample["x_phys"].to(device),
-                sample["x_src"].to(device),
-                sample["y_phys"],
-                sample.get("ghost_edge_features"),
-            )
-            for sample in ds[index]
-        ]
         if figure8 and event == MAP_EVENT:
             write_rollout_timing(model, graph, sequence, context, steps_per_hour, output_dir)
 
@@ -323,17 +336,9 @@ def evaluate_one_step(model, ds, coarse_tri, n_steps, device):
 
     rows = []
     for index, event in enumerate(TEST_EVENTS):
-        times = [unpack_dynamic_sample(sample)[2] for sample in ds.sequences[index]]
-        if times != expected_times:
-            raise ValueError(f"{event}: indices temporels incorrects pour l’évaluation à un pas.")
-
-        for ts, sample in zip(times, ds[index]):
-            # Chaque transition repart de l'état de référence et de ses conditions limites.
-            delta = predict_delta(
-                model, graph, sample["x_phys"].to(device), sample["x_src"].to(device),
-                sample.get("ghost_edge_features"),
-            )
-            error_normalized = delta - sample["y_phys"].to(device)
+        sequence = evaluation_sequence(ds, index, expected_times, device)
+        for ts, sample in zip(expected_times, sequence):
+            error_normalized = one_step_normalized_error(model, graph, sample, device)
             mse = error_normalized.square().mean()
 
             # À état initial commun, l'erreur d'état est celle de l'incrément.
@@ -346,6 +351,41 @@ def evaluate_one_step(model, ds, coarse_tri, n_steps, device):
                 raise ValueError(f"{event}: erreur non finie pour un départ à {start_time_h:g} h.")
             rows.append((event, start_time_h, *metrics.tolist()))
     return rows
+
+
+@torch.inference_mode()
+def spatial_errors(model, ds, coarse_tri, steps_per_hour, last_hour, device):
+    """Calcule les erreurs par sommet ×8 pour chaque crue de test."""
+    check_projected_geometry(ds, coarse_tri)
+    context = build_rollout_context(ds, device, ds.use_q_feature)
+    graph = ds.base_graph_with_sources.to(device)
+    n_steps = MAIN_HOURS * steps_per_hour
+    expected_times = list(range(SHORT_FIRST_STEP, SHORT_FIRST_STEP + n_steps + 1))
+
+    mae_u, bias_u, mae_h = [], [], []
+    for index, event in enumerate(TEST_EVENTS):
+        sequence = evaluation_sequence(ds, index, expected_times, device)
+        error_u = torch.stack([
+            one_step_normalized_error(model, graph, sample, device)[:, 1]
+            for sample in sequence[:-1]
+        ]) * context.delta_std[1]
+        # L'écart est signé avant de calculer le biais et la moyenne des erreurs absolues.
+        mae_u.append(error_u.abs().mean(dim=0).cpu().numpy())
+        bias_u.append(error_u.mean(dim=0).cpu().numpy())
+
+        error_h = torch.stack([
+            (prediction[:, 0] - target[:, 0]).abs()
+            for _, prediction, target in rollout(
+                model, graph, sequence, context, last_hour * steps_per_hour, steps_per_hour
+            )
+        ])
+        mae_h.append(error_h.cpu().numpy())
+        print(f"Erreurs spatiales calculées pour {event}")
+
+    fields = tuple(np.stack(series) for series in (mae_u, bias_u, mae_h))
+    if any(not np.isfinite(field).all() for field in fields):
+        raise ValueError("Erreurs non finies dans le diagnostic spatial.")
+    return fields
 
 
 def write_results(rows, output_dir, prefix, metrics, time_column="horizon_h"):
@@ -374,22 +414,7 @@ def write_results(rows, output_dir, prefix, metrics, time_column="horizon_h"):
             print(",".join(str(value) for value in summary))
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Évalue un checkpoint ghost Têt sur les 16 crues de test.")
-    parser.add_argument("config", help="Nom du YAML relatif à bin/conf, sans extension")
-    parser.add_argument("epoch", type=int, nargs="?", default=900)
-    parser.add_argument("--one-step", action="store_true", help="Repartir de l'état de référence à chaque pas.")
-    args = parser.parse_args()
-    print(f"Epoch: {args.epoch}")
-    # CHARGER la configuration Hydra de l'expérience demandée.
-    with initialize_config_dir(config_dir=str(BIN_DIR / "conf"), version_base=None):
-        cfg = compose(config_name=args.config)
-
-    steps_per_hour = int(3600 / cfg.dt_seconds)
-    if steps_per_hour * cfg.dt_seconds != 3600 or steps_per_hour < 1:
-        raise ValueError("Le pas de temps doit diviser une heure pour l’évaluation à horizons fixes.")
-    # CHARGER le modèle et le checkpoint demandé sur le GPU.
-    device = torch.device("cuda")
+def load_source_model(cfg, config_name, epoch, device):
     hidden_dim = cfg.get("hidden_dim", 64)
     model = MeshGraphNetWithSourceNodes(
         input_dim_nodes_phys=cfg.num_input_features,
@@ -405,15 +430,80 @@ def main():
         num_processor_checkpoint_segments=cfg.num_processor_checkpoint_segments,
     )
     checkpoint_dir = Path(cfg.ckpt_path)
-    weights = checkpoint_dir / f"{model.meta.name}.0.{args.epoch}.mdlus"
+    weights = checkpoint_dir / f"{model.meta.name}.0.{epoch}.mdlus"
     if not weights.is_file():
         raise FileNotFoundError(f"Checkpoint introuvable : {weights}")
-    print(f"Évaluation {args.config}, checkpoint {weights}")
+    print(f"Évaluation {config_name}, checkpoint {weights}")
     model.load(str(weights))
-    model.to(device).eval()
+    return model.to(device).eval()
+
+
+def run_spatial_diagnostic(configs, config_names, epoch, steps_per_hour, device, output_dir):
+    from plot_tet_ghost_diagnostics import write_diagnostics
+
+    cfg, reference = configs
+    if cfg.experiment == reference.experiment:
+        raise ValueError("Choisir deux expériences distinctes pour le diagnostic.")
+    for key in ("dataset_dir", "short_data_dir", "hydro_data_dir", "coarse_mesh_path", "data_dir", "dt_seconds", "seed"):
+        if cfg.get(key) != reference.get(key):
+            raise ValueError(f"Le diagnostic spatial exige la même valeur de {key} dans les deux configurations.")
+
+    horizons = tuple(range(1, 7))
+    inlet_nodes = set()
+    errors = []
+    with closing(TelemacFile(cfg.coarse_mesh_path)) as coarse_mesh:
+        for config, name in zip(configs, config_names):
+            model = load_source_model(config, name, epoch, device)
+            ds = build_test_dataset(config, MAIN_HOURS * steps_per_hour + 1)
+            inlet_nodes.update(node for section in ds.inlet_node_lists for node in section)
+            errors.append(spatial_errors(model, ds, coarse_mesh.tri, steps_per_hour, horizons[-1], device))
+            del model, ds
+
+        mae_u, bias_u, mae_h = (np.stack(pair) for pair in zip(*errors))
+        experiments = (cfg.experiment, reference.experiment)
+        output_dir.parent.mkdir(parents=True, exist_ok=True)
+        # Publier ensemble les cartes et les données une fois le calcul terminé.
+        with TemporaryDirectory(prefix=".diagnostic-", dir=output_dir.parent) as temp_dir:
+            write_diagnostics(
+                Path(temp_dir), coarse_mesh.tri, sorted(inlet_nodes), TEST_EVENTS, horizons,
+                experiments, mae_u, bias_u, mae_h, step_hours=cfg.dt_seconds / 3600,
+            )
+            Path(temp_dir).rename(output_dir)
+    print(f"Diagnostic spatial : {output_dir}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Évalue un checkpoint ghost Têt sur les 16 crues de test.")
+    parser.add_argument("config", help="Nom du YAML relatif à bin/conf, sans extension")
+    parser.add_argument("epoch", type=int, nargs="?", default=900)
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--one-step", action="store_true", help="Repartir de l'état de référence à chaque pas.")
+    modes.add_argument("--diagnostic-against", metavar="CONFIG", help="Comparer les erreurs spatiales de deux modèles.")
+    args = parser.parse_args()
+    print(f"Epoch: {args.epoch}")
+    with initialize_config_dir(config_dir=str(BIN_DIR / "conf"), version_base=None):
+        cfg = compose(config_name=args.config)
+        if args.diagnostic_against:
+            reference = compose(config_name=args.diagnostic_against)
+
+    steps_per_hour = int(3600 / cfg.dt_seconds)
+    if steps_per_hour * cfg.dt_seconds != 3600 or steps_per_hour < 1:
+        raise ValueError("Le pas de temps doit diviser une heure pour l’évaluation à horizons fixes.")
+    device = torch.device("cuda")
 
     experiment = cfg.experiment
     result_root = Path(cfg.article_results_dir) / experiment / f"Seed{cfg.seed}"
+    if args.diagnostic_against:
+        output_dir = result_root / f"diagnostic-{args.epoch}-vs-{reference.experiment}"
+        if output_dir.exists():
+            raise FileExistsError(f"Diagnostic déjà présent : {output_dir}")
+        run_spatial_diagnostic(
+            (cfg, reference), (args.config, args.diagnostic_against),
+            args.epoch, steps_per_hour, device, output_dir,
+        )
+        return
+
+    model = load_source_model(cfg, args.config, args.epoch, device)
     n_steps = MAIN_HOURS * steps_per_hour
     if args.one_step:
         ds = build_test_dataset(cfg, n_steps)
